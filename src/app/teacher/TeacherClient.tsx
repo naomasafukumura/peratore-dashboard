@@ -43,8 +43,7 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
   const [loading, setLoading] = useState(false);
 
   // 新規パターン入力
-  const [fppIntro, setFppIntro] = useState('');
-  const [fppQuestion, setFppQuestion] = useState('');
+  const [fpp, setFpp] = useState('');
   const [spp, setSpp] = useState('');
   const [situation, setSituation] = useState('');
   const [saving, setSaving] = useState(false);
@@ -98,7 +97,7 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
   };
 
   const addPattern = async () => {
-    if (!fppQuestion.trim() || !spp.trim() || !selectedChunk) return;
+    if (!fpp.trim() || !spp.trim() || !selectedChunk) return;
     setSaving(true);
 
     const res = await fetch('/api/patterns', {
@@ -108,17 +107,14 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
         chunkId: selectedChunk.id,
         setNumber: patterns.length + 1,
         situation: situation.trim() || null,
-        fppIntro: fppIntro.trim() || null,
-        fppQuestion: fppQuestion.trim(),
+        fppQuestion: fpp.trim(),
         spp: spp.trim(),
       }),
     });
 
     if (res.ok) {
-      // リロード
       await loadPatterns(selectedChunk);
-      setFppIntro('');
-      setFppQuestion('');
+      setFpp('');
       setSpp('');
       setSituation('');
     }
@@ -310,25 +306,16 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-text-muted mb-1">FPP 前振り（任意）</label>
+                    <label className="block text-xs text-text-muted mb-1">FPP <span className="text-error">*</span></label>
                     <input
-                      value={fppIntro}
-                      onChange={(e) => setFppIntro(e.target.value)}
-                      placeholder="例: So it's the weekend soon."
-                      className="w-full px-4 py-2.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-text-muted mb-1">FPP 質問 <span className="text-error">*</span></label>
-                    <input
-                      value={fppQuestion}
-                      onChange={(e) => setFppQuestion(e.target.value)}
+                      value={fpp}
+                      onChange={(e) => setFpp(e.target.value)}
                       placeholder="例: What are you gonna do?"
                       className="w-full px-4 py-2.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-text-muted mb-1">SPP 回答 <span className="text-error">*</span></label>
+                    <label className="block text-xs text-text-muted mb-1">SPP <span className="text-error">*</span></label>
                     <input
                       value={spp}
                       onChange={(e) => setSpp(e.target.value)}
@@ -338,7 +325,7 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
                   </div>
                   <button
                     onClick={addPattern}
-                    disabled={saving || !fppQuestion.trim() || !spp.trim()}
+                    disabled={saving || !fpp.trim() || !spp.trim()}
                     className="w-full px-4 py-3 bg-primary text-white rounded-[var(--radius-button)] font-medium text-sm hover:bg-primary-dark active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   >
                     {saving ? '追加中...' : 'パターンを追加'}
