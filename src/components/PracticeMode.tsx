@@ -1,291 +1,247 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import Timer from './Timer';
+import Link from 'next/link';
 
 interface Pattern {
   id: number;
-  set_number: number;
-  situation: string;
+  situation: string | null;
   fpp_intro: string | null;
   fpp_question: string;
   spp: string;
-  character: string;
   has_fpp_intro_audio: boolean;
   has_fpp_question_audio: boolean;
   has_spp_audio: boolean;
 }
 
-type PracticeStep = 'situation' | 'fpp_intro' | 'fpp_question' | 'thinking' | 'answer';
+type Step = 'ready' | 'fpp' | 'thinking' | 'answer';
 
-interface PracticeModeProps {
+interface Props {
   patterns: Pattern[];
   chunkTitle: string;
+  chunkTitleJp: string;
 }
 
-export default function PracticeMode({ patterns, chunkTitle }: PracticeModeProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [step, setStep] = useState<PracticeStep>('situation');
+export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Props) {
+  const [index, setIndex] = useState(0);
+  const [step, setStep] = useState<Step>('ready');
+  const [timer, setTimer] = useState(5);
+  const [timerActive, setTimerActive] = useState(false);
   const [timerDuration, setTimerDuration] = useState(5);
-  const [showSettings, setShowSettings] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const pattern = patterns[currentIndex];
-  const totalPatterns = patterns.length;
+  const pattern = patterns[index];
+  const total = patterns.length;
+  const progress = total > 0 ? ((index) / total) * 100 : 0;
 
-  const playAudio = useCallback((patternId: number, audioType: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+  // タイマー
+  useEffect(() => {
+    if (!timerActive) return;
+    if (timer <= 0) {
+      setTimerActive(false);
+      setStep('answer');
+      if (pattern?.has_spp_audio) {
+        playAudio(pattern.id, 'spp');
       }
-      const audio = new Audio(`/api/audio/${patternId}?type=${audioType}`);
-      audioRef.current = audio;
+      return;
+    }
+    const interval = setInterval(() => setTimer(t => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [timerActive, timer]);
+
+  const playAudio = useCallback((patternId: number, type: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    const audio = new Audio(`/api/audio/${patternId}?type=${type}`);
+    audioRef.current = audio;
+    return new Promise<void>((resolve) => {
       audio.onended = () => resolve();
       audio.onerror = () => resolve();
       audio.play().catch(() => resolve());
     });
   }, []);
 
-  const advanceStep = useCallback(async () => {
+  const handleTap = useCallback(async () => {
     if (!pattern) return;
 
     switch (step) {
-      case 'situation':
-        // FPP前振りがあればそれを再生、なければFPP質問へ
+      case 'ready': {
+        setStep('fpp');
+        // FPP前振りがあれば再生
         if (pattern.fpp_intro && pattern.has_fpp_intro_audio) {
-          setStep('fpp_intro');
           await playAudio(pattern.id, 'fpp_intro');
-          setStep('fpp_question');
-          if (pattern.has_fpp_question_audio) {
-            await playAudio(pattern.id, 'fpp_question');
-          }
-          setStep('thinking');
-        } else if (pattern.has_fpp_question_audio) {
-          setStep('fpp_question');
-          await playAudio(pattern.id, 'fpp_question');
-          setStep('thinking');
-        } else {
-          setStep('fpp_question');
         }
-        break;
-
-      case 'fpp_question':
+        // FPP質問を再生
+        if (pattern.has_fpp_question_audio) {
+          await playAudio(pattern.id, 'fpp_question');
+        }
+        // タイマー開始
         setStep('thinking');
+        setTimer(timerDuration);
+        setTimerActive(true);
         break;
-
-      case 'thinking':
+      }
+      case 'fpp':
+        break; // 再生中は何もしない
+      case 'thinking': {
+        // タイマースキップ
+        setTimerActive(false);
         setStep('answer');
         if (pattern.has_spp_audio) {
           await playAudio(pattern.id, 'spp');
         }
         break;
-
-      case 'answer':
-        // 次のパターンへ
-        if (currentIndex < totalPatterns - 1) {
-          setCurrentIndex(currentIndex + 1);
-          setStep('situation');
+      }
+      case 'answer': {
+        if (index < total - 1) {
+          setIndex(index + 1);
+          setStep('ready');
         }
         break;
+      }
     }
-  }, [step, pattern, currentIndex, totalPatterns, playAudio]);
+  }, [step, pattern, index, total, playAudio, timerDuration]);
 
-  const handleTimerComplete = useCallback(() => {
-    setStep('answer');
-    if (pattern?.has_spp_audio) {
-      playAudio(pattern.id, 'spp');
-    }
-  }, [pattern, playAudio]);
-
-  const goBack = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (step === 'situation' && currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-      setStep('situation');
-    } else {
-      setStep('situation');
-    }
-  }, [step, currentIndex]);
-
-  // キーボードショートカット
+  // キーボード操作
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        advanceStep();
-      }
-      if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
-        e.preventDefault();
-        goBack();
+        handleTap();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [advanceStep, goBack]);
+  }, [handleTap]);
 
+  // 完了画面
   if (!pattern) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
-        <p className="text-2xl font-bold text-white mb-4">練習完了!</p>
-        <p className="text-zinc-400 mb-8">{totalPatterns}問すべて終わりました</p>
-        <a
+      <div className="min-h-screen bg-bg-page flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mb-6">
+          <span className="text-4xl">🎉</span>
+        </div>
+        <h2 className="text-2xl font-bold text-text-dark mb-2">練習完了!</h2>
+        <p className="text-text-muted mb-8">{total}問すべて終わりました</p>
+        <Link
           href="/practice"
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500"
+          className="px-8 py-3 bg-primary text-white rounded-[var(--radius-button)] font-medium hover:bg-primary-dark transition-all"
         >
-          カテゴリ選択に戻る
-        </a>
+          チャンク選択に戻る
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-[80vh]">
+    <div className="min-h-screen bg-bg-page flex flex-col">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-        <a href="/practice" className="text-zinc-400 hover:text-white text-sm">← 戻る</a>
-        <span className="text-sm text-zinc-400">{currentIndex + 1} / {totalPatterns}</span>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="text-zinc-400 hover:text-white text-sm"
-        >
-          ⚙
-        </button>
-      </div>
-
-      {/* 設定パネル */}
-      {showSettings && (
-        <div className="p-4 bg-zinc-900 border-b border-zinc-800">
-          <label className="flex items-center gap-3 text-sm text-zinc-300">
-            タイマー:
-            <input
-              type="range"
-              min={3}
-              max={15}
-              value={timerDuration}
-              onChange={(e) => setTimerDuration(parseInt(e.target.value))}
-              className="flex-1"
-            />
-            <span className="w-8 text-right">{timerDuration}秒</span>
-          </label>
+      <header className="bg-bg-card border-b border-border px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center justify-between">
+          <Link href="/practice" className="text-text-muted hover:text-text-dark text-sm transition-colors">← 戻る</Link>
+          <span className="text-sm font-medium text-text-dark">{index + 1} / {total}</span>
+          <button
+            onClick={() => {
+              const d = prompt('タイマー秒数を入力', String(timerDuration));
+              if (d) setTimerDuration(parseInt(d) || 5);
+            }}
+            className="text-text-light hover:text-text-muted text-sm transition-colors"
+          >
+            ⚙ {timerDuration}秒
+          </button>
         </div>
-      )}
+      </header>
 
       {/* プログレスバー */}
-      <div className="h-1 bg-zinc-800">
+      <div className="h-1 bg-border">
         <div
-          className="h-full bg-blue-600 transition-all duration-300"
-          style={{ width: `${((currentIndex) / totalPatterns) * 100}%` }}
+          className="h-full bg-primary transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* メインコンテンツ */}
-      <div
-        className="flex-1 flex flex-col items-center justify-center p-6 gap-6 cursor-pointer select-none"
-        onClick={advanceStep}
+      {/* メイン */}
+      <main
+        className="flex-1 flex flex-col items-center justify-center px-6 py-8 cursor-pointer select-none"
+        onClick={handleTap}
       >
-        {/* チャンクタイトル */}
-        <p className="text-sm text-zinc-500 font-medium">{chunkTitle}</p>
+        <div className="max-w-md w-full space-y-6 text-center">
+          {/* チャンクタイトル */}
+          <p className="text-xs text-primary font-semibold uppercase tracking-wider">{chunkTitle}</p>
 
-        {/* シチュエーション（常に表示） */}
-        <div className="text-center max-w-md">
-          <p className="text-zinc-300 text-base leading-relaxed">
-            {pattern.situation}
-          </p>
-        </div>
+          {/* シチュエーション */}
+          {step === 'ready' && pattern.situation && (
+            <div className="bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-6 border border-border">
+              <p className="text-text-dark leading-relaxed">{pattern.situation}</p>
+            </div>
+          )}
 
-        {/* FPP前振り */}
-        {(step === 'fpp_intro' || step === 'fpp_question' || step === 'thinking' || step === 'answer') &&
-          pattern.fpp_intro && (
-            <div className="text-center">
-              <p className="text-zinc-500 text-xs mb-1">前振り</p>
-              <p className="text-white text-lg italic">
-                &ldquo;{pattern.fpp_intro}&rdquo;
+          {/* Ready状態 */}
+          {step === 'ready' && (
+            <div className="py-8">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">▶</span>
+              </div>
+              <p className="text-text-light text-sm">タップして開始</p>
+            </div>
+          )}
+
+          {/* FPP表示 */}
+          {(step === 'fpp' || step === 'thinking' || step === 'answer') && (
+            <div className="space-y-3">
+              {pattern.fpp_intro && (
+                <p className="text-text-muted italic">&ldquo;{pattern.fpp_intro}&rdquo;</p>
+              )}
+              <p className="text-xl font-semibold text-text-dark">
+                &ldquo;{pattern.fpp_question}&rdquo;
               </p>
             </div>
           )}
 
-        {/* FPP質問 */}
-        {(step === 'fpp_question' || step === 'thinking' || step === 'answer') && (
-          <div className="text-center">
-            <p className="text-white text-xl font-semibold">
-              &ldquo;{pattern.fpp_question}&rdquo;
-            </p>
-          </div>
-        )}
+          {/* タイマー */}
+          {step === 'thinking' && (
+            <div className="py-4">
+              <div className="relative w-24 h-24 mx-auto">
+                <svg width="96" height="96" viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="var(--border)" strokeWidth="4" />
+                  <circle
+                    cx="48" cy="48" r="42"
+                    fill="none" stroke="var(--primary)" strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray={264}
+                    strokeDashoffset={264 * (1 - timer / timerDuration)}
+                    transform="rotate(-90 48 48)"
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-primary">
+                  {timer}
+                </span>
+              </div>
+              <p className="text-text-light text-sm mt-3">英語で考えてみよう</p>
+            </div>
+          )}
 
-        {/* タイマー */}
-        {step === 'thinking' && (
-          <Timer
-            duration={timerDuration}
-            onComplete={handleTimerComplete}
-            isRunning={true}
-          />
-        )}
+          {/* 正解 */}
+          {step === 'answer' && (
+            <div className="bg-success/5 rounded-[var(--radius-card)] p-6 border border-success/20">
+              <p className="text-xs text-success font-semibold mb-2">Answer</p>
+              <p className="text-xl font-bold text-success">
+                &ldquo;{pattern.spp}&rdquo;
+              </p>
+            </div>
+          )}
 
-        {/* 正解（SPP） */}
-        {step === 'answer' && (
-          <div className="text-center bg-zinc-800 rounded-xl p-6 max-w-md w-full">
-            <p className="text-green-400 text-xl font-bold">
-              &ldquo;{pattern.spp}&rdquo;
-            </p>
-          </div>
-        )}
-
-        {/* 操作ヒント */}
-        <div className="text-zinc-600 text-xs mt-4">
-          {step === 'situation' && 'タップして開始'}
-          {step === 'fpp_intro' && '音声再生中...'}
-          {step === 'fpp_question' && (pattern.has_fpp_question_audio ? '音声再生中...' : 'タップして次へ')}
-          {step === 'thinking' && 'タイマー終了を待つか、タップでスキップ'}
-          {step === 'answer' && (currentIndex < totalPatterns - 1 ? 'タップで次へ' : 'タップで完了')}
+          {/* ヒント */}
+          <p className="text-text-light text-xs">
+            {step === 'fpp' && '音声再生中...'}
+            {step === 'thinking' && 'タップでスキップ'}
+            {step === 'answer' && (index < total - 1 ? 'タップで次へ' : 'タップで完了')}
+          </p>
         </div>
-      </div>
-
-      {/* 下部ナビ */}
-      <div className="flex items-center justify-between p-4 border-t border-zinc-800">
-        <button
-          onClick={(e) => { e.stopPropagation(); goBack(); }}
-          className="px-4 py-2 text-zinc-400 hover:text-white text-sm"
-          disabled={currentIndex === 0 && step === 'situation'}
-        >
-          ← 前へ
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // リプレイ
-            if (audioRef.current) {
-              audioRef.current.pause();
-              audioRef.current = null;
-            }
-            setStep('situation');
-          }}
-          className="px-4 py-2 text-zinc-400 hover:text-white text-sm"
-        >
-          🔄 もう一度
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (currentIndex < totalPatterns - 1) {
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-              }
-              setCurrentIndex(currentIndex + 1);
-              setStep('situation');
-            }
-          }}
-          className="px-4 py-2 text-zinc-400 hover:text-white text-sm"
-          disabled={currentIndex >= totalPatterns - 1}
-        >
-          次へ →
-        </button>
-      </div>
+      </main>
     </div>
   );
 }

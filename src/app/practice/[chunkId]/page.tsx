@@ -19,8 +19,8 @@ export default async function PracticeChunkPage({
 
   if (!chunk) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <p className="text-zinc-400">チャンクが見つかりません</p>
+      <div className="min-h-screen bg-bg-page flex items-center justify-center">
+        <p className="text-text-muted">チャンクが見つかりません</p>
       </div>
     );
   }
@@ -35,12 +35,11 @@ export default async function PracticeChunkPage({
     ORDER BY p.sort_order
   `;
 
-  const chunkTitle = `${chunk.title_en}${chunk.title_jp ? ` (${chunk.title_jp})` : ''}`;
-
   return (
-    <div className="min-h-screen bg-zinc-950">
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <PracticeMode patterns={patterns as any} chunkTitle={chunkTitle} />
-    </div>
+    <PracticeMode
+      patterns={patterns as any}
+      chunkTitle={chunk.title_en}
+      chunkTitleJp={chunk.title_jp || ''}
+    />
   );
 }
