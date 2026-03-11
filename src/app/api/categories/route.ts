@@ -1,5 +1,5 @@
 import { sql } from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   const categories = await sql`
@@ -20,4 +20,20 @@ export async function GET() {
   `;
 
   return NextResponse.json(categories);
+}
+
+export async function POST(request: NextRequest) {
+  const { type, name } = await request.json();
+
+  const [maxOrder] = await sql`
+    SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM categories
+  `;
+
+  const [category] = await sql`
+    INSERT INTO categories (type, name, sort_order)
+    VALUES (${type}, ${name}, ${maxOrder.next_order})
+    RETURNING *
+  `;
+
+  return NextResponse.json(category, { status: 201 });
 }

@@ -36,7 +36,8 @@ interface Props {
   stats: { pattern_count: number; audio_pattern_count: number };
 }
 
-export default function TeacherClient({ categories, stats }: Props) {
+export default function TeacherClient({ categories: initialCategories, stats }: Props) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [selectedChunk, setSelectedChunk] = useState<Chunk | null>(null);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,42 @@ export default function TeacherClient({ categories, stats }: Props) {
 
   // 音声生成
   const [generatingId, setGeneratingId] = useState<number | null>(null);
+
+  // チャンク追加
+  const [showAddChunk, setShowAddChunk] = useState(false);
+  const [newChunkTitleEn, setNewChunkTitleEn] = useState('');
+  const [newChunkTitleJp, setNewChunkTitleJp] = useState('');
+  const [newChunkCategoryId, setNewChunkCategoryId] = useState<number | null>(null);
+  const [savingChunk, setSavingChunk] = useState(false);
+
+  const reloadCategories = async () => {
+    const res = await fetch('/api/categories');
+    const data = await res.json();
+    setCategories(data);
+  };
+
+  const addChunk = async () => {
+    if (!newChunkTitleEn.trim() || !newChunkCategoryId) return;
+    setSavingChunk(true);
+
+    const res = await fetch('/api/chunks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        categoryId: newChunkCategoryId,
+        titleEn: newChunkTitleEn.trim(),
+        titleJp: newChunkTitleJp.trim() || '',
+      }),
+    });
+
+    if (res.ok) {
+      await reloadCategories();
+      setNewChunkTitleEn('');
+      setNewChunkTitleJp('');
+      setShowAddChunk(false);
+    }
+    setSavingChunk(false);
+  };
 
   const loadPatterns = async (chunk: Chunk) => {
     setSelectedChunk(chunk);
@@ -137,7 +174,53 @@ export default function TeacherClient({ categories, stats }: Props) {
         {/* 左: チャンク選択 */}
         <aside className="w-72 shrink-0 hidden md:block">
           <div className="sticky top-20">
-            <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 px-1">チャンク選択</h2>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">チャンク選択</h2>
+              <button
+                onClick={() => setShowAddChunk(!showAddChunk)}
+                className="text-xs text-primary hover:text-primary-dark font-medium transition-colors"
+              >
+                {showAddChunk ? '閉じる' : '+ 追加'}
+              </button>
+            </div>
+
+            {/* チャンク追加フォーム */}
+            {showAddChunk && (
+              <div className="bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-4 mb-4 border border-border">
+                <div className="space-y-2">
+                  <select
+                    value={newChunkCategoryId || ''}
+                    onChange={(e) => setNewChunkCategoryId(parseInt(e.target.value) || null)}
+                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
+                  >
+                    <option value="">カテゴリを選択...</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.type} / {cat.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={newChunkTitleEn}
+                    onChange={(e) => setNewChunkTitleEn(e.target.value)}
+                    placeholder="英語タイトル (例: I'm gonna ~)"
+                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                  <input
+                    value={newChunkTitleJp}
+                    onChange={(e) => setNewChunkTitleJp(e.target.value)}
+                    placeholder="日本語（任意: 〜する予定だよ）"
+                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  />
+                  <button
+                    onClick={addChunk}
+                    disabled={savingChunk || !newChunkTitleEn.trim() || !newChunkCategoryId}
+                    className="w-full px-3 py-2 bg-primary text-white rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary-dark disabled:opacity-40 transition-all"
+                  >
+                    {savingChunk ? '追加中...' : 'チャンクを追加'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-2">
               {Array.from(grouped.entries()).map(([type, cats]) => (
                 <div key={type}>
