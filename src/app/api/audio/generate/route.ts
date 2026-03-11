@@ -1,5 +1,4 @@
 import { sql } from '@/lib/db';
-import { isTeacherAuthenticated } from '@/lib/auth';
 import { VOICE_SETTINGS, getVoicePair } from '@/lib/voices';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -30,14 +29,8 @@ async function generateAudio(text: string, voiceId: string): Promise<Buffer> {
 }
 
 export async function POST(request: NextRequest) {
-  const authenticated = await isTeacherAuthenticated();
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { patternId, audioTypes } = await request.json();
 
-  // パターン取得
   const [pattern] = await sql`SELECT * FROM patterns WHERE id = ${patternId}`;
   if (!pattern) {
     return NextResponse.json({ error: 'Pattern not found' }, { status: 404 });

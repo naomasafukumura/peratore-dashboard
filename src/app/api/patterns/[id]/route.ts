@@ -1,13 +1,7 @@
 import { sql } from '@/lib/db';
-import { isTeacherAuthenticated } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authenticated = await isTeacherAuthenticated();
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id } = await params;
   const body = await request.json();
   const { situation, fppIntro, fppQuestion, spp, character } = body;
@@ -31,11 +25,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const authenticated = await isTeacherAuthenticated();
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id } = await params;
   await sql`DELETE FROM audio_files WHERE pattern_id = ${id}`;
   await sql`DELETE FROM patterns WHERE id = ${id}`;

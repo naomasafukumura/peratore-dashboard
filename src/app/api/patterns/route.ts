@@ -1,5 +1,4 @@
 import { sql } from '@/lib/db';
-import { isTeacherAuthenticated } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -31,11 +30,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authenticated = await isTeacherAuthenticated();
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const body = await request.json();
   const { chunkId, setNumber, situation, fppIntro, fppQuestion, spp, character } = body;
 

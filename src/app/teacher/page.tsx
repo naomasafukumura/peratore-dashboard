@@ -1,14 +1,10 @@
 import { sql } from '@/lib/db';
-import { isTeacherAuthenticated } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import TeacherDashboardClient from './TeacherDashboardClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeacherPage() {
-  const authenticated = await isTeacherAuthenticated();
-  if (!authenticated) redirect('/teacher/login');
 
   const categories = await sql`
     SELECT c.id, c.type, c.name, c.sort_order,
