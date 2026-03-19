@@ -14,7 +14,7 @@ export default function Home() {
       <div className="flex flex-col gap-4 w-full max-w-sm">
         <Link
           href="/practice"
-          className="flex items-center justify-center gap-3 px-6 py-4 bg-primary text-white rounded-[var(--radius-button)] font-semibold text-lg shadow-[var(--shadow-card)] hover:bg-primary-dark active:scale-[0.98] transition-all"
+          className="flex items-center justify-center gap-3 px-6 py-4 bg-cta text-white rounded-[var(--radius-button)] font-semibold text-lg shadow-[var(--shadow-card)] hover:opacity-90 active:scale-[0.98] transition-all"
         >
           練習する
         </Link>

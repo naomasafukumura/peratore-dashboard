@@ -1,18 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #6c5ce7;
-  --primary-light: #a29bfe;
-  --primary-dark: #5a4bd1;
-  --text-dark: #2d3436;
+  --primary: #F2B807;
+  --primary-light: #F7D04E;
+  --primary-dark: #D4A106;
+  --text-dark: #1A1A1A;
   --text-muted: #636e72;
   --text-light: #b2bec3;
-  --bg-page: #f8f9fa;
-  --bg-card: #ffffff;
+  --bg-page: #FAFAFA;
+  --bg-card: #FFFFFF;
   --border: #dfe6e9;
   --success: #00b894;
   --error: #e17055;
-  --accent-gold: #f2c13a;
+  --accent-gold: #F2B807;
+  --cta: #1A1A1A;
   --radius-card: 16px;
   --radius-button: 12px;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -26,6 +27,7 @@
   --color-success: var(--success);
   --color-error: var(--error);
   --color-accent-gold: var(--accent-gold);
+  --color-cta: var(--cta);
   --color-text-dark: var(--text-dark);
   --color-text-muted: var(--text-muted);
   --color-text-light: var(--text-light);
@@ -43,4 +45,13 @@ body {
 
 * {
   border-color: var(--border);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
