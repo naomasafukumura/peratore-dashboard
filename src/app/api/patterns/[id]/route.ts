@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const body = await request.json();
-  const { situation, fppIntro, fppQuestion, spp, character } = body;
+  const { situation, fppIntro, fppQuestion, spp, character, followupQuestion, followupAnswer } = body;
 
   const [pattern] = await sql`
     UPDATE patterns
@@ -12,7 +12,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         fpp_intro = ${fppIntro || null},
         fpp_question = ${fppQuestion},
         spp = ${spp},
-        character = ${character || '友人'}
+        character = ${character || '友人'},
+        followup_question = ${followupQuestion || null},
+        followup_answer = ${followupAnswer || null}
     WHERE id = ${id}
     RETURNING *
   `;

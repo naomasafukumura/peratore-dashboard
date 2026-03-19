@@ -31,15 +31,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { chunkId, setNumber, situation, fppIntro, fppQuestion, spp, character } = body;
+  const { chunkId, setNumber, situation, fppIntro, fppQuestion, spp, character, followupQuestion, followupAnswer } = body;
 
   const [maxOrder] = await sql`
     SELECT COALESCE(MAX(sort_order), 0) + 1 as next_order FROM patterns WHERE chunk_id = ${chunkId}
   `;
 
   const [pattern] = await sql`
-    INSERT INTO patterns (chunk_id, set_number, situation, fpp_intro, fpp_question, spp, character, sort_order)
-    VALUES (${chunkId}, ${setNumber}, ${situation}, ${fppIntro || null}, ${fppQuestion}, ${spp}, ${character || '友人'}, ${maxOrder.next_order})
+    INSERT INTO patterns (chunk_id, set_number, situation, fpp_intro, fpp_question, spp, character, sort_order, followup_question, followup_answer)
+    VALUES (${chunkId}, ${setNumber}, ${situation}, ${fppIntro || null}, ${fppQuestion}, ${spp}, ${character || '友人'}, ${maxOrder.next_order}, ${followupQuestion || null}, ${followupAnswer || null})
     RETURNING *
   `;
 
