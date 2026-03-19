@@ -22,9 +22,31 @@ interface Props {
   categories: Category[];
 }
 
-export default function CoverScreen({ categories }: Props) {
-  const [expandedType, setExpandedType] = useState<string | null>(null);
+const chkSvg = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
 
+const arrowSvg = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"/>
+  </svg>
+);
+
+const micSvg = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" x2="12" y1="19" y2="22"/>
+  </svg>
+);
+
+export default function CoverScreen({ categories }: Props) {
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+  const [selectedChunks, setSelectedChunks] = useState<Set<number>>(new Set());
+
+  // カテゴリごとにグルーピング
   const grouped = new Map<string, Category[]>();
   for (const cat of categories) {
     const existing = grouped.get(cat.type) || [];
@@ -32,83 +54,146 @@ export default function CoverScreen({ categories }: Props) {
     grouped.set(cat.type, existing);
   }
 
+  const toggleExpand = (type: string) => {
+    setExpandedTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
+  const toggleChunk = (chunkId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedChunks(prev => {
+      const next = new Set(prev);
+      if (next.has(chunkId)) next.delete(chunkId);
+      else next.add(chunkId);
+      return next;
+    });
+  };
+
+  const toggleAllInType = (type: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const cats = grouped.get(type) || [];
+    const allChunkIds = cats.flatMap(c => c.chunks.map(ch => ch.id));
+    const allSelected = allChunkIds.every(id => selectedChunks.has(id));
+    setSelectedChunks(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        allChunkIds.forEach(id => next.delete(id));
+      } else {
+        allChunkIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+    // Also expand
+    if (!expandedTypes.has(type)) {
+      setExpandedTypes(prev => new Set(prev).add(type));
+    }
+  };
+
+  const hasSelection = selectedChunks.size > 0;
+
+  // 選択されたチャンクの最初のIDで練習を開始
+  const firstSelectedChunkId = selectedChunks.size > 0 ? Array.from(selectedChunks)[0] : null;
+
   return (
-    <div className="min-h-screen bg-bg-page pb-20">
-      <header className="bg-bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          <Link href="/" className="text-text-muted hover:text-text-dark transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M13 4L7 10L13 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <div className="app">
+      <div className="cover">
+        {/* Header */}
+        <div className="cv-top">
+          <div className="cv-mark">PP</div>
+          <div className="cv-brand">Pattern Practice</div>
+          <div className="cv-top-spacer" />
+          <Link href="/" className="cv-list-btn" style={{ textDecoration: 'none' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+              <polyline points="15 18 9 12 15 6"/>
             </svg>
           </Link>
-          <h1 className="text-lg font-bold text-text-dark">練習するチャンクを選ぼう</h1>
         </div>
-      </header>
 
-      <div className="max-w-lg mx-auto px-4 mt-6 space-y-3">
-        {Array.from(grouped.entries()).map(([type, cats]) => {
-          const totalPatterns = cats.reduce((s, c) => s + c.chunks.reduce((s2, ch) => s2 + ch.patternCount, 0), 0);
-          const totalChunks = cats.reduce((s, c) => s + c.chunks.length, 0);
-          const isExpanded = expandedType === type;
+        {/* Hero */}
+        <div className="cv-hero">
+          <div className="cv-title"><span className="cv-hl">Pattern</span> Practice</div>
+        </div>
 
-          return (
-            <div key={type}>
-              {/* カテゴリヘッダー（アコーディオン） */}
-              <button
-                onClick={() => setExpandedType(isExpanded ? null : type)}
-                className="w-full bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] border border-border p-4 flex items-center justify-between hover:shadow-[var(--shadow-card-hover)] transition-all active:scale-[0.98]"
-              >
-                <div className="text-left">
-                  <p className="font-semibold text-text-dark">{type}</p>
-                  <p className="text-xs text-text-muted mt-0.5">{totalChunks}チャンク / {totalPatterns}問</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-cta bg-primary/20 px-2.5 py-1 rounded-full">
-                    {totalPatterns}
-                  </span>
-                  <svg
-                    width="16" height="16" viewBox="0 0 16 16" fill="none"
-                    className={`text-text-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+        {/* Categories */}
+        <div className="cv-sec">
+          <div className="cv-sec-hdr">Category</div>
+          <div className="cv-cats">
+            {Array.from(grouped.entries()).map(([type, cats]) => {
+              const totalPatterns = cats.reduce((s, c) => s + c.chunks.reduce((s2, ch) => s2 + ch.patternCount, 0), 0);
+              const allChunkIds = cats.flatMap(c => c.chunks.map(ch => ch.id));
+              const allSelected = allChunkIds.length > 0 && allChunkIds.every(id => selectedChunks.has(id));
+              const isExpanded = expandedTypes.has(type);
+
+              return (
+                <div key={type}>
+                  {/* Category row */}
+                  <div
+                    className={`cv-cat ${allSelected ? 'on' : ''} ${isExpanded ? 'expanded' : ''}`}
+                    onClick={() => toggleExpand(type)}
                   >
-                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              </button>
-
-              {/* チャンク一覧 */}
-              {isExpanded && (
-                <div className="mt-2 ml-2 space-y-2">
-                  {cats.map((cat) => (
-                    <div key={cat.id}>
-                      {cat.name !== cat.type && (
-                        <p className="text-xs font-medium text-text-muted mb-1.5 px-2">{cat.name}</p>
-                      )}
-                      {cat.chunks.map((chunk) => (
-                        <Link
-                          key={chunk.id}
-                          href={`/practice/${chunk.id}`}
-                          className="block bg-bg-card rounded-[var(--radius-card)] p-3.5 shadow-[var(--shadow-card)] border border-border hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-0.5 active:scale-[0.98] transition-all mb-2"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium text-text-dark text-sm">{chunk.titleEn}</p>
-                              {chunk.titleJp && (
-                                <p className="text-text-light text-xs mt-0.5">{chunk.titleJp}</p>
-                              )}
-                            </div>
-                            <span className="text-xs text-text-light bg-bg-page px-2 py-0.5 rounded-full">
-                              {chunk.patternCount}問
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
+                    <div className={`cv-cat-ic`}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
+                      </svg>
                     </div>
-                  ))}
+                    <div className="cv-cat-info">
+                      <div className="cv-cat-nm">{type}</div>
+                      <div className="cv-cat-ct">{totalPatterns} patterns</div>
+                    </div>
+                    <div className="cv-cat-chk" onClick={(e) => toggleAllInType(type, e)}>
+                      {chkSvg}
+                    </div>
+                    <div className="cv-cat-arrow">{arrowSvg}</div>
+                  </div>
+
+                  {/* Subcategories (chunks) */}
+                  <div className={`cv-subs ${isExpanded ? 'show' : ''}`}>
+                    {cats.map((cat) => (
+                      cat.chunks.map((chunk) => {
+                        const isOn = selectedChunks.has(chunk.id);
+                        return (
+                          <div
+                            key={chunk.id}
+                            className={`cv-sub ${isOn ? 'on' : ''}`}
+                            onClick={(e) => toggleChunk(chunk.id, e)}
+                          >
+                            <div className="cv-sub-nm">{chunk.titleEn}</div>
+                            <div className="cv-sub-ct">{chunk.patternCount}</div>
+                            <div className="cv-sub-chk">{chkSvg}</div>
+                          </div>
+                        );
+                      })
+                    ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="cv-cta">
+          {hasSelection && firstSelectedChunkId ? (
+            <Link
+              href={`/practice/${firstSelectedChunkId}`}
+              className="cv-go"
+              style={{ textDecoration: 'none' }}
+            >
+              {micSvg}
+              Pattern Practice
+            </Link>
+          ) : (
+            <button className="cv-go" disabled>
+              {micSvg}
+              Pattern Practice
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
