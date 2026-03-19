@@ -55,3 +55,46 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-msg-in {
+  animation: msg-in 0.3s ease-out;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes reaction-pop {
+  0% { transform: scale(0.5) translateY(0); opacity: 0; }
+  30% { transform: scale(1.2) translateY(-10px); opacity: 1; }
+  60% { transform: scale(1) translateY(-20px); opacity: 1; }
+  100% { transform: scale(0.9) translateY(-40px); opacity: 0; }
+}
+
+.animate-reaction-pop {
+  animation: reaction-pop 1.6s ease-out forwards;
+}
+
+@keyframes cta-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 184, 7, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(242, 184, 7, 0); }
+}
+
+.animate-cta-pulse {
+  animation: cta-pulse 2s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(225, 112, 85, 0.4); }
+  100% { box-shadow: 0 0 0 20px rgba(225, 112, 85, 0); }
+}
+
+.animate-mic-pulse {
+  animation: mic-pulse 1.2s ease-out infinite;
+}

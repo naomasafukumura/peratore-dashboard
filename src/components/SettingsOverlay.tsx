@@ -4,9 +4,11 @@ interface Props {
   thinkTime: number;
   speakTime: number;
   inputMode: 'voice' | 'text';
+  turn2Mode?: 'listen' | 'speak';
   onThinkTimeChange: (v: number) => void;
   onSpeakTimeChange: (v: number) => void;
   onInputModeChange: (v: 'voice' | 'text') => void;
+  onTurn2ModeChange?: (v: 'listen' | 'speak') => void;
   onClose: () => void;
 }
 
@@ -14,9 +16,11 @@ export default function SettingsOverlay({
   thinkTime,
   speakTime,
   inputMode,
+  turn2Mode = 'speak',
   onThinkTimeChange,
   onSpeakTimeChange,
   onInputModeChange,
+  onTurn2ModeChange,
   onClose,
 }: Props) {
   return (
@@ -95,6 +99,38 @@ export default function SettingsOverlay({
                 <span>5秒</span>
                 <span>20秒</span>
               </div>
+            </div>
+          )}
+
+          {/* Turn 2 モード */}
+          {onTurn2ModeChange && (
+            <div>
+              <label className="block text-sm font-medium text-text-dark mb-2">Turn 2</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onTurn2ModeChange('listen')}
+                  className={`flex-1 py-2.5 rounded-[var(--radius-button)] text-sm font-medium transition-all ${
+                    turn2Mode === 'listen'
+                      ? 'bg-cta text-white'
+                      : 'bg-bg-page text-text-muted border border-border'
+                  }`}
+                >
+                  聞くだけ
+                </button>
+                <button
+                  onClick={() => onTurn2ModeChange('speak')}
+                  className={`flex-1 py-2.5 rounded-[var(--radius-button)] text-sm font-medium transition-all ${
+                    turn2Mode === 'speak'
+                      ? 'bg-cta text-white'
+                      : 'bg-bg-page text-text-muted border border-border'
+                  }`}
+                >
+                  自分も言う
+                </button>
+              </div>
+              <p className="text-xs text-text-light mt-1.5">
+                {turn2Mode === 'listen' ? 'フォローアップは聞くだけ' : 'フォローアップにも自分で答える'}
+              </p>
             </div>
           )}
         </div>

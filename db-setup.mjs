@@ -37,6 +37,10 @@ async function setup() {
       fpp_intro TEXT,
       fpp_question TEXT NOT NULL,
       spp TEXT NOT NULL,
+      spp_jp TEXT,
+      followup_question TEXT,
+      followup_answer TEXT,
+      followup_answer_jp TEXT,
       character TEXT DEFAULT '友人',
       sort_order INT DEFAULT 0
     )
