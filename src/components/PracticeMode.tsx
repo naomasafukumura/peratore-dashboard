@@ -2,19 +2,21 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { scoreTurn1Local, ScoreLevel } from '@/lib/scoring';
-import CompletionScreen from './CompletionScreen';
-import SettingsOverlay from './SettingsOverlay';
+import { scoreTurn1Local, type ScoreLevel } from '@/lib/scoring';
+
+/* ================================================================
+   PracticeMode - Faithful port of practice-v2.html into React
+   ================================================================ */
 
 interface Pattern {
   id: number;
   situation: string | null;
   fpp_intro: string | null;
-  fpp_question: string;
-  spp: string;
+  fpp_question: string;   // = trigger in v2
+  spp: string;             // = conclusion in v2
   spp_jp: string | null;
-  followup_question: string | null;
-  followup_answer: string | null;
+  followup_question: string | null;  // = followup
+  followup_answer: string | null;    // = conclusion2Examples[0]
   followup_answer_jp: string | null;
   has_fpp_intro_audio: boolean;
   has_fpp_question_audio: boolean;
@@ -22,41 +24,48 @@ interface Pattern {
   has_followup_audio: boolean;
 }
 
-// 内部フェーズ（Turn1 + Turn2の全ステート）
-type Phase =
-  | 'idle'
-  | 'listen1'        // FPP音声再生中
-  | 'think'          // 考える時間
-  | 'micReady1'      // マイク準備 or テキスト入力待ち
-  | 'speak1'         // 録音中
-  | 'processing1'    // Whisper認識中
-  | 'check1'         // 認識結果確認（Re-record / OK）
-  | 'scoring1'       // スコアリング中
-  | 'result1'        // Turn1結果表示（レビューカード）
-  | 'transition2'    // Turn2への遷移
-  | 'listen2'        // フォローアップ音声再生
-  | 'micReady2'      // Turn2マイク準備
-  | 'speak2'         // Turn2録音
-  | 'processing2'    // Turn2 Whisper認識中
-  | 'selfEval'       // 自己評価（できた/Replay/できなかった）
-  | 'complete';      // 全パターン完了
-
-// UIフェーズインジケーター用
-type UiPhase = 'listen' | 'think' | 'speak' | 'check' | 'continue';
-
-interface ChatMessage {
-  id: string;
-  speaker: 'opponent' | 'user' | 'system';
-  text: string;
-  textJp?: string;
-  scoreLevel?: ScoreLevel;
-  isModelAnswer?: boolean;
-}
-
 interface Props {
   patterns: Pattern[];
   chunkTitle: string;
   chunkTitleJp: string;
+}
+
+type Phase =
+  | 'idle'
+  | 'listen1'
+  | 'micReady1'
+  | 'speak1'
+  | 'processing1'
+  | 'result1'
+  | 'continueFlow'
+  | 'listen2'
+  | 'micReady2'
+  | 'speak2'
+  | 'processing2'
+  | 'result2'
+  | 'fullReplay'
+  | 'complete';
+
+type UiPhase = 'listen' | 'think' | 'speak' | 'check' | 'continue';
+
+interface ChatBubble {
+  id: string;
+  type: 'opponent' | 'user' | 'typing';
+  text: string;
+  textJp?: string;
+  resultClass?: string;  // result-perfect | result-almost | result-retry
+  showEq?: boolean;
+  audioType?: string;
+  patternId?: number;
+}
+
+interface ReplayLine {
+  speaker: 'opponent' | 'user';
+  text: string;
+  ja: string;
+  audioType: string;
+  patternId: number;
+  hasAudio: boolean;
 }
 
 interface Stats {
@@ -67,45 +76,9 @@ interface Stats {
   retry: number;
 }
 
-const LEVEL_CONFIG: Record<ScoreLevel, { label: string; color: string; bg: string; emoji: string }> = {
-  perfect: { label: 'Perfect!', color: 'text-success', bg: 'bg-success/10', emoji: '🎯' },
-  great: { label: 'Great!', color: 'text-emerald-500', bg: 'bg-emerald-50', emoji: '👏' },
-  good: { label: 'Good', color: 'text-blue-500', bg: 'bg-blue-50', emoji: '👍' },
-  almost: { label: 'Almost', color: 'text-amber-500', bg: 'bg-amber-50', emoji: '💪' },
-  retry: { label: 'Retry', color: 'text-error', bg: 'bg-error/10', emoji: '🔄' },
+const SCORE_LABELS: Record<string, string> = {
+  perfect: 'Perfect!', great: 'Great!', good: 'Good!', almost: 'Almost!', retry: 'Try again!'
 };
-
-// コンフェッティ生成
-function spawnConfetti() {
-  const container = document.createElement('div');
-  container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;overflow:hidden;';
-  document.body.appendChild(container);
-
-  const colors = ['#F2B807', '#00b894', '#e17055', '#6c5ce7', '#fd79a8', '#00cec9'];
-  for (let i = 0; i < 40; i++) {
-    const el = document.createElement('div');
-    const size = 5 + Math.random() * 6;
-    el.style.cssText = `
-      position:absolute;top:-10px;left:${Math.random()*100}%;
-      width:${size}px;height:${size}px;
-      background:${colors[Math.floor(Math.random()*colors.length)]};
-      border-radius:${Math.random()>0.5?'50%':'2px'};
-      animation:confetti-fall ${2+Math.random()*2}s linear ${Math.random()*0.8}s forwards;
-    `;
-    container.appendChild(el);
-  }
-  setTimeout(() => container.remove(), 4000);
-}
-
-// リアクションポップアップ
-function showReactionPopup(text: string) {
-  const el = document.createElement('div');
-  el.textContent = text;
-  el.className = 'animate-reaction-pop';
-  el.style.cssText = 'position:fixed;top:40%;left:50%;transform:translateX(-50%);font-size:2rem;font-weight:bold;z-index:101;pointer-events:none;';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1600);
-}
 
 const REACTIONS: Record<string, string[]> = {
   perfect: ['Perfect!!', 'Awesome!!', 'Amazing!', 'Nailed it!'],
@@ -115,166 +88,303 @@ const REACTIONS: Record<string, string[]> = {
   retry: ['One more time!', 'Try again!', "Let's try again!"],
 };
 
+// ---- Utility: LCS diff highlighting ----
+function highlightDiff(userText: string, naturalText: string): { userHtml: string; naturalHtml: string } {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  if (!userText) return { userHtml: '<span style="color:var(--text-muted)">-</span>', naturalHtml: esc(naturalText) };
+
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z']/g, '');
+  const userWords = userText.split(/\s+/);
+  const natWords = naturalText.split(/\s+/);
+  const uNorm = userWords.map(norm);
+  const nNorm = natWords.map(norm);
+
+  const m = uNorm.length, n = nNorm.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = uNorm[i - 1] === nNorm[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+  const matchedNat = new Set<number>();
+  let i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (uNorm[i - 1] === nNorm[j - 1]) { matchedNat.add(j - 1); i--; j--; }
+    else if (dp[i - 1][j] > dp[i][j - 1]) i--;
+    else j--;
+  }
+
+  const natHtml = natWords.map((w, idx) => {
+    if (!matchedNat.has(idx)) return '<span class="diff-highlight">' + esc(w) + '</span>';
+    return esc(w);
+  }).join(' ');
+
+  return { userHtml: esc(userText), naturalHtml: natHtml };
+}
+
+// ---- Confetti ----
+function spawnConfetti() {
+  const container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  const colors = ['#1a5a4a', '#3a8a5c', '#8b7032', '#5a7bc4', '#c45b8e', '#e8a838'];
+  for (let i = 0; i < 40; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + '%';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDelay = Math.random() * 0.8 + 's';
+    c.style.animationDuration = (2 + Math.random() * 2) + 's';
+    c.style.width = (5 + Math.random() * 6) + 'px';
+    c.style.height = (5 + Math.random() * 6) + 'px';
+    container.appendChild(c);
+  }
+  setTimeout(() => container.remove(), 4000);
+}
+
+// ---- Reaction popup ----
+function showReactionPopup(text: string) {
+  const el = document.createElement('div');
+  el.className = 'reaction-popup';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+// ===== Main Component =====
 export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Props) {
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
-  const [timer, setTimer] = useState(5);
-  const [timerActive, setTimerActive] = useState(false);
+  const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
   const [showSettings, setShowSettings] = useState(false);
 
-  // 設定
-  const [thinkTime, setThinkTime] = useState(5);
-  const [speakTime, setSpeakTime] = useState(7);
+  // Settings (localStorage persisted)
   const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
-  const [turn2Mode, setTurn2Mode] = useState<'listen' | 'speak'>('speak');
+  const [speakLimitSec, setSpeakLimitSec] = useState(7);
+  const [turn2Mode, setTurn2Mode] = useState<'listen' | 'speak'>('listen');
 
-  // チャットメッセージ
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // 録音
+  // Recording state
+  const [speakTimer, setSpeakTimer] = useState(7);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const speakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speakTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const speakTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // テキスト入力
+  // Text input
   const [textInput, setTextInput] = useState('');
   const textInputRef = useRef<HTMLInputElement>(null);
 
-  // Turn 1結果
-  const [userAnswer, setUserAnswer] = useState('');
+  // Turn 1 results
+  const [userAnswer1, setUserAnswer1] = useState('');
   const [scoreLevel, setScoreLevel] = useState<ScoreLevel>('good');
-  const [chunkUsed, setChunkUsed] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
-  // Turn 2結果
+  // Turn 2 results
   const [userAnswer2, setUserAnswer2] = useState('');
 
-  // 翻訳表示
-  const [showJpId, setShowJpId] = useState<string | null>(null);
+  // Review overlay
+  const [showReview, setShowReview] = useState(false);
+  const [reviewTurn, setReviewTurn] = useState<1 | 2>(1);
+  const [reviewShowQJa, setReviewShowQJa] = useState(false);
+  const [reviewShowNatJa, setReviewShowNatJa] = useState(false);
+  const [reviewShowFeedback, setReviewShowFeedback] = useState(false);
+  const [reviewFeedbackText, setReviewFeedbackText] = useState('');
+  const [reviewFeedbackLoading, setReviewFeedbackLoading] = useState(false);
 
-  // 統計
+  // Full replay
+  const [replayLines, setReplayLines] = useState<ReplayLine[]>([]);
+  const [replayPlayingIdx, setReplayPlayingIdx] = useState(-1);
+  const [replayBubbleHints, setReplayBubbleHints] = useState<Record<number, boolean>>({});
+  const [showPostReplayBar, setShowPostReplayBar] = useState(false);
+
+  // Stats
   const [stats, setStats] = useState<Stats>({ perfect: 0, great: 0, good: 0, almost: 0, retry: 0 });
-  const [cardResults, setCardResults] = useState<{ turn1: ScoreLevel | null; turn2: string | null }[]>([]);
 
+  // Audio
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const chatThreadRef = useRef<HTMLDivElement>(null);
 
   const pattern = patterns[index];
   const total = patterns.length;
-  const progress = total > 0 ? (index / total) * 100 : 0;
+  const progress = total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
 
-  // UIフェーズマッピング
+  // UI phase mapping
   const uiPhase: UiPhase | null = (() => {
     switch (phase) {
       case 'listen1': return 'listen';
-      case 'think': return 'think';
       case 'micReady1': case 'speak1': case 'processing1': return 'speak';
-      case 'check1': case 'scoring1': case 'result1': return 'check';
-      case 'transition2': case 'listen2': case 'micReady2': case 'speak2':
-      case 'processing2': case 'selfEval': return 'continue';
+      case 'result1': return 'check';
+      case 'continueFlow': case 'listen2': case 'micReady2': case 'speak2':
+      case 'processing2': case 'result2': case 'fullReplay': return 'continue';
       default: return null;
     }
   })();
 
-  // localStorage
+  // ---- localStorage ----
   useEffect(() => {
-    const saved = localStorage.getItem('peratoreSettings');
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        if (s.thinkTime) setThinkTime(s.thinkTime);
-        if (s.speakTime) setSpeakTime(s.speakTime);
-        if (s.inputMode) setInputMode(s.inputMode);
-        if (s.turn2Mode) setTurn2Mode(s.turn2Mode);
-      } catch { /* ignore */ }
-    }
+    const im = localStorage.getItem('pp-inputMode');
+    if (im === 'voice' || im === 'text') setInputMode(im);
+    const sl = localStorage.getItem('pp-speakLimit');
+    if (sl) { const n = parseInt(sl); if (n >= 5 && n <= 20) setSpeakLimitSec(n); }
+    const t2 = localStorage.getItem('pp-turn2Mode');
+    if (t2 === 'listen' || t2 === 'speak') setTurn2Mode(t2);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('peratoreSettings', JSON.stringify({ thinkTime, speakTime, inputMode, turn2Mode }));
-  }, [thinkTime, speakTime, inputMode, turn2Mode]);
+  useEffect(() => { localStorage.setItem('pp-inputMode', inputMode); }, [inputMode]);
+  useEffect(() => { localStorage.setItem('pp-speakLimit', String(speakLimitSec)); }, [speakLimitSec]);
+  useEffect(() => { localStorage.setItem('pp-turn2Mode', turn2Mode); }, [turn2Mode]);
 
-  // チャット自動スクロール
+  // ---- Auto-scroll chat ----
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, phase]);
-
-  // タイマー
-  useEffect(() => {
-    if (!timerActive) return;
-    if (timer <= 0) {
-      setTimerActive(false);
-      enterSpeakPhase(1);
-      return;
+    if (chatThreadRef.current) {
+      chatThreadRef.current.scrollTop = chatThreadRef.current.scrollHeight;
     }
-    const interval = setInterval(() => setTimer(t => t - 1), 1000);
-    return () => clearInterval(interval);
-  }, [timerActive, timer]);
+  }, [bubbles, phase]);
 
-  const addMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
-    setMessages(prev => [...prev, { ...msg, id: `msg-${Date.now()}-${Math.random()}` }]);
+  // ---- Audio helpers ----
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
   }, []);
 
   const playAudio = useCallback((patternId: number, type: string): Promise<void> => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    const audio = new Audio(`/api/audio/${patternId}?type=${type}`);
-    audioRef.current = audio;
+    stopAudio();
     return new Promise<void>((resolve) => {
+      const audio = new Audio(`/api/audio/${patternId}?type=${type}`);
+      audioRef.current = audio;
       audio.onended = () => resolve();
       audio.onerror = () => resolve();
       audio.play().catch(() => resolve());
     });
+  }, [stopAudio]);
+
+  const playAudioUrl = useCallback((url: string): Promise<void> => {
+    stopAudio();
+    return new Promise<void>((resolve) => {
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => resolve();
+      audio.onerror = () => resolve();
+      audio.play().catch(() => resolve());
+    });
+  }, [stopAudio]);
+
+  // ---- Bubble helpers ----
+  const addBubble = useCallback((bubble: Omit<ChatBubble, 'id'>) => {
+    setBubbles(prev => [...prev, { ...bubble, id: `b-${Date.now()}-${Math.random()}` }]);
   }, []);
 
-  // === Turn 1 フロー ===
+  const removeBubblesByType = useCallback((type: string) => {
+    setBubbles(prev => prev.filter(b => b.type !== type));
+  }, []);
+
+  // ===== Turn 1 Flow =====
 
   const handleStart = useCallback(async () => {
     if (!pattern) return;
-    setMessages([]);
-    setUserAnswer('');
+    setBubbles([]);
+    setUserAnswer1('');
     setUserAnswer2('');
+    setAiFeedback(null);
+    setShowReview(false);
+    setShowPostReplayBar(false);
 
     setPhase('listen1');
 
-    // FPP前振り再生
+    // Show typing indicator
+    addBubble({ type: 'typing', text: '' });
+
+    // Play intro audio if exists
     if (pattern.fpp_intro && pattern.has_fpp_intro_audio) {
       await playAudio(pattern.id, 'fpp_intro');
     }
 
-    // FPP質問をチャットに追加
-    addMessage({
-      speaker: 'opponent',
+    // Small delay for typing indicator
+    await new Promise(r => setTimeout(r, 600));
+
+    // Remove typing, add opponent bubble
+    setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+    addBubble({
+      type: 'opponent',
       text: pattern.fpp_question,
       textJp: pattern.situation || undefined,
+      showEq: pattern.has_fpp_question_audio,
+      audioType: 'fpp_question',
+      patternId: pattern.id,
     });
 
-    // FPP質問音声再生
+    // Play question audio
     if (pattern.has_fpp_question_audio) {
       await playAudio(pattern.id, 'fpp_question');
     }
 
-    // Think フェーズ
-    setPhase('think');
-    setTimer(thinkTime);
-    setTimerActive(true);
-  }, [pattern, playAudio, addMessage, thinkTime]);
-
-  const enterSpeakPhase = useCallback((turn: 1 | 2) => {
-    const phasePrefix = turn === 1 ? 'micReady1' : 'micReady2';
-    setPhase(phasePrefix as Phase);
-    setTextInput('');
-
+    // Go to micReady
     if (inputMode === 'text') {
+      setPhase('micReady1');
       setTimeout(() => textInputRef.current?.focus(), 100);
+    } else {
+      setPhase('micReady1');
     }
-  }, [inputMode]);
+  }, [pattern, addBubble, playAudio, inputMode]);
+
+  // ---- Recording ----
+  const clearSpeakTimers = useCallback(() => {
+    if (speakTimerIntervalRef.current) { clearInterval(speakTimerIntervalRef.current); speakTimerIntervalRef.current = null; }
+    if (speakTimeoutRef.current) { clearTimeout(speakTimeoutRef.current); speakTimeoutRef.current = null; }
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    clearSpeakTimers();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, [clearSpeakTimers]);
+
+  const processRecording = useCallback(async (blob: Blob, turn: 1 | 2) => {
+    setPhase(turn === 1 ? 'processing1' : 'processing2');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', blob, 'audio.webm');
+      const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+      const data = await res.json();
+      const text = data.text || '';
+
+      if (turn === 1) {
+        setUserAnswer1(text || '(No speech detected)');
+        addBubble({ type: 'user', text: text || '(No speech detected)' });
+      } else {
+        setUserAnswer2(text || '(No speech detected)');
+        addBubble({ type: 'user', text: text || '(No speech detected)' });
+      }
+    } catch {
+      if (turn === 1) {
+        setUserAnswer1('(Recognition error)');
+        addBubble({ type: 'user', text: '(Recognition error)' });
+      } else {
+        setUserAnswer2('(Recognition error)');
+        addBubble({ type: 'user', text: '(Recognition error)' });
+      }
+    }
+
+    // After processing, go to scoring / result
+    if (turn === 1) {
+      await scoreTurn1();
+    } else {
+      await showTurn2Review();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addBubble]);
 
   const startRecording = useCallback(async (turn: 1 | 2) => {
-    const speakPhase = turn === 1 ? 'speak1' : 'speak2';
-    setPhase(speakPhase as Phase);
+    setPhase(turn === 1 ? 'speak1' : 'speak2');
+    setSpeakTimer(speakLimitSec);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -289,607 +399,898 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Pro
 
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        processRecording(blob, turn);
+        clearSpeakTimers();
+        const blobData = new Blob(chunksRef.current, { type: mimeType });
+        processRecording(blobData, turn);
       };
 
       recorder.start();
       mediaRecorderRef.current = recorder;
 
-      speakTimerRef.current = setTimeout(() => stopRecording(), speakTime * 1000);
+      // Silence detection via Web Audio API
+      try {
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        let silentFrames = 0;
+        const SILENCE_THRESHOLD = 10;
+        const SILENCE_FRAMES_LIMIT = 30; // ~1.5s of silence at 50ms interval
+
+        const checkSilence = () => {
+          if (!analyserRef.current) return;
+          analyser.getByteFrequencyData(dataArray);
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          if (avg < SILENCE_THRESHOLD) {
+            silentFrames++;
+            if (silentFrames >= SILENCE_FRAMES_LIMIT && chunksRef.current.length > 0) {
+              stopRecording();
+              return;
+            }
+          } else {
+            silentFrames = 0;
+          }
+          silenceTimerRef.current = setTimeout(checkSilence, 50);
+        };
+        silenceTimerRef.current = setTimeout(checkSilence, 1000); // start after 1s
+      } catch {
+        // Silence detection not available, rely on timer only
+      }
+
+      // Countdown timer
+      speakTimerIntervalRef.current = setInterval(() => {
+        setSpeakTimer(prev => {
+          if (prev <= 1) {
+            stopRecording();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Hard timeout
+      speakTimeoutRef.current = setTimeout(() => {
+        stopRecording();
+      }, speakLimitSec * 1000);
     } catch {
-      // マイクアクセス拒否 → テキストにフォールバック
+      // Mic access denied → fallback to text
       setInputMode('text');
-      enterSpeakPhase(turn);
+      setPhase(turn === 1 ? 'micReady1' : 'micReady2');
+      setTimeout(() => textInputRef.current?.focus(), 100);
     }
-  }, [speakTime, enterSpeakPhase]);
+  }, [speakLimitSec, clearSpeakTimers, processRecording, stopRecording]);
 
-  const stopRecording = useCallback(() => {
-    if (speakTimerRef.current) {
-      clearTimeout(speakTimerRef.current);
-      speakTimerRef.current = null;
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
-
-  const processRecording = useCallback(async (blob: Blob, turn: 1 | 2) => {
-    const procPhase = turn === 1 ? 'processing1' : 'processing2';
-    setPhase(procPhase as Phase);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
-      const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
-      const data = await res.json();
-      const text = data.text || '';
-
-      if (turn === 1) {
-        setUserAnswer(text);
-        // チェックステップへ（Re-record / OK）
-        addMessage({ speaker: 'user', text: text || '(認識できませんでした)' });
-        setPhase('check1');
-      } else {
-        setUserAnswer2(text);
-        addMessage({ speaker: 'user', text: text || '(認識できませんでした)' });
-        setPhase('selfEval');
-      }
-    } catch {
-      if (turn === 1) {
-        setUserAnswer('(認識エラー)');
-        addMessage({ speaker: 'user', text: '(認識エラー)' });
-        setPhase('check1');
-      } else {
-        setUserAnswer2('(認識エラー)');
-        addMessage({ speaker: 'user', text: '(認識エラー)' });
-        setPhase('selfEval');
-      }
-    }
-  }, [addMessage]);
-
-  const handleTextSubmit = useCallback((turn: 1 | 2) => {
+  // ---- Text submit ----
+  const handleTextSubmit = useCallback(async (turn: 1 | 2) => {
     const answer = textInput.trim();
     if (!answer) return;
+    setTextInput('');
 
     if (turn === 1) {
-      setUserAnswer(answer);
-      addMessage({ speaker: 'user', text: answer });
-      setPhase('check1');
+      setUserAnswer1(answer);
+      addBubble({ type: 'user', text: answer });
+      setPhase('processing1');
+      // Score immediately
     } else {
       setUserAnswer2(answer);
-      addMessage({ speaker: 'user', text: answer });
-      setPhase('selfEval');
+      addBubble({ type: 'user', text: answer });
+      setPhase('processing2');
     }
-    setTextInput('');
-  }, [textInput, addMessage]);
+  }, [textInput, addBubble]);
 
-  // Check1: Re-record
-  const handleReRecord = useCallback(() => {
-    // 最後のユーザーメッセージを削除
-    setMessages(prev => {
-      const idx = [...prev].reverse().findIndex(m => m.speaker === 'user');
-      if (idx === -1) return prev;
-      const removeIdx = prev.length - 1 - idx;
-      return prev.filter((_, i) => i !== removeIdx);
-    });
-    setUserAnswer('');
-    enterSpeakPhase(1);
-  }, [enterSpeakPhase]);
+  // ---- Scoring Turn 1 ----
+  // We define this as a ref-based function to avoid stale closure issues
+  const scoreTurn1Ref = useRef<() => Promise<void>>(undefined);
 
-  // Check1: OK → スコアリング
-  const handleAccept = useCallback(async () => {
+  const scoreTurn1 = useCallback(async () => {
     if (!pattern) return;
-    setPhase('scoring1');
 
+    // Get userAnswer1 from the latest state
+    const currentAnswer = userAnswer1;
     let level: ScoreLevel;
-    let used: boolean;
 
     try {
       const res = await fetch('/api/score-answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userAnswer,
+          userAnswer: currentAnswer,
           question: pattern.fpp_question,
           targetChunk: chunkTitle,
           exampleAnswer: pattern.spp,
+          turn: 1,
         }),
       });
       const data = await res.json();
-
       if (data.fallback || !data.level) {
-        const local = scoreTurn1Local(userAnswer, pattern.spp, chunkTitle);
+        const local = scoreTurn1Local(currentAnswer, pattern.spp, chunkTitle);
         level = local.level;
-        used = local.chunkUsed;
       } else {
         level = data.level as ScoreLevel;
-        used = data.chunkUsed ?? false;
       }
     } catch {
-      const local = scoreTurn1Local(userAnswer, pattern.spp, chunkTitle);
+      const local = scoreTurn1Local(currentAnswer, pattern.spp, chunkTitle);
       level = local.level;
-      used = local.chunkUsed;
     }
 
     setScoreLevel(level);
-    setChunkUsed(used);
 
-    // リアクション
+    // Show reaction
     const texts = REACTIONS[level] || REACTIONS.good;
     showReactionPopup(texts[Math.floor(Math.random() * texts.length)]);
     if (level === 'perfect' || level === 'great') {
       spawnConfetti();
     }
 
-    // 模範回答をチャットに追加
-    addMessage({
-      speaker: 'opponent',
-      text: pattern.spp,
-      textJp: pattern.spp_jp || undefined,
-      isModelAnswer: true,
-    });
-
-    // SPP音声再生
-    if (pattern.has_spp_audio) {
-      await playAudio(pattern.id, 'spp');
-    }
-
+    // Show review overlay
+    setReviewTurn(1);
+    setReviewShowQJa(false);
+    setReviewShowNatJa(false);
+    setReviewShowFeedback(false);
+    setReviewFeedbackText('');
+    setAiFeedback(null);
+    setShowReview(true);
     setPhase('result1');
-  }, [pattern, userAnswer, chunkTitle, addMessage, playAudio]);
+  }, [pattern, userAnswer1, chunkTitle]);
 
-  // Result1 → Turn2 or 次のカード
-  const handleResult1Continue = useCallback(() => {
-    if (hasTurn2) {
-      startTurn2();
-    } else {
-      goToNextCard();
+  scoreTurn1Ref.current = scoreTurn1;
+
+  // Handle text submit effect - score after state updates
+  useEffect(() => {
+    if (phase === 'processing1' && userAnswer1 && !mediaRecorderRef.current?.state) {
+      // Text input path - score immediately
+      scoreTurn1Ref.current?.();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, userAnswer1]);
+
+  // ---- Review overlay: fetch AI feedback ----
+  const fetchFeedback = useCallback(async () => {
+    if (!pattern) return;
+    setReviewFeedbackLoading(true);
+    setReviewShowFeedback(true);
+    try {
+      const userReply = reviewTurn === 1 ? userAnswer1 : userAnswer2;
+      const naturalReply = reviewTurn === 1 ? pattern.spp : (pattern.followup_answer || '');
+      const question = reviewTurn === 1 ? pattern.fpp_question : (pattern.followup_question || '');
+      const res = await fetch('/api/explain-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAnswer: userReply, question, exampleAnswer: naturalReply }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReviewFeedbackText(data.feedback || '');
+      }
+    } catch {
+      setReviewFeedbackText('');
+    }
+    setReviewFeedbackLoading(false);
+  }, [pattern, reviewTurn, userAnswer1, userAnswer2]);
+
+  // ---- Review OK (Turn 1): proceed to Turn 2 or full replay ----
+  const handleReviewOk = useCallback(async () => {
+    setShowReview(false);
+    if (hasTurn2) {
+      // Start Turn 2
+      setPhase('continueFlow');
+      await new Promise(r => setTimeout(r, 400));
+      await startTurn2();
+    } else {
+      // No Turn 2, go to full replay or next
+      goToFullReplay();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasTurn2]);
 
-  // === Turn 2 フロー ===
+  // ---- Review Re-record (Turn 1) ----
+  const handleReviewRerecord = useCallback(() => {
+    setShowReview(false);
+    // Remove last user bubble
+    setBubbles(prev => {
+      const idx = [...prev].reverse().findIndex(b => b.type === 'user');
+      if (idx === -1) return prev;
+      const removeIdx = prev.length - 1 - idx;
+      return prev.filter((_, i) => i !== removeIdx);
+    });
+    setUserAnswer1('');
+    if (inputMode === 'text') {
+      setPhase('micReady1');
+      setTimeout(() => textInputRef.current?.focus(), 100);
+    } else {
+      setPhase('micReady1');
+    }
+  }, [inputMode]);
 
+  // ===== Turn 2 Flow =====
   const startTurn2 = useCallback(async () => {
     if (!pattern?.followup_question) return;
-    setPhase('transition2');
 
+    // Show typing
+    addBubble({ type: 'typing', text: '' });
     await new Promise(r => setTimeout(r, 600));
 
-    // フォローアップ質問をチャットに追加
-    addMessage({
-      speaker: 'opponent',
+    // Remove typing, add followup question
+    setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+    addBubble({
+      type: 'opponent',
       text: pattern.followup_question,
+      showEq: pattern.has_followup_audio,
+      audioType: 'followup_question',
+      patternId: pattern.id,
     });
 
     setPhase('listen2');
 
-    // フォローアップ音声再生
+    // Play followup audio
     if (pattern.has_followup_audio) {
       await playAudio(pattern.id, 'followup_question');
     }
 
     if (turn2Mode === 'listen') {
-      // 聞くだけモード → 模範回答表示して次へ
+      // Listen-only mode: show model answer and proceed
       if (pattern.followup_answer) {
-        addMessage({
-          speaker: 'system',
+        addBubble({
+          type: 'opponent',
           text: pattern.followup_answer,
           textJp: pattern.followup_answer_jp || undefined,
-          isModelAnswer: true,
         });
       }
       await new Promise(r => setTimeout(r, 1500));
-      goToNextCard();
+      goToFullReplay();
     } else {
-      enterSpeakPhase(2);
+      // Speak mode
+      if (inputMode === 'text') {
+        setPhase('micReady2');
+        setTimeout(() => textInputRef.current?.focus(), 100);
+      } else {
+        setPhase('micReady2');
+      }
     }
-  }, [pattern, playAudio, addMessage, turn2Mode, enterSpeakPhase]);
+  }, [pattern, addBubble, playAudio, turn2Mode, inputMode]);
 
-  // Self-eval
-  const handleSelfEval = useCallback((eval_: 'good' | 'couldnt') => {
-    // 模範回答表示
-    if (pattern?.followup_answer) {
-      addMessage({
-        speaker: 'system',
+  // ---- Turn 2 review ----
+  const showTurn2Review = useCallback(async () => {
+    if (!pattern) return;
+    setReviewTurn(2);
+    setReviewShowQJa(false);
+    setReviewShowNatJa(false);
+    setReviewShowFeedback(false);
+    setReviewFeedbackText('');
+
+    // No API scoring for Turn 2, just show review
+    setShowReview(true);
+    setPhase('result2');
+  }, [pattern]);
+
+  // Handle text submit for turn 2
+  useEffect(() => {
+    if (phase === 'processing2' && userAnswer2 && !mediaRecorderRef.current?.state) {
+      showTurn2Review();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, userAnswer2]);
+
+  // ---- Turn 2 self-eval buttons ----
+  const handleT2Eval = useCallback((eval_: 'good' | 'couldnt') => {
+    setShowReview(false);
+    goToFullReplay();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleT2Replay = useCallback(() => {
+    // Play the followup answer audio in the review
+    if (pattern?.id) {
+      playAudio(pattern.id, 'spp'); // Play the model answer
+    }
+  }, [pattern, playAudio]);
+
+  // ===== Full Replay =====
+  const goToFullReplay = useCallback(() => {
+    if (!pattern) return;
+    setShowReview(false);
+    setPhase('fullReplay');
+
+    const lines: ReplayLine[] = [
+      {
+        speaker: 'opponent',
+        text: pattern.fpp_question,
+        ja: pattern.situation || '',
+        audioType: 'fpp_question',
+        patternId: pattern.id,
+        hasAudio: pattern.has_fpp_question_audio,
+      },
+      {
+        speaker: 'user',
+        text: pattern.spp,
+        ja: pattern.spp_jp || '',
+        audioType: 'spp',
+        patternId: pattern.id,
+        hasAudio: pattern.has_spp_audio,
+      },
+    ];
+
+    if (pattern.followup_question && pattern.followup_answer) {
+      lines.push({
+        speaker: 'opponent',
+        text: pattern.followup_question,
+        ja: '',
+        audioType: 'followup_question',
+        patternId: pattern.id,
+        hasAudio: pattern.has_followup_audio,
+      });
+      lines.push({
+        speaker: 'user',
         text: pattern.followup_answer,
-        textJp: pattern.followup_answer_jp || undefined,
-        isModelAnswer: true,
+        ja: pattern.followup_answer_jp || '',
+        audioType: 'spp', // followup answer audio
+        patternId: pattern.id,
+        hasAudio: false, // We don't have separate followup_answer audio
       });
     }
 
-    setCardResults(prev => [...prev, { turn1: scoreLevel, turn2: eval_ }]);
-    setTimeout(() => goToNextCard(), 800);
-  }, [pattern, scoreLevel, addMessage]);
+    setReplayLines(lines);
+    setReplayBubbleHints({});
+    setReplayPlayingIdx(-1);
 
-  // === カード遷移 ===
+    // Auto-play sequentially
+    playReplaySequence(lines);
+  }, [pattern]);
 
-  const goToNextCard = useCallback(() => {
-    // Turn1の統計に追加
+  const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
+    for (let i = 0; i < lines.length; i++) {
+      setReplayPlayingIdx(i);
+      if (lines[i].hasAudio) {
+        await playAudio(lines[i].patternId, lines[i].audioType);
+      } else {
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+    setReplayPlayingIdx(-1);
+    setShowPostReplayBar(true);
+  }, [playAudio]);
+
+  // Post-replay handlers
+  const handleReplayAgain = useCallback(() => {
+    setShowPostReplayBar(false);
+    playReplaySequence(replayLines);
+  }, [replayLines, playReplaySequence]);
+
+  const handleReplayRetry = useCallback(() => {
+    // Re-do this pattern
+    setShowPostReplayBar(false);
+    setPhase('idle');
+    setBubbles([]);
+    setUserAnswer1('');
+    setUserAnswer2('');
+    setReplayLines([]);
+  }, []);
+
+  const handleReplayNext = useCallback(() => {
+    setShowPostReplayBar(false);
+    // Update stats
     setStats(prev => ({ ...prev, [scoreLevel]: prev[scoreLevel] + 1 }));
 
     if (index < total - 1) {
       setIndex(index + 1);
       setPhase('idle');
-      setMessages([]);
-      setUserAnswer('');
+      setBubbles([]);
+      setUserAnswer1('');
       setUserAnswer2('');
-      setTextInput('');
+      setReplayLines([]);
     } else {
       setPhase('complete');
     }
   }, [index, total, scoreLevel]);
 
-  const skipTimer = useCallback(() => {
-    setTimerActive(false);
-    enterSpeakPhase(1);
-  }, [enterSpeakPhase]);
-
-  // キーボード操作
+  // ---- Keyboard shortcuts ----
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (showSettings) return;
-      // テキスト入力中はスペースバーを無視
+      if (showSettings || showReview) return;
       if ((phase === 'micReady1' || phase === 'micReady2') && inputMode === 'text') return;
 
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         switch (phase) {
           case 'idle': handleStart(); break;
-          case 'think': skipTimer(); break;
           case 'speak1': case 'speak2': stopRecording(); break;
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [phase, inputMode, showSettings, handleStart, skipTimer, stopRecording]);
+  }, [phase, inputMode, showSettings, showReview, handleStart, stopRecording]);
 
-  // 完了画面
-  if (phase === 'complete' || index >= total) {
+  // ---- Cleanup on unmount ----
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      clearSpeakTimers();
+    };
+  }, [stopAudio, clearSpeakTimers]);
+
+  // ===== Completion Screen =====
+  if (phase === 'complete') {
     return (
-      <CompletionScreen
-        total={total}
-        stats={stats}
-        chunkTitle={chunkTitle}
-      />
+      <div className="complete show">
+        <div className="complete-icon">&#127881;</div>
+        <div className="complete-title">Well Done!</div>
+        <div className="complete-subtitle">{total} patterns completed</div>
+        <div className="complete-stats">
+          <div className="complete-stat">
+            <div className="complete-stat-num g">{stats.perfect + stats.great}</div>
+            <div className="complete-stat-label">Perfect/Great</div>
+          </div>
+          <div className="complete-stat">
+            <div className="complete-stat-num a">{stats.good + stats.almost}</div>
+            <div className="complete-stat-label">Good/Almost</div>
+          </div>
+          <div className="complete-stat">
+            <div className="complete-stat-num r">{stats.retry}</div>
+            <div className="complete-stat-label">Retry</div>
+          </div>
+        </div>
+        <Link href="/practice" className="complete-btn" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+          Back to Menu
+        </Link>
+      </div>
     );
   }
 
   if (!pattern) return null;
 
+  // ---- Diff for review ----
+  const reviewUserReply = reviewTurn === 1 ? userAnswer1 : userAnswer2;
+  const reviewNaturalReply = reviewTurn === 1 ? pattern.spp : (pattern.followup_answer || '');
+  const reviewQuestionText = reviewTurn === 1 ? pattern.fpp_question : (pattern.followup_question || '');
+  const reviewQuestionJa = reviewTurn === 1 ? (pattern.situation || '') : '';
+  const reviewNaturalJa = reviewTurn === 1 ? (pattern.spp_jp || '') : (pattern.followup_answer_jp || '');
+  const diff = highlightDiff(reviewUserReply, reviewNaturalReply);
+
   return (
-    <div className="min-h-screen bg-bg-page flex flex-col" style={{ height: '100dvh' }}>
-      {/* ヘッダー */}
-      <header className="bg-bg-card border-b border-border px-4 py-3 shrink-0">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link href="/practice" className="text-text-muted hover:text-text-dark transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M13 4L7 10L13 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+    <>
+      {/* ===== Practice Screen ===== */}
+      <div className="prac">
+        {/* Header */}
+        <div className="p-hd">
+          <Link href="/practice" className="p-ib" style={{ textDecoration: 'none' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </Link>
-          <span className="text-sm font-medium text-text-dark">{index + 1} / {total}</span>
-          <button onClick={() => setShowSettings(true)} className="text-text-light hover:text-text-muted transition-colors">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
-              <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-            </svg>
+          <div className="p-hd-info">
+            <div className="p-hd-t">Pattern Practice</div>
+            <div className="p-hd-c">{index + 1} / {total}</div>
+          </div>
+          <button className="p-ib" onClick={() => setShowSettings(true)} aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
         </div>
-      </header>
 
-      {/* プログレスバー */}
-      <div className="h-1 bg-border shrink-0">
-        <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
-      </div>
-
-      {/* スティッキー状況パネル */}
-      <div className="bg-bg-card border-b border-border px-4 py-2 shrink-0">
-        <div className="max-w-lg mx-auto">
-          <p className="text-xs font-bold text-primary">{chunkTitle}</p>
-          {pattern.situation && (
-            <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{pattern.situation}</p>
-          )}
+        {/* Progress bar */}
+        <div className="p-prog-bar">
+          <div className="p-prog-fill" style={{ width: `${progress}%` }} />
         </div>
-      </div>
 
-      {/* チャットエリア */}
-      <main className="flex-1 overflow-y-auto px-4 py-4">
-        <div className="max-w-lg mx-auto space-y-3">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`animate-msg-in flex ${msg.speaker === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 cursor-pointer transition-all ${
-                  msg.speaker === 'opponent'
-                    ? 'bg-bg-card border border-border shadow-sm rounded-bl-md'
-                    : msg.speaker === 'system'
-                    ? 'bg-success/10 border border-success/20 rounded-bl-md'
-                    : msg.scoreLevel
-                    ? `${LEVEL_CONFIG[msg.scoreLevel].bg} border ${
-                        msg.scoreLevel === 'perfect' || msg.scoreLevel === 'great' ? 'border-success/30' :
-                        msg.scoreLevel === 'good' ? 'border-blue-200' :
-                        msg.scoreLevel === 'almost' ? 'border-amber-200' : 'border-error/30'
-                      } rounded-br-md`
-                    : 'bg-primary/10 border border-primary/20 rounded-br-md'
-                }`}
-                onClick={() => setShowJpId(showJpId === msg.id ? null : msg.id)}
-              >
-                {msg.isModelAnswer && (
-                  <p className="text-[10px] font-semibold text-success mb-0.5">Model Answer</p>
-                )}
-                <p className={`text-sm leading-relaxed ${
-                  msg.speaker === 'user' ? 'text-text-dark' :
-                  msg.isModelAnswer ? 'text-success font-medium' : 'text-text-dark'
-                }`}>
-                  {msg.text}
-                </p>
-                {/* 日本語訳（タップで表示） */}
-                {showJpId === msg.id && msg.textJp && (
-                  <p className="text-xs text-text-muted mt-1.5 pt-1.5 border-t border-border/50">{msg.textJp}</p>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* タイピングインジケーター */}
-          {phase === 'listen1' && messages.length === 0 && (
-            <div className="flex justify-start animate-msg-in">
-              <div className="bg-bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-text-light rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 bg-text-light rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 bg-text-light rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={chatEndRef} />
+        {/* Situation panel */}
+        <div className="mobile-situation-panel">
+          <div className="mobile-situation-chunk">{chunkTitle}</div>
+          {pattern.situation && <div className="mobile-situation-text">{pattern.situation}</div>}
         </div>
-      </main>
 
-      {/* アクションエリア（下部固定） */}
-      <div className="bg-bg-card border-t border-border px-4 py-4 shrink-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 8px) + 16px)' }}>
-        <div className="max-w-lg mx-auto">
+        {/* Phase indicator */}
+        {uiPhase && (
+          <div className="phase-indicator">
+            {(['listen', 'think', 'speak', 'check', 'continue'] as UiPhase[]).map((step, si) => {
+              const order: UiPhase[] = ['listen', 'think', 'speak', 'check', 'continue'];
+              const labels: Record<UiPhase, string> = { listen: 'Listen', think: 'Think', speak: 'Speak', check: 'Check', continue: 'Continue' };
+              const currentIdx = uiPhase ? order.indexOf(uiPhase) : -1;
+              const thisIdx = order.indexOf(step);
+              const isActive = step === uiPhase;
+              const isDone = thisIdx < currentIdx;
+              return (
+                <span key={step} style={{ display: 'contents' }}>
+                  {si > 0 && <div className="phase-sep" />}
+                  <div className="phase-step">
+                    <div className={`phase-dot ${isActive ? 'active' : isDone ? 'done' : ''}`} />
+                    <div className={`phase-label ${isActive ? 'active' : isDone ? 'done' : ''}`}>{labels[step]}</div>
+                  </div>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
-          {/* idle: START ボタン */}
-          {phase === 'idle' && (
-            <button
-              onClick={handleStart}
-              className="w-full py-4 bg-cta text-white rounded-[var(--radius-button)] font-bold text-lg animate-cta-pulse hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              START
-            </button>
-          )}
-
-          {/* listen1: 音声再生中 */}
-          {phase === 'listen1' && (
-            <div className="text-center py-2">
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="w-1.5 h-4 bg-primary rounded-full animate-pulse" />
-                <span className="w-1.5 h-6 bg-primary rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+        {/* Practice body */}
+        <div className="prac-body">
+          <div className="prac-right" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            {/* Chat thread */}
+            {phase !== 'fullReplay' ? (
+              <div className="chat-thread" ref={chatThreadRef}>
+                {bubbles.map((b) => {
+                  if (b.type === 'typing') {
+                    return (
+                      <div key={b.id} className="chat-typing">
+                        <div className="chat-avatar">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div className="typing-bubble">
+                          <div className="typing-dot" />
+                          <div className="typing-dot" />
+                          <div className="typing-dot" />
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (b.type === 'opponent') {
+                    return (
+                      <div key={b.id} className="chat-opponent">
+                        <div className="chat-avatar">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                        <div className="chat-bubble-left">
+                          <div className="bubble-text">{b.text}</div>
+                          {b.showEq && (
+                            <div className="bubble-eq">
+                              <div className="eq-bars">
+                                <span /><span /><span /><span />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (b.type === 'user') {
+                    return (
+                      <div key={b.id} className="chat-user">
+                        <div className={`chat-bubble-right ${b.resultClass || ''}`}>
+                          <div className="bubble-text">{b.text}</div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
               </div>
-              <p className="text-xs text-text-muted mt-2">音声再生中...</p>
-            </div>
-          )}
+            ) : (
+              /* Full replay view */
+              <div className="chat-thread" ref={chatThreadRef}>
+                {replayLines.map((line, li) => {
+                  if (line.speaker === 'opponent') {
+                    return (
+                      <div key={li}>
+                        <div className="chat-opponent">
+                          <div className="chat-avatar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          </div>
+                          <div className="chat-bubble-left" style={{ cursor: 'pointer' }} onClick={() => setReplayBubbleHints(prev => ({ ...prev, [li]: !prev[li] }))}>
+                            <div className="bubble-text">{line.text}</div>
+                            {replayBubbleHints[li] && line.ja && (
+                              <div className="bubble-hint">
+                                <div className="bubble-hint-ja">{line.ja}</div>
+                              </div>
+                            )}
+                          </div>
+                          {line.hasAudio && (
+                            <button
+                              className="bubble-play-btn"
+                              onClick={(e) => { e.stopPropagation(); playAudio(line.patternId, line.audioType); }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div key={li}>
+                        <div className="chat-user">
+                          <div className="chat-bubble-right" style={{ cursor: 'pointer' }} onClick={() => setReplayBubbleHints(prev => ({ ...prev, [li]: !prev[li] }))}>
+                            <div className="bubble-text">{line.text}</div>
+                            {replayBubbleHints[li] && line.ja && (
+                              <div className="bubble-hint">
+                                <div className="bubble-hint-ja">{line.ja}</div>
+                              </div>
+                            )}
+                          </div>
+                          {line.hasAudio && (
+                            <button
+                              className="bubble-play-btn"
+                              onClick={(e) => { e.stopPropagation(); playAudio(line.patternId, line.audioType); }}
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                })}
+              </div>
+            )}
 
-          {/* think: タイマー */}
-          {phase === 'think' && (
-            <div className="flex flex-col items-center py-2">
-              <button onClick={skipTimer} className="relative w-20 h-20 mb-2">
-                <svg width="80" height="80" viewBox="0 0 80 80">
-                  <circle cx="40" cy="40" r="35" fill="none" stroke="var(--border)" strokeWidth="3" />
-                  <circle
-                    cx="40" cy="40" r="35"
-                    fill="none" stroke="var(--primary)" strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeDasharray={220}
-                    strokeDashoffset={220 * (1 - timer / thinkTime)}
-                    transform="rotate(-90 40 40)"
-                    className="transition-all duration-1000 ease-linear"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-primary">{timer}</span>
-              </button>
-              <p className="text-xs text-text-light">タップでスキップ</p>
-            </div>
-          )}
-
-          {/* micReady1 / micReady2: 入力待ち */}
-          {(phase === 'micReady1' || phase === 'micReady2') && (
-            <>
-              {inputMode === 'voice' ? (
-                <button
-                  onClick={() => startRecording(phase === 'micReady1' ? 1 : 2)}
-                  className="w-full flex items-center justify-center gap-3 py-4 bg-cta text-white rounded-[var(--radius-button)] font-medium animate-cta-pulse hover:opacity-90 active:scale-[0.98] transition-all"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                  </svg>
-                  タップして話す
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    ref={textInputRef}
-                    value={textInput}
-                    onChange={(e) => setTextInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleTextSubmit(phase === 'micReady1' ? 1 : 2);
-                      }
-                    }}
-                    placeholder="英語で入力..."
-                    className="flex-1 px-4 py-3 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleTextSubmit(phase === 'micReady1' ? 1 : 2)}
-                    disabled={!textInput.trim()}
-                    className="px-5 py-3 bg-cta text-white rounded-[var(--radius-button)] text-sm font-medium disabled:opacity-40 hover:opacity-90 active:scale-[0.98] transition-all"
-                  >
-                    送信
-                  </button>
+            {/* Bottom action area */}
+            <div className="action-area">
+              {/* idle: START */}
+              {phase === 'idle' && (
+                <div className="action-phase v">
+                  <button className="action-start-btn" onClick={handleStart}>START</button>
                 </div>
               )}
-            </>
-          )}
 
-          {/* speak1 / speak2: 録音中 */}
-          {(phase === 'speak1' || phase === 'speak2') && (
-            <button
-              onClick={stopRecording}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-error text-white rounded-[var(--radius-button)] font-medium animate-mic-pulse hover:opacity-90 active:scale-[0.98] transition-all"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              録音中... タップで完了
-            </button>
-          )}
+              {/* listen1: audio playing */}
+              {phase === 'listen1' && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Listening...</div>
+                  </div>
+                </div>
+              )}
 
-          {/* processing1 / processing2 / scoring1: 処理中 */}
-          {(phase === 'processing1' || phase === 'processing2' || phase === 'scoring1') && (
-            <div className="flex items-center justify-center gap-3 py-4">
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-text-muted">
-                {phase === 'scoring1' ? 'スコアリング中...' : '認識中...'}
-              </p>
+              {/* micReady1 / micReady2 */}
+              {(phase === 'micReady1' || phase === 'micReady2') && (
+                <div className="action-phase v">
+                  {inputMode === 'voice' ? (
+                    <div className="action-speak">
+                      <div className="mic-ready-hint">Tap to answer</div>
+                      <button className="mic-start-btn" onClick={() => startRecording(phase === 'micReady1' ? 1 : 2)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-input-area">
+                      <input
+                        ref={textInputRef}
+                        type="text"
+                        className="text-input-field"
+                        placeholder="Type your answer..."
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleTextSubmit(phase === 'micReady1' ? 1 : 2);
+                          }
+                        }}
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        autoFocus
+                      />
+                      <button
+                        className="text-input-submit"
+                        onClick={() => handleTextSubmit(phase === 'micReady1' ? 1 : 2)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* speak1 / speak2: recording */}
+              {(phase === 'speak1' || phase === 'speak2') && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="mic-row">
+                      <div className="mic-ring">
+                        <div className="mic-ring-pulse" />
+                        <div className="mic-ring-inner">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                        </div>
+                      </div>
+                      <button className="done-btn" onClick={stopRecording}>I&apos;m done</button>
+                    </div>
+                    <div className="speak-timer">{speakTimer}</div>
+                    <div className="speak-status">Listening...</div>
+                  </div>
+                </div>
+              )}
+
+              {/* processing1 / processing2 */}
+              {(phase === 'processing1' || phase === 'processing2') && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Processing...</div>
+                  </div>
+                </div>
+              )}
+
+              {/* result1 / result2: shown in overlay, action area minimal */}
+              {(phase === 'result1' || phase === 'result2') && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Review your answer</div>
+                  </div>
+                </div>
+              )}
+
+              {/* continueFlow / listen2 */}
+              {(phase === 'continueFlow' || phase === 'listen2') && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="mic-ready-hint">Turn 2</div>
+                    <div className="speak-status">Listening...</div>
+                  </div>
+                </div>
+              )}
+
+              {/* fullReplay: no action buttons, post-replay bar at bottom */}
+              {phase === 'fullReplay' && !showPostReplayBar && (
+                <div className="action-phase v">
+                  <div className="action-speak">
+                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Replaying conversation...</div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </div>
+      </div>
 
-          {/* check1: Re-record / OK */}
-          {phase === 'check1' && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleReRecord}
-                className="flex-1 py-3.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-medium text-text-muted hover:bg-border/30 active:scale-[0.98] transition-all"
-              >
-                再録音
-              </button>
-              <button
-                onClick={handleAccept}
-                className="flex-1 py-3.5 bg-primary text-cta rounded-[var(--radius-button)] text-sm font-bold hover:bg-primary-dark active:scale-[0.98] transition-all"
-              >
-                OK
-              </button>
+      {/* ===== Review Overlay ===== */}
+      {showReview && (
+        <div className={`review-overlay ${showReview ? 'show' : ''}`}>
+          <div className="review-card">
+            <div className="review-hd-row">
+              <div className="review-turn-label">Turn {reviewTurn}</div>
+              {reviewTurn === 1 && (
+                <div className={`review-score-badge score-${scoreLevel}`}>
+                  {SCORE_LABELS[scoreLevel]}
+                </div>
+              )}
             </div>
-          )}
 
-          {/* result1: Turn1結果 + 続行 */}
-          {phase === 'result1' && (
-            <div className="space-y-3">
-              {/* スコアバッジ */}
-              <div className="flex items-center justify-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold ${LEVEL_CONFIG[scoreLevel].bg} ${LEVEL_CONFIG[scoreLevel].color}`}>
-                  {LEVEL_CONFIG[scoreLevel].emoji} {LEVEL_CONFIG[scoreLevel].label}
-                </span>
-                {chunkUsed && (
-                  <span className="text-xs text-success bg-success/10 px-2 py-0.5 rounded-full">Chunk Used</span>
-                )}
-              </div>
-
-              {/* 続行ボタン */}
-              <button
-                onClick={handleResult1Continue}
-                className="w-full py-3.5 bg-cta text-white rounded-[var(--radius-button)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all"
-              >
-                {hasTurn2 ? 'Turn 2 へ' : '次のパターンへ'}
-              </button>
+            {/* Question context */}
+            <div className="review-question" onClick={() => setReviewShowQJa(!reviewShowQJa)}>
+              <div className="review-q-text">{reviewQuestionText}</div>
+              {reviewShowQJa && reviewQuestionJa && (
+                <div className="review-q-ja">{reviewQuestionJa}</div>
+              )}
             </div>
-          )}
 
-          {/* transition2 / listen2: Turn2遷移中 */}
-          {(phase === 'transition2' || phase === 'listen2') && (
-            <div className="text-center py-2">
-              <p className="text-xs font-bold text-primary mb-1">Turn 2</p>
-              <div className="flex items-center justify-center gap-1.5">
-                <span className="w-1.5 h-4 bg-primary rounded-full animate-pulse" />
-                <span className="w-1.5 h-6 bg-primary rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-4 bg-primary rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          )}
-
-          {/* selfEval: 自己評価 */}
-          {phase === 'selfEval' && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleSelfEval('good')}
-                className="flex-1 py-3.5 border-2 border-success text-success rounded-[var(--radius-button)] text-sm font-bold hover:bg-success/10 active:scale-[0.98] transition-all"
-              >
-                できた
-              </button>
-              <button
+            {/* Your reply */}
+            <div className="review-section">
+              <div className="review-label">Your reply</div>
+              <div
+                className="review-text review-text-tappable"
                 onClick={() => {
-                  // Replay: Turn2の模範回答を再生
-                  if (pattern?.followup_answer) {
-                    addMessage({ speaker: 'system', text: pattern.followup_answer, textJp: pattern.followup_answer_jp || undefined, isModelAnswer: true });
+                  if (reviewShowFeedback) {
+                    setReviewShowFeedback(false);
+                  } else if (reviewFeedbackText) {
+                    setReviewShowFeedback(true);
+                  } else {
+                    fetchFeedback();
                   }
                 }}
-                className="flex-1 py-3.5 border-2 border-primary text-primary rounded-[var(--radius-button)] text-sm font-bold hover:bg-primary/10 active:scale-[0.98] transition-all"
-              >
+                dangerouslySetInnerHTML={{ __html: diff.userHtml }}
+              />
+              {reviewShowFeedback && (
+                <div className="review-feedback">
+                  <div className="review-feedback-text">
+                    {reviewFeedbackLoading ? (
+                      <span className="review-feedback-loading">Loading...</span>
+                    ) : (
+                      reviewFeedbackText
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Natural reply (best answer) */}
+            <div className="review-section">
+              <div className="review-label natural">One natural reply</div>
+              <div
+                className="review-text review-text-tappable"
+                onClick={() => setReviewShowNatJa(!reviewShowNatJa)}
+                dangerouslySetInnerHTML={{ __html: diff.naturalHtml }}
+              />
+              {reviewShowNatJa && reviewNaturalJa && (
+                <div className="review-ja">{reviewNaturalJa}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Review buttons */}
+          {reviewTurn === 1 ? (
+            <div className="review-btns">
+              <button className="review-btn review-good" onClick={handleReviewOk}>OK</button>
+              <button className="review-btn review-rerecord" onClick={handleReviewRerecord}>Re-record</button>
+            </div>
+          ) : (
+            <div className="review-btns">
+              <button className="review-btn review-good" onClick={() => handleT2Eval('good')}>
+                できた
+              </button>
+              <button className="review-btn review-play" onClick={handleT2Replay}>
                 Replay
               </button>
-              <button
-                onClick={() => handleSelfEval('couldnt')}
-                className="flex-1 py-3.5 border-2 border-error text-error rounded-[var(--radius-button)] text-sm font-bold hover:bg-error/10 active:scale-[0.98] transition-all"
-              >
+              <button className="review-btn review-bad" onClick={() => handleT2Eval('couldnt')}>
                 できなかった
               </button>
             </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* フェーズインジケーター */}
-      {uiPhase && (
-        <div className="bg-bg-card border-t border-border px-4 py-2 shrink-0">
-          <div className="max-w-lg mx-auto flex justify-center gap-5 text-[11px]">
-            {(['listen', 'think', 'speak', 'check', 'continue'] as UiPhase[]).map((s) => {
-              const labels: Record<UiPhase, string> = {
-                listen: '聞く', think: '考える', speak: '話す', check: '確認', continue: '続き',
-              };
-              const order: UiPhase[] = ['listen', 'think', 'speak', 'check', 'continue'];
-              const currentIdx = uiPhase ? order.indexOf(uiPhase) : -1;
-              const thisIdx = order.indexOf(s);
-              const isActive = s === uiPhase;
-              const isDone = thisIdx < currentIdx;
-
-              return (
-                <div key={s} className="flex items-center gap-1">
-                  <div className={`w-1.5 h-1.5 rounded-full transition-all ${
-                    isActive ? 'bg-primary scale-125' : isDone ? 'bg-success' : 'bg-border'
-                  }`} />
-                  <span className={`transition-colors ${
-                    isActive ? 'text-primary font-medium' : isDone ? 'text-success' : 'text-text-light'
-                  }`}>{labels[s]}</span>
-                </div>
-              );
-            })}
-          </div>
+      {/* ===== Post-replay bar ===== */}
+      {showPostReplayBar && (
+        <div className="post-replay-bar show">
+          <button className="post-replay-btn replay" onClick={handleReplayAgain}>再度再生</button>
+          <button className="post-replay-btn retry" onClick={handleReplayRetry}>もう一回</button>
+          <button className="post-replay-btn next" onClick={handleReplayNext}>次へ</button>
         </div>
       )}
 
-      {/* Settings Overlay */}
+      {/* ===== Settings Overlay ===== */}
       {showSettings && (
-        <SettingsOverlay
-          thinkTime={thinkTime}
-          speakTime={speakTime}
-          inputMode={inputMode}
-          turn2Mode={turn2Mode}
-          onThinkTimeChange={setThinkTime}
-          onSpeakTimeChange={setSpeakTime}
-          onInputModeChange={setInputMode}
-          onTurn2ModeChange={setTurn2Mode}
-          onClose={() => setShowSettings(false)}
-        />
+        <div className="settings-overlay show">
+          <div className="settings-panel">
+            <div className="settings-hd">
+              <div className="settings-title">Settings</div>
+              <button className="settings-close" onClick={() => setShowSettings(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="settings-section">
+              <div className="settings-label">Input Mode</div>
+              <div className="settings-toggle-group">
+                <button
+                  className={`settings-toggle ${inputMode === 'voice' ? 'active' : ''}`}
+                  onClick={() => setInputMode('voice')}
+                >
+                  Voice
+                </button>
+                <button
+                  className={`settings-toggle ${inputMode === 'text' ? 'active' : ''}`}
+                  onClick={() => setInputMode('text')}
+                >
+                  Text
+                </button>
+              </div>
+            </div>
+            <div className="settings-section">
+              <div className="settings-label">Speak Time</div>
+              <div className="settings-slider-row">
+                <input
+                  type="range"
+                  className="settings-slider"
+                  min={5}
+                  max={20}
+                  value={speakLimitSec}
+                  step={1}
+                  onChange={(e) => setSpeakLimitSec(parseInt(e.target.value))}
+                />
+                <span className="settings-slider-val">{speakLimitSec}s</span>
+              </div>
+              <div className="settings-hint">Recording time limit after pressing mic</div>
+            </div>
+            <div className="settings-section">
+              <div className="settings-label">Turn 2</div>
+              <div className="settings-toggle-group">
+                <button
+                  className={`settings-toggle ${turn2Mode === 'listen' ? 'active' : ''}`}
+                  onClick={() => setTurn2Mode('listen')}
+                >
+                  聞くだけ
+                </button>
+                <button
+                  className={`settings-toggle ${turn2Mode === 'speak' ? 'active' : ''}`}
+                  onClick={() => setTurn2Mode('speak')}
+                >
+                  自分も言う
+                </button>
+              </div>
+              <div className="settings-hint">Turn 2を聞くだけにするか、自分でも回答するか</div>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
