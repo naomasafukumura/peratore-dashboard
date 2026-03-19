@@ -1886,7 +1886,7 @@ async function transcribeWithWhisper(blob) {
     formData.append('file', blob, 'audio.' + ext);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/transcribe', { method: 'POST', body: formData });
+    const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
     if (!res.ok) {
       console.log('Transcribe API error:', res.status, await res.text());
       return '';
@@ -1997,7 +1997,7 @@ function scoreTurn2Local(spoken, state) {
 // API scoring via Gemini (意味判定)
 async function scoreViaAPI(userAnswer, question, targetChunk, exampleAnswer, turn) {
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/score-answer', {
+    const res = await fetch('/api/score-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer, question, targetChunk, exampleAnswer, turn })
@@ -2311,7 +2311,7 @@ const translationCache = {};
 async function fetchTranslation(text) {
   if (translationCache[text]) return translationCache[text];
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/translate', {
+    const res = await fetch('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
@@ -2325,7 +2325,7 @@ async function fetchTranslation(text) {
 
 async function fetchYourReplyFeedback(userReply, question, naturalReply, targetEl) {
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/explain-answer', {
+    const res = await fetch('/api/explain-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer: userReply, question: question, exampleAnswer: naturalReply })
@@ -2342,7 +2342,7 @@ async function fetchYourReplyFeedback(userReply, question, naturalReply, targetE
 
 async function fetchReviewTip(userReply, naturalReply, targetEl) {
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/check-answer', {
+    const res = await fetch('/api/check-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer: userReply, question: naturalReply, exampleAnswer: naturalReply })
@@ -2715,7 +2715,7 @@ function showPracticeResult(card, userAnswer, onDone) {
 
 async function fetchPracticeCheck(userAnswer, question, targetPattern, situation, badgeEl, commentEl, suggestionEl, suggestionTextEl, isRetry) {
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/practice-check', {
+    const res = await fetch('/api/practice-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer, question, targetPattern, situation, isRetry })
@@ -2891,7 +2891,7 @@ function showReactionPopup(text) {
 // ===== AI Feedback =====
 async function fetchAIFeedback(userAnswer, question, exampleAnswer) {
   try {
-    const res = await fetch('https://masaenglish-patternpractice.vercel.app/api/check-answer', {
+    const res = await fetch('/api/check-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer, question, exampleAnswer })
