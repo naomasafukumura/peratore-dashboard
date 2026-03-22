@@ -648,15 +648,45 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     <div class="edit-tab-content active" id="editTabPatterns">
       <div class="edit-section">
         <div class="edit-section-title">カテゴリ選択</div>
-        <select class="edit-select" id="editCatSelect">
-          <option value="">カテゴリを選択...</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="edit-select" id="editCatSelect" style="flex:1">
+            <option value="">カテゴリを選択...</option>
+          </select>
+          <button class="edit-btn edit-btn-sm" id="editAddCatBtn" style="white-space:nowrap;padding:8px 12px">+ 新規</button>
+        </div>
+        <div id="editNewCatForm" style="display:none;margin-top:10px">
+          <div class="edit-form">
+            <label class="edit-label">カテゴリ名</label>
+            <input class="edit-input" id="editNewCatName" placeholder="例: 返答：未来">
+            <label class="edit-label">タイプ</label>
+            <input class="edit-input" id="editNewCatType" placeholder="例: 返答型">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="edit-btn edit-btn-primary" id="editSaveCatBtn">カテゴリ追加</button>
+              <button class="edit-btn edit-btn-sm" id="editCancelCatBtn">キャンセル</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="edit-section" id="editChunkSection" style="display:none">
         <div class="edit-section-title">チャンク選択</div>
-        <select class="edit-select" id="editChunkSelect">
-          <option value="">チャンクを選択...</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="edit-select" id="editChunkSelect" style="flex:1">
+            <option value="">チャンクを選択...</option>
+          </select>
+          <button class="edit-btn edit-btn-sm" id="editAddChunkBtn" style="white-space:nowrap;padding:8px 12px">+ 新規</button>
+        </div>
+        <div id="editNewChunkForm" style="display:none;margin-top:10px">
+          <div class="edit-form">
+            <label class="edit-label">チャンク名（英語）</label>
+            <input class="edit-input" id="editNewChunkTitleEn" placeholder="例: I'm gonna ~">
+            <label class="edit-label">チャンク名（日本語）</label>
+            <input class="edit-input" id="editNewChunkTitleJp" placeholder="例: 〜するつもり">
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="edit-btn edit-btn-primary" id="editSaveChunkBtn">チャンク追加</button>
+              <button class="edit-btn edit-btn-sm" id="editCancelChunkBtn">キャンセル</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div id="editPatternList" class="edit-pattern-list"></div>
       <div id="editAddPatternSection" style="display:none">
@@ -3399,6 +3429,64 @@ document.getElementById('editAddPatternBtn').addEventListener('click', async () 
   } catch(e) {
     alert('追加に失敗しました: ' + e.message);
   }
+});
+
+// ===== Add Category =====
+document.getElementById('editAddCatBtn').addEventListener('click', () => {
+  document.getElementById('editNewCatForm').style.display = document.getElementById('editNewCatForm').style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('editCancelCatBtn').addEventListener('click', () => {
+  document.getElementById('editNewCatForm').style.display = 'none';
+});
+document.getElementById('editSaveCatBtn').addEventListener('click', async () => {
+  const name = document.getElementById('editNewCatName').value.trim();
+  const type = document.getElementById('editNewCatType').value.trim() || name;
+  if (!name) { alert('カテゴリ名を入力してください'); return; }
+  try {
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, name })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showEditToast('カテゴリを追加しました');
+    document.getElementById('editNewCatName').value = '';
+    document.getElementById('editNewCatType').value = '';
+    document.getElementById('editNewCatForm').style.display = 'none';
+    loadEditData();
+  } catch(e) { alert('追加に失敗しました: ' + e.message); }
+});
+
+// ===== Add Chunk =====
+document.getElementById('editAddChunkBtn').addEventListener('click', () => {
+  document.getElementById('editNewChunkForm').style.display = document.getElementById('editNewChunkForm').style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('editCancelChunkBtn').addEventListener('click', () => {
+  document.getElementById('editNewChunkForm').style.display = 'none';
+});
+document.getElementById('editSaveChunkBtn').addEventListener('click', async () => {
+  const catId = parseInt(document.getElementById('editCatSelect').value);
+  if (!catId) { alert('先にカテゴリを選択してください'); return; }
+  const titleEn = document.getElementById('editNewChunkTitleEn').value.trim();
+  const titleJp = document.getElementById('editNewChunkTitleJp').value.trim();
+  if (!titleEn) { alert('チャンク名（英語）を入力してください'); return; }
+  try {
+    const res = await fetch('/api/chunks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: catId, titleEn, titleJp })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    showEditToast('チャンクを追加しました');
+    document.getElementById('editNewChunkTitleEn').value = '';
+    document.getElementById('editNewChunkTitleJp').value = '';
+    document.getElementById('editNewChunkForm').style.display = 'none';
+    // Reload categories and re-select current category
+    const prevCatId = catId;
+    await loadEditData();
+    document.getElementById('editCatSelect').value = prevCatId;
+    document.getElementById('editCatSelect').dispatchEvent(new Event('change'));
+  } catch(e) { alert('追加に失敗しました: ' + e.message); }
 });
 
 // ===== Student Management =====
