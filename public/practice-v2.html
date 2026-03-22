@@ -658,8 +658,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
           <div class="edit-form">
             <label class="edit-label">カテゴリ名</label>
             <input class="edit-input" id="editNewCatName" placeholder="例: 返答：未来">
-            <label class="edit-label">タイプ</label>
-            <input class="edit-input" id="editNewCatType" placeholder="例: 返答型">
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="edit-btn edit-btn-primary" id="editSaveCatBtn">カテゴリ追加</button>
               <button class="edit-btn edit-btn-sm" id="editCancelCatBtn">キャンセル</button>
@@ -667,36 +665,15 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
           </div>
         </div>
       </div>
-      <div class="edit-section" id="editChunkSection" style="display:none">
-        <div class="edit-section-title">チャンク選択</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select class="edit-select" id="editChunkSelect" style="flex:1">
-            <option value="">チャンクを選択...</option>
-          </select>
-          <button class="edit-btn edit-btn-sm" id="editAddChunkBtn" style="white-space:nowrap;padding:8px 12px">+ 新規</button>
-        </div>
-        <div id="editNewChunkForm" style="display:none;margin-top:10px">
-          <div class="edit-form">
-            <label class="edit-label">チャンク名（英語）</label>
-            <input class="edit-input" id="editNewChunkTitleEn" placeholder="例: I'm gonna ~">
-            <label class="edit-label">チャンク名（日本語）</label>
-            <input class="edit-input" id="editNewChunkTitleJp" placeholder="例: 〜するつもり">
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <button class="edit-btn edit-btn-primary" id="editSaveChunkBtn">チャンク追加</button>
-              <button class="edit-btn edit-btn-sm" id="editCancelChunkBtn">キャンセル</button>
-            </div>
-          </div>
-        </div>
-      </div>
       <div id="editPatternList" class="edit-pattern-list"></div>
       <div id="editAddPatternSection" style="display:none">
-        <div class="edit-section-title" style="margin-top:16px">新しいパターンを追加</div>
+        <div class="edit-section-title" style="margin-top:16px">新しいフレーズを追加</div>
         <div class="edit-form">
           <label class="edit-label">Situation (状況)</label>
           <textarea class="edit-input edit-textarea" id="editNewSituation" placeholder="例: 友人にカフェでの予定を聞かれた"></textarea>
-          <label class="edit-label">Trigger / FPP Question</label>
+          <label class="edit-label">Trigger（相手のセリフ）</label>
           <input class="edit-input" id="editNewFppQuestion" placeholder="例: What are you gonna do this weekend?">
-          <label class="edit-label">SPP (模範回答)</label>
+          <label class="edit-label">模範回答</label>
           <input class="edit-input" id="editNewSpp" placeholder="例: I'm gonna relax at home.">
           <label class="edit-label">Followup Question</label>
           <input class="edit-input" id="editNewFollowup" placeholder="例: Oh, are you gonna watch Netflix or something?">
@@ -3156,6 +3133,7 @@ function addAIFeedbackBubble(text) {
 // ===== Edit Mode =====
 let editCategories = [];
 let editSelectedChunkId = null;
+let editSelectedCatId = null;
 let editSelectedStudentName = null;
 let editAssignedChunkIds = new Set();
 
@@ -3213,58 +3191,55 @@ function populateEditCatSelect() {
   const sel = document.getElementById('editCatSelect');
   sel.innerHTML = '<option value="">カテゴリを選択...</option>';
   editCategories.forEach(cat => {
+    const totalPhrases = cat.chunks ? cat.chunks.filter(c => c.id).reduce((s, c) => s + (c.patternCount || 0), 0) : 0;
     const opt = document.createElement('option');
     opt.value = cat.id;
-    opt.textContent = cat.name + ' (' + (cat.chunks ? cat.chunks.filter(c => c.id).length : 0) + ' chunks)';
+    opt.textContent = cat.name + ' (' + totalPhrases + ' フレーズ)';
     sel.appendChild(opt);
   });
 }
 
 document.getElementById('editCatSelect').addEventListener('change', (e) => {
   const catId = parseInt(e.target.value);
-  const chunkSection = document.getElementById('editChunkSection');
-  const chunkSel = document.getElementById('editChunkSelect');
   document.getElementById('editPatternList').innerHTML = '';
   document.getElementById('editAddPatternSection').style.display = 'none';
 
-  if (!catId) {
-    chunkSection.style.display = 'none';
-    return;
-  }
+  if (!catId) return;
 
+  // カテゴリ内の全チャンクの全フレーズを一括取得して表示
+  loadAllPatternsForCategory(catId);
+});
+
+async function loadAllPatternsForCategory(catId) {
   const cat = editCategories.find(c => c.id === catId);
   if (!cat || !cat.chunks) return;
 
-  chunkSel.innerHTML = '<option value="">チャンクを選択...</option>';
-  cat.chunks.filter(ch => ch.id).forEach(ch => {
-    const opt = document.createElement('option');
-    opt.value = ch.id;
-    opt.textContent = (ch.titleEn || ch.chunkNumber) + ' (' + (ch.patternCount || 0) + ' patterns)';
-    chunkSel.appendChild(opt);
-  });
-  chunkSection.style.display = 'block';
-});
+  const validChunks = cat.chunks.filter(ch => ch.id);
+  let allPatterns = [];
 
-document.getElementById('editChunkSelect').addEventListener('change', (e) => {
-  const chunkId = parseInt(e.target.value);
-  editSelectedChunkId = chunkId || null;
-  if (chunkId) {
-    loadEditPatterns(chunkId);
+  // 全チャンクのフレーズを取得
+  for (const ch of validChunks) {
+    try {
+      const res = await fetch('/api/patterns?chunkId=' + ch.id);
+      const data = await res.json();
+      if (data.patterns) {
+        allPatterns = allPatterns.concat(data.patterns);
+      }
+    } catch(e) {
+      console.error('Failed to load patterns for chunk', ch.id, e);
+    }
+  }
+
+  // デフォルトチャンクIDを記憶（フレーズ追加用）
+  if (validChunks.length > 0) {
+    editSelectedChunkId = validChunks[0].id;
   } else {
-    document.getElementById('editPatternList').innerHTML = '';
-    document.getElementById('editAddPatternSection').style.display = 'none';
+    editSelectedChunkId = null;
   }
-});
+  editSelectedCatId = catId;
 
-async function loadEditPatterns(chunkId) {
-  try {
-    const res = await fetch('/api/patterns?chunkId=' + chunkId);
-    const data = await res.json();
-    renderEditPatterns(data.patterns || []);
-    document.getElementById('editAddPatternSection').style.display = 'block';
-  } catch(e) {
-    console.error('Failed to load patterns:', e);
-  }
+  renderEditPatterns(allPatterns);
+  document.getElementById('editAddPatternSection').style.display = 'block';
 }
 
 function renderEditPatterns(patterns) {
@@ -3326,7 +3301,7 @@ function renderEditPatterns(patterns) {
       try {
         await fetch('/api/patterns/' + id, { method: 'DELETE' });
         showEditToast('削除しました');
-        loadEditPatterns(editSelectedChunkId);
+        loadAllPatternsForCategory(editSelectedCatId);
       } catch(e) {
         alert('削除に失敗しました');
       }
@@ -3384,15 +3359,15 @@ async function savePatternEdit(card, patternId) {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     showEditToast('保存しました');
-    loadEditPatterns(editSelectedChunkId);
+    loadAllPatternsForCategory(editSelectedCatId);
   } catch(e) {
     alert('保存に失敗しました: ' + e.message);
   }
 }
 
-// Add new pattern
+// Add new phrase
 document.getElementById('editAddPatternBtn').addEventListener('click', async () => {
-  if (!editSelectedChunkId) return;
+  if (!editSelectedCatId) { alert('カテゴリを選択してください'); return; }
   const situation = document.getElementById('editNewSituation').value.trim();
   const fppQuestion = document.getElementById('editNewFppQuestion').value.trim();
   const spp = document.getElementById('editNewSpp').value.trim();
@@ -3400,16 +3375,30 @@ document.getElementById('editAddPatternBtn').addEventListener('click', async () 
   const followupAnswer = document.getElementById('editNewFollowupAnswer').value.trim();
 
   if (!fppQuestion || !spp) {
-    alert('Trigger と SPP は必須です');
+    alert('Trigger と 模範回答 は必須です');
     return;
   }
 
   try {
+    // チャンクがなければ自動作成
+    let chunkId = editSelectedChunkId;
+    if (!chunkId) {
+      const chunkRes = await fetch('/api/chunks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: editSelectedCatId, titleEn: 'default', titleJp: '' })
+      });
+      if (!chunkRes.ok) throw new Error('チャンク作成失敗');
+      const newChunk = await chunkRes.json();
+      chunkId = newChunk.id;
+      editSelectedChunkId = chunkId;
+    }
+
     const res = await fetch('/api/patterns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chunkId: editSelectedChunkId,
+        chunkId,
         setNumber: 1,
         situation,
         fppQuestion,
@@ -3419,13 +3408,16 @@ document.getElementById('editAddPatternBtn').addEventListener('click', async () 
       })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    showEditToast('パターンを追加しました');
+    showEditToast('フレーズを追加しました');
     document.getElementById('editNewSituation').value = '';
     document.getElementById('editNewFppQuestion').value = '';
     document.getElementById('editNewSpp').value = '';
     document.getElementById('editNewFollowup').value = '';
     document.getElementById('editNewFollowupAnswer').value = '';
-    loadEditPatterns(editSelectedChunkId);
+    // カテゴリデータ再読込して一覧を更新
+    await loadEditData();
+    document.getElementById('editCatSelect').value = editSelectedCatId;
+    loadAllPatternsForCategory(editSelectedCatId);
   } catch(e) {
     alert('追加に失敗しました: ' + e.message);
   }
@@ -3440,52 +3432,18 @@ document.getElementById('editCancelCatBtn').addEventListener('click', () => {
 });
 document.getElementById('editSaveCatBtn').addEventListener('click', async () => {
   const name = document.getElementById('editNewCatName').value.trim();
-  const type = document.getElementById('editNewCatType').value.trim() || name;
   if (!name) { alert('カテゴリ名を入力してください'); return; }
   try {
     const res = await fetch('/api/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, name })
+      body: JSON.stringify({ type: name, name })
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     showEditToast('カテゴリを追加しました');
     document.getElementById('editNewCatName').value = '';
-    document.getElementById('editNewCatType').value = '';
     document.getElementById('editNewCatForm').style.display = 'none';
     loadEditData();
-  } catch(e) { alert('追加に失敗しました: ' + e.message); }
-});
-
-// ===== Add Chunk =====
-document.getElementById('editAddChunkBtn').addEventListener('click', () => {
-  document.getElementById('editNewChunkForm').style.display = document.getElementById('editNewChunkForm').style.display === 'none' ? 'block' : 'none';
-});
-document.getElementById('editCancelChunkBtn').addEventListener('click', () => {
-  document.getElementById('editNewChunkForm').style.display = 'none';
-});
-document.getElementById('editSaveChunkBtn').addEventListener('click', async () => {
-  const catId = parseInt(document.getElementById('editCatSelect').value);
-  if (!catId) { alert('先にカテゴリを選択してください'); return; }
-  const titleEn = document.getElementById('editNewChunkTitleEn').value.trim();
-  const titleJp = document.getElementById('editNewChunkTitleJp').value.trim();
-  if (!titleEn) { alert('チャンク名（英語）を入力してください'); return; }
-  try {
-    const res = await fetch('/api/chunks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId: catId, titleEn, titleJp })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    showEditToast('チャンクを追加しました');
-    document.getElementById('editNewChunkTitleEn').value = '';
-    document.getElementById('editNewChunkTitleJp').value = '';
-    document.getElementById('editNewChunkForm').style.display = 'none';
-    // Reload categories and re-select current category
-    const prevCatId = catId;
-    await loadEditData();
-    document.getElementById('editCatSelect').value = prevCatId;
-    document.getElementById('editCatSelect').dispatchEvent(new Event('change'));
   } catch(e) { alert('追加に失敗しました: ' + e.message); }
 });
 
