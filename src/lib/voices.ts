@@ -1,25 +1,18 @@
-// ボイスID設定（knowledge/operations/patternpractice-voices.md準拠）
+// ボイスID設定（patternpracticeと統一 / knowledge/operations/ペラトレ運営.md準拠）
 export const VOICES = {
-  FEMALE_A: '4rwC6xlwNjrg40xWm8Vb', // SPP全般（メイン女性）
-  AREEJ: 'YNSIMo7UPo2Hi8ifMF0B',     // trigger: 友人・ママ友・義母・姉
-  MALE_A: 'gScUm0AQVZBQ1uUp8KvE',    // trigger: 夫
-  MALE_B: 'ChO6kqkVouUn0s7HMunx',    // trigger: 同僚・上司
+  FEMALE: 'XfNU2rGpBa01ckF309OY', // trigger（相手の発話）
+  MALE: 'UgBBYS2sOqTuMpoF3BR0',   // SPP（受講生の発話）
 } as const;
 
 // キャラクター → ボイスペアのマッピング
+// 相手が夫の場合: MALE→trigger, FEMALE→spp（男性が相手、女性が受講生）
+// それ以外: FEMALE→trigger, MALE→spp（女性が相手、男性が受講生）
 export const CHARACTER_VOICE_MAP: Record<string, { trigger: string; spp: string }> = {
-  '夫':     { trigger: VOICES.MALE_A,   spp: VOICES.FEMALE_A },
-  '同僚':   { trigger: VOICES.MALE_B,   spp: VOICES.FEMALE_A },
-  '上司':   { trigger: VOICES.MALE_B,   spp: VOICES.FEMALE_A },
-  '義母':   { trigger: VOICES.FEMALE_A, spp: VOICES.AREEJ },
-  '友人':   { trigger: VOICES.AREEJ,    spp: VOICES.FEMALE_A },
-  'ママ友': { trigger: VOICES.AREEJ,    spp: VOICES.FEMALE_A },
-  '姉':     { trigger: VOICES.AREEJ,    spp: VOICES.FEMALE_A },
-  '近所':   { trigger: VOICES.AREEJ,    spp: VOICES.FEMALE_A },
+  '夫':     { trigger: VOICES.MALE,   spp: VOICES.FEMALE },
 };
 
-// デフォルトのボイスペア（キャラクター不明時）
-export const DEFAULT_VOICE_PAIR = { trigger: VOICES.AREEJ, spp: VOICES.FEMALE_A };
+// デフォルトのボイスペア（キャラクター不明時・夫以外）
+export const DEFAULT_VOICE_PAIR = { trigger: VOICES.FEMALE, spp: VOICES.MALE };
 
 // ElevenLabs音声生成設定
 export const VOICE_SETTINGS = {
