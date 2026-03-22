@@ -7,12 +7,34 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { userAnswer, question, targetChunk, exampleAnswer } = await req.json();
+    const { userAnswer, question, targetChunk, exampleAnswer, turn } = await req.json();
     if (!userAnswer || !question) {
       return NextResponse.json({ error: 'Missing userAnswer or question' }, { status: 400 });
     }
 
-    const prompt = `英会話練習アプリで、受講生が質問に答えました。
+    const isTurn2 = turn === 2;
+
+    const prompt = isTurn2
+      ? `英会話練習アプリで、受講生が会話の続き（Turn 2）に答えました。
+会話として成立するかを判定してください。Turn 2 は自由応答なので、甘めに評価してください。
+
+相手の発言: "${question}"
+受講生の回答: "${userAnswer}"
+回答例: "${exampleAnswer}"
+
+## 評価基準（甘めに。何か言えていれば最低でも almost）
+- perfect: 会話として自然に成立する。意味が通じている
+- great: 多少荒くても意味が通じて会話が続けられる
+- good: 伝わるが、もう少し具体的だとより良い
+- almost: 何か言えているが、会話としてはやや成立しにくい
+- retry: 何も言えていない、または質問と全く関係ない
+
+重要: 回答例と違う表現でも、意味が通じて会話として成立するなら perfect か great にする。
+回答例はあくまで一例。受講生が自分の言葉で答えることを重視する。
+
+JSON形式のみ出力: {"level": "perfect", "chunkUsed": true}
+chunkUsed は Turn 2 では常に true にする。`
+      : `英会話練習アプリで、受講生が質問に答えました。
 意味が通じるかどうかを判定してください。
 
 質問: "${question}"
@@ -30,11 +52,16 @@ export async function POST(req: NextRequest) {
 ## 重要な判定ルール（必ず守れ）
 - 意味が通じていれば最低でも good にする。意味が通じるのに almost や retry にするな
 - 回答例と単語が違っても、意味が同じで英語として成立すれば perfect にする
+  例: 回答例が "I'm gonna relax at home." で受講生が "I'm gonna rest at home." → perfect
+  例: 回答例が "I'm gonna relax at home." で受講生が "I'm gonna chill at home." → perfect
 - ターゲットチャンクの判定: "${targetChunk}" の核となる形を使えているか見る
+  例: ターゲットが "I'm gonna ~" なら "I'm going to ~" も OK
 - チャンク未使用でも意味が通じていれば good（almost にしない）
+  例: "I'm just chilling." はチャンク未使用だが意味は通じる → good
 
 ## chunkUsed の判定
 ターゲットチャンク "${targetChunk}" またはその同義形を受講生が使えていれば true。
+例: "I'm gonna ~" がターゲットなら "I'm going to ~" でも true。
 
 JSON形式のみ出力（説明不要）: {"level": "perfect", "chunkUsed": true}`;
 

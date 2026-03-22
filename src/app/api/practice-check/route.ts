@@ -17,8 +17,13 @@ export async function POST(req: NextRequest) {
 受講生がもう一度挑戦した回答です。改善点のコメントは不要です。褒めだけにしてください。suggestionも不要です（空文字にしてください）。`
       : '';
 
-    const situationNote = situation ? `\n場面設定: "${situation}"` : '';
-    const patternNote = targetPattern ? `\n練習ターゲットパターン: "${targetPattern}"` : '';
+    const situationNote = situation
+      ? `\n場面設定: "${situation}"`
+      : '';
+
+    const patternNote = targetPattern
+      ? `\n練習ターゲットパターン: "${targetPattern}"`
+      : '';
 
     const prompt = `受講生が英語で回答しました。文法的なミスがあるかチェックしてください。
 
@@ -80,6 +85,7 @@ ${retryNote}
     const data = await response.json();
     const raw = (data.choices?.[0]?.message?.content || '').trim();
 
+    // Parse JSON from response
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -90,8 +96,8 @@ ${retryNote}
           suggestion: parsed.suggestion || '',
         });
       }
-    } catch {
-      // JSON parse failed, return raw as comment
+    } catch (e) {
+      console.error('JSON parse error:', e, 'raw:', raw);
     }
     return NextResponse.json({ level: 'good', comment: raw, suggestion: '' });
   } catch (e) {
