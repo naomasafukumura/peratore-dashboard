@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ペラトレ 開発ガイド</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: #FAFAF7;
+    color: #182124;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
+
+  /* ナビ */
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(250,250,247,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 12px 0;
+    z-index: 100;
+    border-bottom: 1px solid #e8e6e1;
+  }
+  .nav-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav a {
+    text-decoration: none;
+    color: #4E5B60;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: #2F6F75; border-bottom-color: #2F6F75; }
+
+  /* ヘッダー */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    padding-top: 24px;
+  }
+  .header h1 {
+    font-size: 34px;
+    font-weight: 800;
+    color: #182124;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    color: #7B8A90;
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+  .deadline {
+    display: inline-block;
+    background: #FEF2F2;
+    color: #DC2626;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 24px;
+    border-radius: 24px;
+    border: 1px solid #FECACA;
+  }
+  .links-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: #2F6F75;
+    padding: 8px 18px;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .link-btn:hover { background: #245a5f; }
+  .link-btn.outline {
+    background: #fff;
+    color: #2F6F75;
+    border: 1.5px solid #2F6F75;
+  }
+  .link-btn.outline:hover { background: #f0fafa; }
+
+  /* セクション */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 60px;
+  }
+  .section-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #182124;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e8e6e1;
+  }
+  .section-title span { color: #2F6F75; }
+
+  /* カード */
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #182124;
+    margin-bottom: 10px;
+  }
+  .card p {
+    font-size: 15px;
+    color: #4E5B60;
+  }
+  .card ul { padding-left: 20px; }
+  .card li {
+    font-size: 14px;
+    color: #4E5B60;
+    margin-bottom: 6px;
+  }
+  .card li strong { color: #182124; }
+
+  /* ハイライトカード */
+  .highlight {
+    background: linear-gradient(135deg, #f0fafa 0%, #e8f4f0 100%);
+    border: 1px solid #c8e6e0;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+  .highlight h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #2F6F75;
+    margin-bottom: 10px;
+  }
+  .highlight p {
+    font-size: 15px;
+    color: #3a6b6f;
+    line-height: 1.9;
+  }
+
+  /* 数字ハイライト */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  @media (max-width: 500px) {
+    .stats { grid-template-columns: 1fr; }
+  }
+  .stat {
+    background: #fff;
+    border: 1px solid #e8e6e1;
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+  }
+  .stat .num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #2F6F75;
+  }
+  .stat .label {
+    font-size: 12px;
+    color: #7B8A90;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* フロー図 */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 12px 0;
+  }
+  .flow-step {
+    background: #fff;
+    border: 2px solid #c8e6e0;
+    border-radius: 12px;
+    padding: 14px 24px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2F6F75;
+    width: 100%;
+    max-width: 420px;
+  }
+  .flow-step.accent {
+    background: #2F6F75;
+    color: #fff;
+    border-color: #2F6F75;
+  }
+  .flow-arrow {
+    font-size: 18px;
+    color: #a0ccc4;
+    padding: 2px 0;
+    font-weight: 700;
+  }
+
+  /* タスクカード */
+  .task-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border-left: 5px solid #2F6F75;
+  }
+  .task-card.p1 { border-left-color: #DC2626; }
+  .task-card.p2 { border-left-color: #E9852D; }
+  .task-card.p3 { border-left-color: #16A34A; }
+  .task-card.p4 { border-left-color: #94A3B8; }
+
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .task-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #182124;
+    margin: 0;
+    line-height: 1.4;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 16px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .badge.b1 { background: #FEF2F2; color: #DC2626; }
+  .badge.b2 { background: #FFF7ED; color: #C2410C; }
+  .badge.b3 { background: #F0FDF4; color: #16A34A; }
+  .badge.b4 { background: #F1F5F9; color: #64748B; }
+
+  .task-card > p {
+    font-size: 15px;
+    color: #7B8A90;
+    margin-bottom: 16px;
+  }
+  .task-card ul { padding-left: 20px; }
+  .task-card li {
+    font-size: 14px;
+    color: #4E5B60;
+    margin-bottom: 8px;
+    line-height: 1.7;
+  }
+  .task-card li strong { color: #182124; }
+
+  .sub-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2F6F75;
+    margin: 20px 0 10px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f0ed;
+  }
+
+  /* フォーム例 */
+  .form-mock {
+    background: #FAFAF7;
+    border: 1px solid #e8e6e1;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+  .form-field {
+    margin-bottom: 14px;
+  }
+  .form-field:last-child { margin-bottom: 0; }
+  .form-field label {
+    display: block;
+    font-size: 12px;
+    color: #7B8A90;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  .form-field .val {
+    font-size: 15px;
+    color: #182124;
+    background: #fff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #e8e6e1;
+  }
+
+  /* 講師テーブル */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  th {
+    text-align: left;
+    font-size: 12px;
+    color: #7B8A90;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-bottom: 2px solid #e8e6e1;
+  }
+  td {
+    font-size: 14px;
+    color: #4E5B60;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f0ed;
+  }
+  td:first-child { font-weight: 600; color: #182124; }
+
+  /* リンクリスト */
+  .link-list {
+    list-style: none;
+    padding: 0;
+  }
+  .link-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f0ed;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .link-list li:last-child { border-bottom: none; }
+  .link-list .name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #182124;
+  }
+  .link-list .desc {
+    font-size: 13px;
+    color: #7B8A90;
+  }
+  .link-list a {
+    font-size: 13px;
+    color: #2F6F75;
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .link-list a:hover { text-decoration: underline; }
+
+  /* 注意 */
+  .notice {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #92400E;
+    line-height: 1.7;
+  }
+  .notice strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #78350F;
+    font-size: 15px;
+  }
+
+  /* コードブロック */
+  .code {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 13px;
+    color: #e2e8f0;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.7;
+    white-space: pre;
+  }
+  .code .cm { color: #64748b; }
+
+  /* セットアップ手順 */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+  .steps li {
+    counter-increment: step;
+    padding: 16px 0 16px 48px;
+    position: relative;
+    border-bottom: 1px solid #f1f0ed;
+    font-size: 15px;
+    color: #4E5B60;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 16px;
+    width: 32px;
+    height: 32px;
+    background: #2F6F75;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .steps li strong { color: #182124; }
+  .steps li code {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    background: #f1f0ed;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #2F6F75;
+  }
+
+  /* テック */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 500px) { .tech-grid { grid-template-columns: 1fr; } }
+  .tech-item {
+    background: #FAFAF7;
+    border: 1px solid #e8e6e1;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .tech-item .lab {
+    font-size: 11px;
+    color: #7B8A90;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .tech-item .val {
+    font-size: 15px;
+    color: #182124;
+    font-weight: 600;
+  }
+
+  td code {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: #2F6F75;
+    font-size: 13px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <a href="#about">ペラトレとは</a>
+    <a href="#now">現状</a>
+    <a href="#goal">ゴール</a>
+    <a href="#tasks">タスク</a>
+    <a href="#links">関連リンク</a>
+    <a href="#setup">セットアップ</a>
+    <a href="#tech">技術情報</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <h1>ペラトレ 開発ガイド</h1>
+    <div class="subtitle">先生と受講生が使う英会話レッスン教材システム</div>
+    <div class="deadline">デッドライン: 2026年3月29日（日）</div>
+    <div class="links-row">
+      <a href="https://masaenglish-patternpractice.vercel.app/manual.html" target="_blank" class="link-btn">教材マニュアル</a>
+      <a href="https://github.com/naomasafukumura/peratore-dashboard" target="_blank" class="link-btn outline">GitHub</a>
+    </div>
+  </div>
+
+  <!-- ペラトレとは -->
+  <div class="section" id="about">
+    <div class="section-title"><span>01</span> ペラトレとは</div>
+    <div class="highlight">
+      <h3>MasaEnglishとは別の、独立したオンライン英会話サービス</h3>
+      <p>先生と受講生がマンツーマンでレッスンを行うオンライン英会話。受講生は毎週固定 or 都度予約でレッスンを受ける。</p>
+      <p style="margin-top:10px;">レッスンの復習教材として「パターンプラクティス」がある。「これを言われたら → これを返す」をシチュエーション付きで繰り返し練習するアプリ。</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num">~20</div>
+        <div class="label">アクティブ受講生</div>
+      </div>
+      <div class="stat">
+        <div class="num">9</div>
+        <div class="label">講師</div>
+      </div>
+      <div class="stat">
+        <div class="num">4.6</div>
+        <div class="label">満足度（5点中）</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>講師一覧</h3>
+      <table>
+        <tr><th>講師名</th><th>主な担当受講生</th></tr>
+        <tr><td>Aya先生</td><td>佐藤結衣、山田智美、川上潔、甲斐博美、徳世由美子、高瀬範子</td></tr>
+        <tr><td>Tomoyo先生</td><td>犬塚美代子、佐藤妙、氏家敦子、牧内晴代、ロバス由貴、前田結衣</td></tr>
+        <tr><td>Miku先生</td><td>高橋通江、山下千恵子、松隈由香、及川祐貴、小川美喜子、齋藤りの、井上優子</td></tr>
+        <tr><td>Akiko先生</td><td>木戸真紀子、伊吾田恵津子、松本桂子、小川早喜、古屋淳</td></tr>
+        <tr><td>Taro先生</td><td>桑野千尋、佐藤妙</td></tr>
+        <tr><td>あやこ先生</td><td>徳原かずみ</td></tr>
+        <tr><td>Shinobu先生</td><td>狩野怜菜</td></tr>
+        <tr><td>Sakino先生</td><td>（産休中）</td></tr>
+        <tr><td>Mai先生</td><td>木戸真紀子</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 現状 -->
+  <div class="section" id="now">
+    <div class="section-title"><span>02</span> 今できていること</div>
+    <div class="card">
+      <h3>パターンプラクティス教材</h3>
+      <p>全員共通のベースフレーズ教材（662個の音声付き）がすでに完成して動いている。</p>
+      <ul style="margin-top:12px;">
+        <li>音声認識で発話練習ができる</li>
+        <li>AIが回答を評価してフィードバックをくれる</li>
+        <li>編集モード（ペンアイコンで切り替え）も実装済み</li>
+      </ul>
+      <div class="links-row" style="justify-content:flex-start;margin-top:16px;">
+        <a href="https://masaenglish-patternpractice.vercel.app/manual.html" target="_blank" class="link-btn">教材マニュアルを見る</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>足りていないこと</h3>
+      <p>今の教材は全員同じ内容。先生がレッスンで「この受講生にはこのフレーズが必要」と気づいても、その受講生だけに教材を追加する仕組みがない。</p>
+    </div>
+  </div>
+
+  <!-- ゴール -->
+  <div class="section" id="goal">
+    <div class="section-title"><span>03</span> 作りたいもの</div>
+    <div class="highlight">
+      <h3>パターンプラクティスの教材を、先生と受講生が連携しながらカスタマイズできる仕組み</h3>
+      <p>デフォルトの教材を用意しつつ、先生がレッスンで扱った内容をそのまま教材化し、受講生ごとにカスタマイズされた復習教材を自動で届ける。</p>
+    </div>
+
+    <div class="card">
+      <h3>具体的なイメージ</h3>
+      <p>たとえば、レッスンで挨拶の練習をしたとき：</p>
+      <div class="form-mock" style="margin-top:12px;">
+        <p style="font-size:15px;color:#2F6F75;font-weight:600;margin-bottom:8px;">会話の例</p>
+        <p style="font-size:14px;color:#4E5B60;">How's it going?</p>
+        <p style="font-size:14px;color:#182124;font-weight:600;">I'm pretty good. And you?</p>
+        <p style="font-size:14px;color:#4E5B60;">Yeah, I'm pretty good too.</p>
+      </div>
+      <p style="margin-top:12px;">こういった会話を、パターンプラクティスと同じUIで学習できるようにしたい。先生がラフに送った内容が、自動で教材として整形される。</p>
+    </div>
+
+    <div class="card">
+      <h3>3つの柱</h3>
+      <ul>
+        <li><strong>閲覧/編集モードの切り替え</strong> — 受講生は閲覧モードで学習、先生は編集モードで内容を更新（パスワード認証付き）</li>
+        <li><strong>受講生ごとの個別サイト</strong> — 受講生がGoogleログインすると、自分専用の教材が表示される。個別の学習進捗や内容を管理</li>
+        <li><strong>レッスン内容のシームレスな転送</strong> — 先生がラフに内容を送る → AIが自動で教材フォーマットに整形・音声生成 → 受講生のサイトに自動反映</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>全体の流れ</h3>
+      <div class="flow">
+        <div class="flow-step">先生がレッスン後にフォームでメモを送信（ラフでOK）</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step accent">AIが自動で教材フォーマットに整形（GPT-4o-mini）</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step accent">ElevenLabsで音声を自動生成</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">DBに保存、受講生に紐付け</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">受講生がログインすると自分専用の教材ができている</div>
+      </div>
+    </div>
+
+    <div class="notice">
+      <strong>最重要ポイント：先生の手間を極限まで減らす</strong>
+      画面共有しながらフィールドを一つずつ埋めるのは非常に使いづらい。テキストエリア1つにラフに会話を書いて送るだけ。AIがtrigger/回答/followupの分解、situation生成、カテゴリ分類、音声生成まで全部やる。先生はフォーマットを意識する必要すらない。面倒だと使わなくなる。
+    </div>
+  </div>
+
+  <!-- タスク -->
+  <div class="section" id="tasks">
+    <div class="section-title"><span>04</span> やってほしいこと</div>
+
+    <!-- タスク1 -->
+    <div class="task-card p1">
+      <div class="task-header">
+        <h3>先生用フォーム + AI整形 + 音声自動生成</h3>
+        <span class="badge b1">最優先</span>
+      </div>
+      <p>これがないと何も始まらない。先生がレッスン中に画面共有しながらサッと書けるフォーム。送ったら裏でAIが教材に整形して音声も自動生成する。</p>
+
+      <div class="sub-header">フォームの入力イメージ</div>
+      <p style="font-size:14px;color:#7B8A90;margin-bottom:12px;">フィールドを分けない。テキストエリア1つにラフに書くだけ。AIが中身を解析して教材に分解する。</p>
+      <div class="form-mock">
+        <div class="form-field">
+          <label>受講生を選択</label>
+          <div class="val">ドロップダウンで選ぶ</div>
+        </div>
+        <div class="form-field">
+          <label>レッスン内容</label>
+          <div class="val" style="white-space:pre-line;line-height:1.8;min-height:140px;font-size:14px;">How's it going?
+I'm pretty good. And you?
+Yeah, I'm pretty good too.
+
+週末の予定聞かれた場面で使った</div>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#7B8A90;margin-top:12px;">先生はこれだけ。会話とメモをテキストエリアにラフに書いて送信するだけ。フィールドを一つずつ埋める必要はない。画面共有しながらでもサッと書ける。</p>
+
+      <div class="sub-header">送信後にAIが自動でやること</div>
+      <ul>
+        <li><strong>会話の分解</strong>（GPT-4o-mini）— ラフなテキストからtrigger（相手のセリフ）・回答・followupを自動で判別・分解</li>
+        <li><strong>教材整形</strong> — situation（状況説明）を自動生成、カテゴリ自動分類。雑な入力でもちゃんとした教材フォーマットに落とし込む</li>
+        <li><strong>音声生成</strong>（ElevenLabs）— 分解した各セリフの音声を自動生成</li>
+        <li><strong>DB保存</strong> — patternsテーブルに教材データ、audio_filesに音声、assignmentsで受講生に紐付け</li>
+      </ul>
+
+      <div class="sub-header">先生の認証</div>
+      <p style="font-size:14px;color:#4E5B60;">先生用ページにはアクセス制限が必要。パスワード認証が.env.localに設定済み（TEACHER_PASSWORD）</p>
+    </div>
+
+    <!-- タスク2 -->
+    <div class="task-card p2">
+      <div class="task-header">
+        <h3>受講生Googleログイン + 個別教材表示</h3>
+        <span class="badge b2">優先度2</span>
+      </div>
+      <p>受講生がGoogleアカウントでログインすると、自分専用の教材が表示される。</p>
+      <ul>
+        <li>Google OAuth認証を実装</li>
+        <li>教材 = 全員共通のベースフレーズ + 先生が追加した個別フレーズ</li>
+        <li>受講生テーブル: Google ID、名前、メールアドレス、担当先生</li>
+        <li>ログインしていない場合はベースフレーズのみ表示</li>
+      </ul>
+    </div>
+
+    <!-- タスク3 -->
+    <div class="task-card p3">
+      <div class="task-header">
+        <h3>ベースフレーズのDBインポート</h3>
+        <span class="badge b3">優先度3</span>
+      </div>
+      <p>現在practice-v2.htmlに埋め込まれているフレーズデータをDBにインポート。seed-patternpractice.mjsがベース。</p>
+    </div>
+
+    <!-- タスク4 -->
+    <div class="task-card p4">
+      <div class="task-header">
+        <h3>先生向け使い方動画の作成</h3>
+        <span class="badge b4">優先度4</span>
+      </div>
+      <p>フォームが完成してから、先生向けに「このツールをどう使うか」を説明する動画を作成する。先生がフォームを見てすぐ使えるように、操作手順をわかりやすく伝える。</p>
+    </div>
+  </div>
+
+  <!-- 関連リンク -->
+  <div class="section" id="links">
+    <div class="section-title"><span>05</span> ペラトレ関連リンク</div>
+    <div class="card">
+      <h3>管理・講師向け</h3>
+      <ul class="link-list">
+        <li>
+          <div><span class="name">講師ポータルサイト</span><br><span class="desc">講師が使う管理画面</span></div>
+          <a href="https://masaenglishcompany.com/peratore_tutor2/index.html" target="_blank">開く</a>
+        </li>
+        <li>
+          <div><span class="name">講師紹介・予約サイト</span><br><span class="desc">受講生がレッスンを予約する</span></div>
+          <a href="https://masaenglishcompany.com/peratore/teachers.html" target="_blank">開く</a>
+        </li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>教材</h3>
+      <ul class="link-list">
+        <li>
+          <div><span class="name">パターンプラクティス マニュアル</span><br><span class="desc">教材の使い方・今後の展開</span></div>
+          <a href="https://masaenglish-patternpractice.vercel.app/manual.html" target="_blank">開く</a>
+        </li>
+        <li>
+          <div><span class="name">復習マニュアル</span><br><span class="desc">受講生向けの復習ガイド</span></div>
+          <a href="https://masaenglishcompany.com/peratore/manual-review.html" target="_blank">開く</a>
+        </li>
+        <li>
+          <div><span class="name">予習マニュアル</span><br><span class="desc">受講生向けの予習ガイド</span></div>
+          <a href="https://masaenglishcompany.com/yosyumanual/yosyumanual_1.htm" target="_blank">開く</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- セットアップ -->
+  <div class="section" id="setup">
+    <div class="section-title"><span>06</span> 開発環境セットアップ</div>
+    <div class="card">
+      <p style="margin-bottom:16px;font-size:14px;color:#7B8A90;">Claude Codeで開発する前提。以下をやればローカルで動く。</p>
+      <ol class="steps">
+        <li><strong>リポジトリをクローン</strong><br><code>git clone https://github.com/naomasafukumura/peratore-dashboard.git</code></li>
+        <li><strong>依存関係インストール</strong><br><code>npm install</code></li>
+        <li><strong>環境変数を設定</strong><br><code>.env.local.example</code> をコピーして <code>.env.local</code> を作成。DATABASE_URL等の値はMasaから共有</li>
+        <li><strong>DBセットアップ</strong><br><code>node db-setup.mjs</code> でテーブルを作成</li>
+        <li><strong>初期データ投入</strong><br><code>node seed-patternpractice.mjs</code> でベースフレーズを投入</li>
+        <li><strong>開発サーバー起動</strong><br><code>npm run dev</code> → <code>http://localhost:3000</code></li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>環境変数（.env.local）</h3>
+      <table>
+        <tr><th>変数名</th><th>説明</th></tr>
+        <tr><td><code>DATABASE_URL</code></td><td>Neon PostgreSQL 接続文字列</td></tr>
+        <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI API キー（教材整形・音声認識・評価）</td></tr>
+        <tr><td><code>ELEVENLABS_API_KEY</code></td><td>ElevenLabs API キー（音声生成）</td></tr>
+        <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>Google OAuth クライアントID</td></tr>
+        <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>Google OAuth シークレット</td></tr>
+        <tr><td><code>TEACHER_PASSWORD</code></td><td>先生用ページのパスワード</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 技術情報 -->
+  <div class="section" id="tech">
+    <div class="section-title"><span>07</span> 技術情報</div>
+    <div class="card">
+      <h3>技術スタック</h3>
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="lab">フレームワーク</div>
+          <div class="val">Next.js 16（App Router）</div>
+        </div>
+        <div class="tech-item">
+          <div class="lab">データベース</div>
+          <div class="val">Neon（PostgreSQL）</div>
+        </div>
+        <div class="tech-item">
+          <div class="lab">認証</div>
+          <div class="val">Google OAuth</div>
+        </div>
+        <div class="tech-item">
+          <div class="lab">教材整形</div>
+          <div class="val">OpenAI GPT-4o-mini</div>
+        </div>
+        <div class="tech-item">
+          <div class="lab">音声生成</div>
+          <div class="val">ElevenLabs API</div>
+        </div>
+        <div class="tech-item">
+          <div class="lab">デプロイ</div>
+          <div class="val">Vercel（git push自動）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>ElevenLabs音声設定</h3>
+      <table>
+        <tr><th>役割</th><th>ボイス</th><th>Voice ID</th></tr>
+        <tr><td>女性（相手の発話）</td><td>trigger / followup</td><td><code>XfNU2rGpBa01ckF309OY</code></td></tr>
+        <tr><td>男性（受講生の発話）</td><td>回答 / SPP</td><td><code>UgBBYS2sOqTuMpoF3BR0</code></td></tr>
+      </table>
+      <p style="margin-top:12px;font-size:14px;color:#7B8A90;">situationに「夫」が含まれる場合、男女ボイスを逆転（src/lib/voices.tsで自動判定）</p>
+      <p style="margin-top:8px;font-size:14px;color:#7B8A90;">モデル: eleven_flash_v2_5 / stability: 0.6 / similarity_boost: 0.74</p>
+    </div>
+
+    <div class="card">
+      <h3>DBスキーマ（既存テーブル）</h3>
+      <div class="code"><span class="cm">-- カテゴリ（例: 返答型 > 返答：未来）</span>
+categories: id, type, name, sort_order
+
+<span class="cm">-- チャンク（例: I'm gonna ~）</span>
+chunks: id, category_id, chunk_number, title_en, title_jp, sort_order
+
+<span class="cm">-- パターン（実際の練習問題）</span>
+patterns: id, chunk_id, set_number, situation, fpp_question(trigger),
+          spp(模範回答), followup_question, followup_answer,
+          character(ボイス判定用), ...
+
+<span class="cm">-- 音声ファイル</span>
+audio_files: id, pattern_id, audio_type, voice_id, audio_data(BYTEA), ...
+
+<span class="cm">-- 受講生割り当て</span>
+assignments: student, chunk_id</div>
+      <p style="font-size:13px;color:#7B8A90;margin-top:8px;">詳細は <code>db-setup.mjs</code> を参照</p>
+    </div>
+
+    <div class="card">
+      <h3>コード構成</h3>
+      <div class="code">peratore-dashboard/
+├── public/
+│   ├── practice-v2.html      <span class="cm">← メイン教材UI</span>
+│   ├── data.js                <span class="cm">← ベースフレーズデータ</span>
+│   └── audio/                 <span class="cm">← 音声ファイル（662個）</span>
+├── src/
+│   ├── app/api/               <span class="cm">← 全APIエンドポイント</span>
+│   │   ├── transcribe/        <span class="cm">← 音声認識（Whisper）</span>
+│   │   ├── score-answer/      <span class="cm">← 回答スコア判定</span>
+│   │   ├── explain-answer/    <span class="cm">← フィードバック生成</span>
+│   │   ├── practice-data/     <span class="cm">← 教材データ取得</span>
+│   │   ├── categories/        <span class="cm">← カテゴリCRUD</span>
+│   │   ├── patterns/          <span class="cm">← パターンCRUD</span>
+│   │   ├── assignments/       <span class="cm">← 受講生割り当て</span>
+│   │   └── audio/             <span class="cm">← 音声取得・生成</span>
+│   └── lib/
+│       ├── db.ts              <span class="cm">← Neon DB接続</span>
+│       └── voices.ts          <span class="cm">← ボイス設定・キャラクター判定</span>
+├── db-setup.mjs               <span class="cm">← DBスキーマ作成</span>
+└── seed-patternpractice.mjs   <span class="cm">← ベースデータ投入</span></div>
+    </div>
+
+    <div class="notice">
+      <strong>既存機能を壊さないこと</strong>
+      practice-v2.htmlの練習機能（音声認識、AI評価、フィードバック等）はすでに完成して動いている。先生用フォームは別ページとして作ること。
+    </div>
+    <div class="notice">
+      <strong>APIは既にコピー済み</strong>
+      patternpracticeから完全コピーした6本のAPIがある。OPENAI_API_KEYを設定すれば動く。
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
