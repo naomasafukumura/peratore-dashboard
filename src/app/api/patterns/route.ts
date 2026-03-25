@@ -1,4 +1,5 @@
 import { sql } from '@/lib/db';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -30,6 +31,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const body = await request.json();
   const { chunkId, setNumber, situation, fppIntro, fppQuestion, spp, character, followupQuestion, followupAnswer } = body;
 

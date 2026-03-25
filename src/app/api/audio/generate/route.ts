@@ -1,34 +1,13 @@
 import { sql } from '@/lib/db';
-import { VOICE_SETTINGS, getVoicePair } from '@/lib/voices';
+import { synthesizeMp3, upsertPatternAudio } from '@/lib/elevenlabs-tts';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
+import { getVoicePair } from '@/lib/voices';
 import { NextRequest, NextResponse } from 'next/server';
 
-async function generateAudio(text: string, voiceId: string): Promise<Buffer> {
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-      },
-      body: JSON.stringify({
-        text,
-        model_id: VOICE_SETTINGS.model_id,
-        voice_settings: VOICE_SETTINGS.voice_settings,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`ElevenLabs API error: ${response.status} - ${error}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
 export async function POST(request: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const { patternId, audioTypes } = await request.json();
 
   const [pattern] = await sql`SELECT * FROM patterns WHERE id = ${patternId}`;
@@ -36,7 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pattern not found' }, { status: 404 });
   }
 
-  const voicePair = getVoicePair(pattern.character);
+  const voicePair = getVoicePair(String(pattern.character ?? '友人'));
   const results: Record<string, boolean> = {};
   const types = audioTypes || ['fpp_intro', 'fpp_question', 'spp'];
 
@@ -46,15 +25,23 @@ export async function POST(request: NextRequest) {
 
     switch (audioType) {
       case 'fpp_intro':
-        text = pattern.fpp_intro;
+        text = pattern.fpp_intro ? String(pattern.fpp_intro) : null;
         voiceId = voicePair.trigger;
         break;
       case 'fpp_question':
-        text = pattern.fpp_question;
+        text = pattern.fpp_question ? String(pattern.fpp_question) : null;
         voiceId = voicePair.trigger;
         break;
       case 'spp':
-        text = pattern.spp;
+        text = pattern.spp ? String(pattern.spp) : null;
+        voiceId = voicePair.spp;
+        break;
+      case 'followup_question':
+        text = pattern.followup_question ? String(pattern.followup_question) : null;
+        voiceId = voicePair.trigger;
+        break;
+      case 'natural':
+        text = pattern.followup_answer ? String(pattern.followup_answer) : null;
         voiceId = voicePair.spp;
         break;
       default:
@@ -67,15 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const audioBuffer = await generateAudio(text, voiceId);
-
-      await sql`
-        INSERT INTO audio_files (pattern_id, audio_type, voice_id, audio_data)
-        VALUES (${patternId}, ${audioType}, ${voiceId}, ${audioBuffer})
-        ON CONFLICT (pattern_id, audio_type)
-        DO UPDATE SET audio_data = ${audioBuffer}, voice_id = ${voiceId}, created_at = NOW()
-      `;
-
+      const audioBuffer = await synthesizeMp3(text, voiceId);
+      await upsertPatternAudio(patternId, audioType, voiceId, audioBuffer);
       results[audioType] = true;
     } catch (error) {
       console.error(`Failed to generate ${audioType} for pattern ${patternId}:`, error);

@@ -1,4 +1,5 @@
 import { sql } from '@/lib/db';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
@@ -10,7 +11,8 @@ export async function GET() {
           'chunkNumber', ch.chunk_number,
           'titleEn', ch.title_en,
           'titleJp', ch.title_jp,
-          'patternCount', (SELECT COUNT(*) FROM patterns p WHERE p.chunk_id = ch.id)
+          'patternCount', (SELECT COUNT(*)::int FROM patterns p WHERE p.chunk_id = ch.id),
+          'origin', ch.origin
         ) ORDER BY ch.sort_order
       ) as chunks
     FROM categories c
@@ -23,6 +25,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const { type, name } = await request.json();
 
   const [maxOrder] = await sql`

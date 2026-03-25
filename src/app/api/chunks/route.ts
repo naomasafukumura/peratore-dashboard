@@ -1,7 +1,11 @@
 import { sql } from '@/lib/db';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const { categoryId, titleEn, titleJp } = await request.json();
 
   const [maxOrder] = await sql`

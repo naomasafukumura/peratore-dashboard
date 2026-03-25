@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 
 interface Chunk {
@@ -9,6 +9,8 @@ interface Chunk {
   titleEn: string;
   titleJp: string;
   patternCount: number;
+  /** レッスン後フォームからの自動登録 */
+  origin?: string | null;
 }
 
 interface Category {
@@ -51,6 +53,9 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
   // 音声生成
   const [generatingId, setGeneratingId] = useState<number | null>(null);
 
+  const [movingChunkId, setMovingChunkId] = useState<number | null>(null);
+  const [pendingMoveCategory, setPendingMoveCategory] = useState<Record<number, number>>({});
+
   // チャンク追加
   const [showAddChunk, setShowAddChunk] = useState(false);
   const [newChunkTitleEn, setNewChunkTitleEn] = useState('');
@@ -58,10 +63,11 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
   const [newChunkCategoryId, setNewChunkCategoryId] = useState<number | null>(null);
   const [savingChunk, setSavingChunk] = useState(false);
 
-  const reloadCategories = async () => {
+  const reloadCategories = async (): Promise<Category[]> => {
     const res = await fetch('/api/categories');
-    const data = await res.json();
+    const data = (await res.json()) as Category[];
     setCategories(data);
+    return data;
   };
 
   const addChunk = async () => {
@@ -142,6 +148,54 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
     if (selectedChunk) await loadPatterns(selectedChunk);
   };
 
+  const lessonFormChunks = useMemo(
+    () =>
+      categories.flatMap((cat) =>
+        (cat.chunks ?? [])
+          .filter((ch) => ch.origin === 'lesson_form')
+          .map((ch) => ({
+            ...ch,
+            categoryId: cat.id,
+            categoryLabel: `${cat.type} / ${cat.name}`,
+          }))
+      ),
+    [categories]
+  );
+
+  const moveLessonFormChunk = async (chunkId: number, fromCategoryId: number, toCategoryId: number) => {
+    if (toCategoryId === fromCategoryId) return;
+    setMovingChunkId(chunkId);
+    try {
+      const res = await fetch(`/api/chunks/${chunkId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: toCategoryId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'カテゴリの移動に失敗しました');
+        return;
+      }
+      const refreshed = await reloadCategories();
+      setPendingMoveCategory((p) => {
+        const next = { ...p };
+        delete next[chunkId];
+        return next;
+      });
+      if (selectedChunk?.id === chunkId) {
+        for (const cat of refreshed) {
+          const ch = (cat.chunks ?? []).find((c) => c.id === chunkId);
+          if (ch) {
+            setSelectedChunk(ch);
+            break;
+          }
+        }
+      }
+    } finally {
+      setMovingChunkId(null);
+    }
+  };
+
   // タイプでグルーピング
   const grouped = new Map<string, Category[]>();
   for (const cat of categories) {
@@ -158,6 +212,18 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
           <div className="flex items-center gap-3">
             <Link href="/" className="text-text-muted hover:text-text-dark transition-colors">←</Link>
             <h1 className="text-lg font-bold text-text-dark">先生ダッシュボード</h1>
+            <Link
+              href="/teacher/lesson-form"
+              className="text-xs font-medium text-primary hover:text-primary-dark ml-2"
+            >
+              レッスン後フォーム
+            </Link>
+            <Link
+              href="/teacher/logout"
+              className="text-xs text-text-muted hover:text-text-dark ml-2"
+            >
+              ログアウト
+            </Link>
           </div>
           <div className="flex items-center gap-4 text-sm text-text-muted">
             <span>{stats.pattern_count} パターン</span>
@@ -165,6 +231,60 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
           </div>
         </div>
       </header>
+
+      {lessonFormChunks.length > 0 && (
+        <div className="max-w-5xl mx-auto px-4 pt-4">
+          <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] mb-2">
+            <h2 className="text-sm font-semibold text-text-dark">レッスンフォームで追加したチャンク</h2>
+            <p className="text-xs text-text-muted mt-1 mb-3">
+              自動カテゴリが合わないとき、移動先を選んで「カテゴリへ移動」できます（フォーム経由のチャンクのみ）。
+            </p>
+            <ul className="space-y-3">
+              {lessonFormChunks.map((row) => {
+                const pick =
+                  pendingMoveCategory[row.id] !== undefined ? pendingMoveCategory[row.id]! : row.categoryId;
+                return (
+                  <li
+                    key={row.id}
+                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm border-b border-border/60 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium text-text-dark block truncate">{row.titleEn}</span>
+                      <span className="text-xs text-text-muted">現在: {row.categoryLabel}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <select
+                        value={pick}
+                        onChange={(e) =>
+                          setPendingMoveCategory((p) => ({
+                            ...p,
+                            [row.id]: parseInt(e.target.value, 10),
+                          }))
+                        }
+                        className="px-2 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark max-w-[220px]"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.type} / {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={movingChunkId === row.id || pick === row.categoryId}
+                        onClick={() => moveLessonFormChunk(row.id, row.categoryId, pick)}
+                        className="px-3 py-1.5 bg-primary text-text-dark rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40"
+                      >
+                        {movingChunkId === row.id ? '移動中…' : 'カテゴリへ移動'}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-5xl mx-auto p-4 flex gap-6 mt-4">
         {/* 左: チャンク選択 */}

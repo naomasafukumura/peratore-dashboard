@@ -175,3 +175,85 @@ peratore-dashboard/
 - practice-v2.htmlの練習機能（音声認識、評価、フィードバック等）は既に動いている。壊さないこと
 - 編集モード（ペンアイコンで切り替え）も既にある。先生用フォームとは別物
 - API（6本）はpatternpracticeから完全コピー済み。OpenAI APIキーの設定が必要
+
+---
+
+## 着手順チェックリスト（上から順）
+
+「優先順位」に沿った実装順。完了したら `- [ ]` を `- [x]` に書き換える。
+
+### Phase A — 先生フォーム〜DB〜音声（最優先）
+
+- [x] DB・既存 API の確認（`patterns` / `chunks` / `categories` / `audio_files` / `assignments` がフォーム入力と整合するか）
+- [x] 先生用アクセス制限（`.env` の `TEACHER_PASSWORD` … 未設定なら従来どおりゲートなし。JWT Cookie＋ミドルウェア＋教材系 API）
+- [x] フォーム UI：`/`（および `/teacher/lesson-form`）— 受講生選択＋レッスンメモ＋登録開始（メモ→AI→`submit-preview`）
+- [x] 送信 API：`POST /api/lesson-submission`（`analyze-memo` / `submit-preview`）。`DATABASE_URL` あり時は `submit-preview` で DB 保存＋音声生成まで実行
+- [x] AI 整形（GPT-4o-mini）：situation 生成、カテゴリ候補、教材フィールドへ整形
+- [x] ElevenLabs 連携：`fpp_question` / `spp` / `followup_question` / `natural`（2 往復目回答）、`voices.ts`・「夫」入れ替え
+- [x] DB 書き込み：カテゴリ名マッチ or 新規カテゴリ、`chunks`・`patterns`・`assignments`、`audio_files`
+- [ ] 動作確認：`practice-v2.html?student=...` または `/api/practice-data?student=...` で追加カードが見えるか（Neon＋キー環境で要確認）
+  - [ ] **前提**: `.env.local` に `DATABASE_URL`（Neon）・`OPENAI_API_KEY`・`ELEVENLABS_API_KEY` が入っている（フォーム保存＋音声まで試す場合）
+  - [ ] **先生**: `npm run dev` のあと `/` または `/teacher/lesson-form` にアクセス（`TEACHER_PASSWORD` 設定時はログイン）。受講生を選び、プレビュー → **本登録（submit-preview）** まで完了し、画面上で失敗しない
+  - [ ] **名前の一致**: フォームで選んだ受講生名と DB の `assignments.student_name` が一致している（`/student` の受講生名とも揃える）
+  - [ ] **API**: ブラウザまたは `curl` で `GET /api/practice-data?student=（その名前をURLエンコード）` が **200** で JSON 配列を返す。レッスン追加分は該当カテゴリの `cards[]` に `id: "db-<patternのid>"` などで載る
+  - [ ] **画面**: `http://localhost:3000/practice-v2.html?student=（同じ名前）` を開き、カバー画面のカテゴリ一覧から当該フレーズが選べる（可能なら再生ボタンで音声も）
+  - [ ] 上記まで問題なければ、この行の親チェックを `[x]` にする
+
+### Phase B — 受講生 Google ログイン
+
+- [x] Google OAuth（NextAuth v5 beta、`/api/auth/[...nextauth]`、`AUTH_SECRET` + `GOOGLE_CLIENT_*`）
+- [x] 受講生テーブル `students`（`google_sub` / `email` / `name` / `assignment_name` … `assignments.student_name` と一致させる文字列）
+- [x] ログイン後の教材取得（`/api/practice-data` がセッションの `assignment_name` でフィルタ。`?student=` も従来どおり）
+- [x] ベース ＋ 個別（`practice-v2.html` で埋め込み `DATA` と API 応答を `mergePracticeData` でカテゴリ単位マージ）
+- [ ] 担当先生・複数クラスなどの拡張、共有リンク `?student=` の扱い見直し（必要なら）
+
+### Phase C — ベース教材を DB に
+
+- [x] `scripts/seed-practice-v2-base.mjs` … `public/practice-v2.html` の埋め込み `DATA` をパースして `categories` / `chunks`（`origin=base_import`）/ `patterns` に投入（`npm run db:seed:base:dry` で件数確認、`SEED_BASE_CONFIRM=yes npm run db:seed:base` で本番投入）。既存 `audio_files`・`assignments` は chunks 削除で失われる点に注意
+
+### Phase D — 仕上げ
+
+- [ ] 先生向け解説動画（フォーム完成後）
+
+---
+
+## 読み手向けの補足（雄飛向け）
+
+この節は、本文だけではイメージがつきにくい点を、用語をかみ砕いて書いたメモである。仕様の追加ではなく、読み方の補助。
+
+### 用語の置き換え
+
+- **DB（データベース）** … アプリが共有で読み書きする「整理されたデータの置き場」。このプロジェクトでは主に **Neon** 上の PostgreSQL。
+- **JSON** … アプリ同士がデータを渡すときの、`{ }` や `[ ]` で書くテキスト形式。教材一覧もこの形で `practice-v2.html` に渡す。
+- **Neon** … クラウド上に PostgreSQL を用意してくれるサービス名。接続先文字列が `.env.local` の `DATABASE_URL`。
+
+### 1. 先生用フォームは何か（Googleフォームではない）
+
+- **Googleフォームではない。** この **Next.js アプリ内**に、先生専用の入力ページ（例: `/teacher`）を **これから作る** 想定。
+- **土台:** 練習画面・編集機能は `practice-v2.html` にあるが、**レッスン後の「4行＋受講生＋任意メモ」専用フォーム**はタスクで新規。編集モード（ペンアイコン）とは別物。
+- **「2往復入力」の意味:** 会話の短いやりとりを2セット書くこと。
+  - **1往復目:** 相手の英語（Trigger）／模範回答（SPP）
+  - **2往復目:** フォローの質問／その答え  
+  画面の細部の指定は本文にない。**上記の項目が揃い送信できること**を満たせばよい。
+
+### 2. 自動パイプライン（スプレッドシート・GASではない）
+
+- 流れは **このアプリのサーバー**が **OpenAI API（GPT-4o-mini）** と **ElevenLabs** を呼ぶ形。**スプレッドシートに書いて GAS が読む、ではない。**
+- **GPT が参照するイメージ:** 先生の入力テキスト（＋任意メモ）に加え、**DB に既にあるカテゴリ一覧**（既存に振る／無理なら新規）。実装時はプロンプトでカテゴリ候補を渡す。
+
+### 3. 受講生の Google ログインと「自分の教材」
+
+- **全員分のメールを先にリスト化しなくてもよい**ケースが多い。典型は「受講生レコードに Google のメールまたは ID を紐づける」「初回だけ紐づけ操作をする」など。
+- ロジックの芯: **ログインで本人がわかる → DB でその人向けに割り当てたチャンクだけ取得 → 同じ練習画面に載せる。** いまの `?student=名前` は、ログイン実装までの出し分けのイメージに近い。
+
+### 4. 全体図と「ベース＋個別の合体」
+
+- **全体図（一文）:** 先生がフォーム送信 → サーバーが整形・音声生成 → Neon に保存 → 受講生がログインして開くと **自分向けの教材**が載っている。
+- **ベース:** 全員共通の教材（現状は `practice-v2.html` 埋め込みの DATA 等。将来は DB インポートも検討）。
+- **個別:** 先生がフォームから足し、その受講生に割り当てた分。
+- **合体:** 受講生の画面では **ひとつの練習リストとして続きで見える**ようにする（別々の「オリジナルページ URL を量産」が主目的とは限らない。同じ `practice-v2.html` で中身を切り替えるイメージ）。
+
+### 5. 先生ページと先生の人数
+
+- **先生ページ** … 先生だけが触れる **フォーム・管理用の Web ページ**の総称。
+- **先生が複数か**は本文で固定していない。同一 URL を共有＋認証で守る想定も、将来ロール分けもありうる。

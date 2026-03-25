@@ -1034,17 +1034,54 @@ let DATA=[{"category":"1. 返答：未来","icon":"calendar","cards":[{"id":"fut
 
 // ===== Load Data from API (with fallback to embedded DATA) =====
 const FALLBACK_DATA = DATA;
+function mergePracticeData(base, extra) {
+  if (!base || !Array.isArray(base)) return Array.isArray(extra) ? extra : [];
+  if (!extra || !Array.isArray(extra) || extra.length === 0) return base;
+  const byCat = new Map(base.map((c) => [c.category, { ...c, cards: [...(c.cards || [])] }]));
+  for (const c of extra) {
+    if (!c || !c.category) continue;
+    const cur = byCat.get(c.category);
+    if (cur) cur.cards.push(...(c.cards || []));
+    else byCat.set(c.category, { ...c, cards: [...(c.cards || [])] });
+  }
+  return Array.from(byCat.values());
+}
+function stripCardIdsFromPracticeData(data, idSet) {
+  if (!data || !Array.isArray(data) || !idSet || idSet.size === 0) return data;
+  return data
+    .map((cat) => ({
+      ...cat,
+      cards: (cat.cards || []).filter((c) => c && c.id && !idSet.has(c.id)),
+    }))
+    .filter((cat) => (cat.cards || []).length > 0);
+}
 async function loadDataFromAPI() {
   const params = new URLSearchParams(window.location.search);
   const student = params.get('student');
   const url = student ? '/api/practice-data?student=' + encodeURIComponent(student) : '/api/practice-data';
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    DATA = await res.json();
+    const apiData = await res.json();
+    DATA = mergePracticeData(FALLBACK_DATA, apiData);
   } catch(e) {
     console.log('API not available, using embedded data:', e.message);
     DATA = FALLBACK_DATA;
+  }
+  try {
+    const rurl = student
+      ? '/api/student/recent-lesson?student=' + encodeURIComponent(student)
+      : '/api/student/recent-lesson';
+    const rres = await fetch(rurl, { credentials: 'include' });
+    if (!rres.ok) return;
+    const recent = await rres.json();
+    const pc = recent && recent.practiceCategory;
+    if (!pc || !pc.cards || !pc.cards.length) return;
+    const pinIds = new Set(pc.cards.map((c) => c.id).filter(Boolean));
+    DATA = stripCardIdsFromPracticeData(DATA, pinIds);
+    DATA = [pc, ...DATA];
+  } catch (e) {
+    console.log('recent-lesson skip:', e && e.message);
   }
 }
 

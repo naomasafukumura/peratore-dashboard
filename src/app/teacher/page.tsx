@@ -1,9 +1,14 @@
-import { sql } from '@/lib/db';
+import { hasDatabaseUrl, sql } from '@/lib/db';
 import TeacherClient from './TeacherClient';
+import TeacherDbMissing from './TeacherDbMissing';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeacherPage() {
+  if (!hasDatabaseUrl()) {
+    return <TeacherDbMissing />;
+  }
+
   const categories = (await sql`
     SELECT c.id, c.type, c.name, c.sort_order,
       json_agg(
@@ -12,7 +17,8 @@ export default async function TeacherPage() {
           'chunkNumber', ch.chunk_number,
           'titleEn', ch.title_en,
           'titleJp', ch.title_jp,
-          'patternCount', (SELECT COUNT(*)::int FROM patterns p WHERE p.chunk_id = ch.id)
+          'patternCount', (SELECT COUNT(*)::int FROM patterns p WHERE p.chunk_id = ch.id),
+          'origin', ch.origin
         ) ORDER BY ch.sort_order
       ) as chunks
     FROM categories c
@@ -29,6 +35,7 @@ export default async function TeacherPage() {
       titleEn: string;
       titleJp: string;
       patternCount: number;
+      origin: string | null;
     }>;
   }>;
 

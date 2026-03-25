@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レッスン後フォーム — デザインプレビュー（静的）</title>
+  <style>
+    :root {
+      --primary: #f2b807;
+      --text-dark: #1a1a1a;
+      --text-muted: #636e72;
+      --text-light: #b2bec3;
+      --bg-page: #fafafa;
+      --bg-card: #ffffff;
+      --border: #dfe6e9;
+      --radius-card: 16px;
+      --radius-btn: 12px;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg-page);
+      color: var(--text-dark);
+      font-size: 15px;
+    }
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 36rem;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .link-muted { color: var(--text-muted); font-size: 0.875rem; }
+    .link-primary { color: var(--primary); font-size: 0.75rem; font-weight: 600; }
+    .main { max-width: 36rem; margin: 0 auto; padding: 20px 16px 96px; }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 0.75rem; font-weight: 600; margin: 0 0 8px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-btn);
+      font-size: 0.875rem;
+      background: var(--bg-page);
+    }
+    textarea { resize: vertical; min-height: 12rem; }
+    .label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; }
+    .btn-primary {
+      padding: 10px 16px;
+      background: var(--primary);
+      color: var(--text-dark);
+      border: none;
+      border-radius: var(--radius-btn);
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .btn-ghost {
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-btn);
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .hint { font-size: 11px; color: var(--text-muted); margin-left: 8px; }
+    .banner {
+      background: #fff8e6;
+      border: 1px solid #f0e0b0;
+      border-radius: var(--radius-btn);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="link-muted">←</span>
+        <h1>レッスン後フォーム</h1>
+      </div>
+      <a href="#" class="link-primary">教材</a>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="banner">
+      静的プレビュー（動作しません）。本番は <code>/teacher/lesson-form</code>
+    </div>
+
+    <section class="card">
+      <h2>受講生</h2>
+      <div class="grid-2">
+        <input type="text" placeholder="苗字などで絞り込み" readonly />
+        <select disabled><option>山田太郎</option></select>
+      </div>
+    </section>
+
+    <section class="card">
+      <label class="label">レッスンメモ（自由記述）</label>
+      <textarea readonly placeholder="自由に記述…">週末の予定の練習。What are you doing this weekend? …</textarea>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+        <button type="button" class="btn-primary">登録開始</button>
+        <span class="hint">20文字以上・要 OPENAI_API_KEY</span>
+      </div>
+    </section>
+
+    <p class="hint" style="margin-top:12px">（サーバーで AI 解析のあとプレビュー送信まで実行）</p>
+
+    <div style="margin-top:16px">
+      <button type="button" class="btn-ghost">メモをクリア</button>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,3 +1,9 @@
+/**
+ * perfect3.md（リポジトリ外パス）から投入する旧スクリプト。
+ * リポジトリ内の practice-v2 と揃えたい場合は次を使う:
+ *   npm run db:seed:base:dry
+ *   SEED_BASE_CONFIRM=yes npm run db:seed:base
+ */
 import { neon } from '@neondatabase/serverless';
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';

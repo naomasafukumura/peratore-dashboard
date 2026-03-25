@@ -28,6 +28,19 @@ async function setup() {
     )
   `;
 
+  await sql`ALTER TABLE chunks ADD COLUMN IF NOT EXISTS origin TEXT`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS students (
+      id SERIAL PRIMARY KEY,
+      google_sub TEXT NOT NULL UNIQUE,
+      email TEXT,
+      name TEXT,
+      assignment_name TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS patterns (
       id SERIAL PRIMARY KEY,
@@ -56,6 +69,15 @@ async function setup() {
       duration_ms INT,
       created_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(pattern_id, audio_type)
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS assignments (
+      id SERIAL PRIMARY KEY,
+      student_name TEXT NOT NULL,
+      chunk_id INT NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+      UNIQUE (student_name, chunk_id)
     )
   `;
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,9 @@ export async function GET(req: NextRequest) {
  * { studentName, chunkIds: [1, 2, 3] }
  */
 export async function POST(req: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(req);
+  if (denied) return denied;
+
   try {
     const { studentName, chunkIds } = await req.json();
     if (!studentName || !chunkIds?.length) {
@@ -71,6 +75,9 @@ export async function POST(req: NextRequest) {
  * { studentName, chunkIds: [1, 2, 3] }  or  { studentName } で全削除
  */
 export async function DELETE(req: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(req);
+  if (denied) return denied;
+
   try {
     const { studentName, chunkIds } = await req.json();
     if (!studentName) {

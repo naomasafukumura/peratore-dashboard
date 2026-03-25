@@ -1,7 +1,11 @@
 import { sql } from '@/lib/db';
+import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const { id } = await params;
   const body = await request.json();
   const { situation, fppIntro, fppQuestion, spp, character, followupQuestion, followupAnswer } = body;
@@ -27,6 +31,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await unauthorizedIfNotTeacher(request);
+  if (denied) return denied;
+
   const { id } = await params;
   await sql`DELETE FROM audio_files WHERE pattern_id = ${id}`;
   await sql`DELETE FROM patterns WHERE id = ${id}`;
