@@ -1,10 +1,16 @@
-import { createTeacherJwt, isTeacherGateEnabled, TEACHER_SESSION_COOKIE } from '@/lib/teacher-token';
+import { createTeacherJwt, TEACHER_SESSION_COOKIE } from '@/lib/teacher-token';
+import {
+  resolveTeacherAuthSecret,
+  resolveTeacherPassword,
+} from '@/lib/teacher-password-resolve';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  if (!isTeacherGateEnabled()) {
+  const expected = resolveTeacherPassword();
+  if (!expected) {
     return NextResponse.json(
       { error: 'TEACHER_PASSWORD が未設定のため、ログインは無効です' },
       { status: 400 }
@@ -17,10 +23,17 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-
-  const expected = process.env.TEACHER_PASSWORD!.trim();
-  if (body.password !== expected) {
+  const got = typeof body.password === 'string' ? body.password.trim() : '';
+  if (got !== expected) {
     return NextResponse.json({ error: 'パスワードが違います' }, { status: 401 });
+  }
+
+  if (!process.env.TEACHER_PASSWORD?.trim()) {
+    process.env.TEACHER_PASSWORD = expected;
+  }
+  const authSecret = resolveTeacherAuthSecret();
+  if (authSecret && !process.env.TEACHER_AUTH_SECRET?.trim()) {
+    process.env.TEACHER_AUTH_SECRET = authSecret;
   }
 
   const token = await createTeacherJwt();

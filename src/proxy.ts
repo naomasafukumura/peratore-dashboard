@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { isTeacherGateEnabled, TEACHER_SESSION_COOKIE, verifyTeacherJwt } from '@/lib/teacher-token';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   if (!isTeacherGateEnabled()) {
     return NextResponse.next();
   }

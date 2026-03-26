@@ -21,6 +21,26 @@ export default function LessonFormClient() {
 
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [successStudentName, setSuccessStudentName] = useState<string | null>(null);
+  const [teacherGateEnabled, setTeacherGateEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const st = await fetch('/api/teacher-auth/status');
+        const j = await st.json();
+        if (!cancelled && typeof j.gateEnabled === 'boolean') {
+          setTeacherGateEnabled(j.gateEnabled);
+        }
+      } catch {
+        if (!cancelled) setTeacherGateEnabled(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +125,7 @@ export default function LessonFormClient() {
         return;
       }
       setMessage(dataSubmit.message || '登録フローを受け付けました');
+      setSuccessStudentName(resolvedStudentName);
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
@@ -114,6 +135,17 @@ export default function LessonFormClient() {
 
   return (
     <div className="min-h-screen bg-bg-page">
+      {teacherGateEnabled === false && (
+        <div className="bg-amber-bg border-b border-amber-bd text-amber text-[11px] px-4 py-2 text-center">
+          <strong className="font-semibold">先生用パスワード保護はオフです。</strong>
+          `.env.local` に <code className="text-[10px]">TEACHER_PASSWORD=…</code> を入れて{' '}
+          <code className="text-[10px]">npm run dev</code> を再起動すると、先に{' '}
+          <a href="/teacher/login" className="underline font-medium">
+            ログインページ
+          </a>
+          へ案内されます。
+        </div>
+      )}
       <header className="bg-bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -126,7 +158,11 @@ export default function LessonFormClient() {
             <Link href="/practice-v2.html" className="text-xs text-primary font-medium">
               教材
             </Link>
-            <Link href="/teacher/logout" className="text-xs text-text-muted hover:text-text-dark">
+            <Link
+              href="/teacher/logout"
+              className="text-xs text-text-muted hover:text-text-dark"
+              title="先生用セッション Cookie を消します（パスワード保護オフ時は効果のみ）"
+            >
               ログアウト
             </Link>
           </div>
@@ -199,11 +235,25 @@ export default function LessonFormClient() {
         </section>
 
         {message && (
-          <p
-            className={`text-xs mt-3 px-0.5 ${message.includes('失敗') || message.includes('必須') || message.includes('OPENAI') || message.includes('解析') ? 'text-error' : 'text-text-muted'}`}
-          >
-            {message}
-          </p>
+          <div className="mt-3">
+            <p
+              className={`text-xs px-0.5 ${message.includes('失敗') || message.includes('必須') || message.includes('OPENAI') || message.includes('解析') ? 'text-error' : 'text-text-muted'}`}
+            >
+              {message}
+            </p>
+            {successStudentName && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={`/practice-v2.html?student=${encodeURIComponent(successStudentName)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-primary text-text-dark rounded-xl text-sm font-semibold"
+                >
+                  {successStudentName} の教材を確認 →
+                </a>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2 mt-4">

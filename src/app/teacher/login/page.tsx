@@ -1,7 +1,11 @@
 import { Suspense } from 'react';
+import { isTeacherGateEnabledResolved } from '@/lib/teacher-password-resolve';
 import TeacherLoginForm from './TeacherLoginForm';
 
+export const dynamic = 'force-dynamic';
+
 export default function TeacherLoginPage() {
+  const gateEnabled = isTeacherGateEnabledResolved();
   return (
     <Suspense
       fallback={
@@ -10,7 +14,7 @@ export default function TeacherLoginPage() {
         </div>
       }
     >
-      <TeacherLoginForm />
+      <TeacherLoginForm initialGateEnabled={gateEnabled} />
     </Suspense>
   );
 }
