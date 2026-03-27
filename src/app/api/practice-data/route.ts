@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     for (const ch of chunks) {
       const pats = chunkPatterns.get(ch.id) || [];
       for (const p of pats) {
-        const card = practiceCardFromPattern(p, ch.title_en);
+        const card = practiceCardFromPattern(p, ch.category_name || ch.title_en);
 
         const catData = catMap.get(ch.category_id);
         if (catData) {
