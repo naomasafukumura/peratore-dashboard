@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const PLACEHOLDER_LESSON_MEMO =
   'レッスンで話したこと・使った表現・日本語メモなど、自由に書いてください。\n例：週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。';
@@ -13,13 +13,10 @@ const memoTextareaClass =
 export default function LessonFormClient() {
   const pathname = usePathname() || '/';
   const [students, setStudents] = useState<string[]>([]);
-  const [surnameFilter, setSurnameFilter] = useState('');
   const [studentName, setStudentName] = useState('');
-  /** リストにいない受講生（空ならプルダウンの値を使う） */
-  const [manualStudentName, setManualStudentName] = useState('');
   const [lessonMemo, setLessonMemo] = useState('');
 
-  const resolvedStudentName = manualStudentName.trim() || studentName;
+  const resolvedStudentName = studentName.trim();
 
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -62,12 +59,6 @@ export default function LessonFormClient() {
     };
   }, []);
 
-  const filteredStudents = useMemo(() => {
-    const t = surnameFilter.trim();
-    if (!t) return students;
-    return students.filter((s) => s.includes(t) || s.startsWith(t));
-  }, [students, surnameFilter]);
-
   const clearForm = () => {
     setLessonMemo('');
     setMessage(null);
@@ -78,7 +69,7 @@ export default function LessonFormClient() {
   const startRegistration = async () => {
     setMessage(null);
     if (!resolvedStudentName) {
-      setMessage('受講生をプルダウンで選ぶか、下の欄に名前を入力してください');
+      setMessage('受講生名を入力してください');
       return;
     }
     if (lessonMemo.trim().length < 20) {
@@ -192,41 +183,23 @@ export default function LessonFormClient() {
         <section className="bg-bg-card rounded-[var(--radius-card)] border border-border p-4 mb-4 shadow-[var(--shadow-card)]">
           <h2 className="text-xs font-semibold text-text-dark mb-2">受講生</h2>
           <p className="text-[11px] text-text-muted mb-2">
-            プルダウンは「すでに割り当て or 受講生マイページで登録した名前」です。
-            <strong className="font-medium text-text-dark">初めての受講生</strong>
-            は、下の「名前を直接入力」に書いてください（
-            <code className="text-[10px]">practice-v2?student=</code> と同じ表記にすると教材が一致します）。
+            苗字を入力すると候補が出ます。リストにない場合はそのまま入力してください。
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              value={surnameFilter}
-              onChange={(e) => setSurnameFilter(e.target.value)}
-              placeholder="苗字などで絞り込み"
-              className="px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm"
-            />
-            <select
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
-              className="px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm"
-            >
-              <option value="">プルダウンから選択</option>
-              {filteredStudents.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <label className="block mt-3 text-[11px] font-medium text-text-dark">名前を直接入力（リストにない場合）</label>
           <input
-            value={manualStudentName}
-            onChange={(e) => setManualStudentName(e.target.value)}
-            placeholder="例: 山田太郎（受講生マイページの登録名と同じ表記）"
-            className="mt-1 w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm"
+            list="student-list"
+            value={studentName}
+            onChange={(e) => setStudentName(e.target.value)}
+            placeholder="例: 佐藤（候補から選ぶか直接入力）"
+            className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm"
           />
-          {students.length === 0 && (
-            <p className="text-[11px] text-amber mt-2">
-              プルダウンは 0 件です。上の「直接入力」に受講生名を書けば登録できます（DB 未接続のときは別途エラーになります）。
+          <datalist id="student-list">
+            {students.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+          {studentName.trim() && (
+            <p className="text-[11px] text-text-muted mt-1">
+              選択中: <span className="font-medium text-text-dark">{studentName.trim()}</span>
             </p>
           )}
         </section>
