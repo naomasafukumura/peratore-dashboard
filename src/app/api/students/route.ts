@@ -25,6 +25,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ students: rows });
     }
 
+    // registered_students テーブルが存在しない場合は無視して続行
+    let registeredNames: string[] = [];
+    try {
+      const regRows = await sql`SELECT name FROM registered_students WHERE name IS NOT NULL AND TRIM(name) <> ''`;
+      registeredNames = (regRows as { name: string }[]).map((r) => r.name);
+    } catch {
+      // テーブル未作成の場合はスキップ（/api/admin/seed-students を呼べば作成される）
+    }
+
     const rows = await sql`
       SELECT DISTINCT TRIM(name) AS student_name
       FROM (
@@ -39,8 +48,11 @@ export async function GET(req: NextRequest) {
       WHERE TRIM(name) <> ''
       ORDER BY student_name
     `;
-    const students = (rows as { student_name: string }[]).map((r) => r.student_name);
-    return NextResponse.json({ students });
+    const fromDb = (rows as { student_name: string }[]).map((r) => r.student_name);
+    const all = Array.from(new Set([...fromDb, ...registeredNames])).sort((a, b) =>
+      a.localeCompare(b, 'ja')
+    );
+    return NextResponse.json({ students: all });
   } catch (e) {
     console.error('students GET:', e);
     return NextResponse.json({ students: [], error: (e as Error).message });
