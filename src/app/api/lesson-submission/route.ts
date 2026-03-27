@@ -259,11 +259,15 @@ export async function POST(req: NextRequest) {
     }
 
     const studentQ = encodeURIComponent(studentName);
-    const tail = ` /api/practice-data?student=${studentQ} または practice-v2 で確認できます。`;
+    const tail = ` practice-v2 で確認できます。`;
+    const similarNote =
+      saved.similarPatterns.length > 0
+        ? ` ⚠️ 似たチャンクが見つかりました：${saved.similarPatterns.map((p) => `「${p.trigger}」(${p.similarityPct}%)`).join('、')}`
+        : '';
     const message =
       saved.mode === 'existing'
-        ? `既存DBの同一パターンを使用しました（新規追加なし・既存教材の再利用）。受講生への割当のみ行いました。パターン ID ${saved.patternId}。${tail}`
-        : `教材を保存しました（新規パターン ID ${saved.patternId}）。${audioNote}${tail}`;
+        ? `同一チャンク「${preview.trigger}」がすでに存在します。${studentName}の教材に割り当てました（新規追加なし）。${tail}`
+        : `教材を保存しました（新規パターン ID ${saved.patternId}）。${audioNote}${similarNote}${tail}`;
 
     return NextResponse.json({
       ok: true,
@@ -275,6 +279,7 @@ export async function POST(req: NextRequest) {
         chunkId: saved.chunkId,
         categoryId: saved.categoryId,
         audioResults: saved.audioResults,
+        similarPatterns: saved.similarPatterns,
       },
     });
   } catch (e) {

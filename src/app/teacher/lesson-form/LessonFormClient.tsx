@@ -22,6 +22,7 @@ export default function LessonFormClient() {
   const [registering, setRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [successStudentName, setSuccessStudentName] = useState<string | null>(null);
+  const [similarPatterns, setSimilarPatterns] = useState<{ trigger: string; similarityPct: number }[]>([]);
   const [teacherGateEnabled, setTeacherGateEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function LessonFormClient() {
   const clearForm = () => {
     setLessonMemo('');
     setMessage(null);
+    setSimilarPatterns([]);
   };
 
   /** 登録開始：AI 解析（2往復＋カテゴリ）→ submit-preview（DB 接続時は保存・音声） */
@@ -79,6 +81,7 @@ export default function LessonFormClient() {
       return;
     }
 
+    setSimilarPatterns([]);
     setRegistering(true);
     try {
       const resAnalyze = await fetch('/api/lesson-submission', {
@@ -126,6 +129,9 @@ export default function LessonFormClient() {
       }
       setMessage(dataSubmit.message || '登録フローを受け付けました');
       setSuccessStudentName(resolvedStudentName);
+      if (Array.isArray(dataSubmit.saved?.similarPatterns)) {
+        setSimilarPatterns(dataSubmit.saved.similarPatterns);
+      }
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
@@ -241,6 +247,18 @@ export default function LessonFormClient() {
             >
               {message}
             </p>
+            {similarPatterns.length > 0 && (
+              <div className="mt-3 p-3 bg-amber-bg border border-amber-bd rounded-xl">
+                <p className="text-[11px] font-semibold text-amber mb-1">似たチャンクがすでにあります</p>
+                <ul className="space-y-1">
+                  {similarPatterns.map((p) => (
+                    <li key={p.trigger} className="text-[11px] text-text-muted">
+                      「{p.trigger}」<span className="text-amber font-medium">({p.similarityPct}%)</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {successStudentName && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <a

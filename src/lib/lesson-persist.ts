@@ -99,6 +99,71 @@ function normLine(s: string): string {
   return s.trim();
 }
 
+/** Levenshtein 距離（1D DP） */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 0; i < a.length; i++) {
+    const curr = [i + 1];
+    for (let j = 0; j < b.length; j++) {
+      curr[j + 1] = Math.min(
+        curr[j] + 1,
+        prev[j + 1] + 1,
+        prev[j] + (a[i] === b[j] ? 0 : 1),
+      );
+    }
+    prev = curr;
+  }
+  return prev[b.length];
+}
+
+/** 0〜1 の類似度（大文字小文字無視） */
+function triggerSimilarity(a: string, b: string): number {
+  const na = a.toLowerCase().trim();
+  const nb = b.toLowerCase().trim();
+  const maxLen = Math.max(na.length, nb.length);
+  if (maxLen === 0) return 1;
+  return 1 - levenshtein(na, nb) / maxLen;
+}
+
+export type SimilarPattern = {
+  patternId: number;
+  chunkId: number;
+  trigger: string;
+  similarityPct: number;
+};
+
+/** trigger の類似度が 80% 以上の既存パターンを最大3件返す */
+async function findSimilarPatterns(trigger: string): Promise<SimilarPattern[]> {
+  let rows: { pattern_id: number; chunk_id: number; fpp_question: string }[] = [];
+  try {
+    rows = (await sql`
+      SELECT p.id AS pattern_id, p.chunk_id, p.fpp_question
+      FROM patterns p
+      ORDER BY p.id DESC
+      LIMIT 300
+    `) as typeof rows;
+  } catch {
+    return [];
+  }
+  const similar: SimilarPattern[] = [];
+  for (const row of rows) {
+    if (!row.fpp_question) continue;
+    const sim = triggerSimilarity(trigger, row.fpp_question);
+    if (sim >= 0.7) {
+      similar.push({
+        patternId: row.pattern_id,
+        chunkId: row.chunk_id,
+        trigger: row.fpp_question,
+        similarityPct: Math.round(sim * 100),
+      });
+    }
+  }
+  return similar.sort((a, b) => b.similarityPct - a.similarityPct).slice(0, 3);
+}
+
 /**
  * Trigger / SPP / フォロー質問・返答の4つがすべて DB 上の同一パターンと一致するものを1件返す。
  * 一致すれば新規 INSERT はせず既存行＋割当のみとする。
@@ -139,6 +204,7 @@ export type TeacherLessonPersistResult = {
   chunkId: number;
   categoryId: number;
   audioResults: Record<string, boolean>;
+  similarPatterns: SimilarPattern[];
 };
 
 /**
@@ -156,8 +222,11 @@ export async function persistTeacherLesson(input: TeacherLessonPersistInput): Pr
       chunkId: existing.chunkId,
       categoryId: existing.categoryId,
       audioResults: {},
+      similarPatterns: [],
     };
   }
+
+  const similarPatterns = await findSimilarPatterns(input.trigger);
 
   const categoryId = await findOrCreateCategory(input.suggestedCategory);
   const chunk = await createChunk(categoryId, input.trigger, input.situation);
@@ -205,5 +274,6 @@ export async function persistTeacherLesson(input: TeacherLessonPersistInput): Pr
     chunkId: chunk.id,
     categoryId,
     audioResults,
+    similarPatterns,
   };
 }
