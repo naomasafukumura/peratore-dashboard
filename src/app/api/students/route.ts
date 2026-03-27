@@ -4,6 +4,17 @@ import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 
 export const dynamic = 'force-dynamic';
 
+/** 事前登録済み受講生名（DBに依存せず常に表示） */
+const PRESET_STUDENTS = [
+  '井上優子', '伊吾田恵津子', '氏家敦子', '及川祐貴',
+  '川上潔', '甲斐博美', '狩野怜菜', '木戸真紀子',
+  '桑野千尋', '小川早喜', '小川美喜子', '古屋淳',
+  '齋藤りの', '佐藤結衣', '佐藤妙', '高瀬範子',
+  '高橋通江', '徳世由美子', '徳原かずみ', '犬塚美代子',
+  '前田結衣', '牧内晴代', '松隈由香', '松本桂子',
+  '山下千恵子', '山田智美', 'ロバス由貴',
+];
+
 /**
  * GET /api/students
  * - ?google=1 → Googleログイン済み受講生の詳細一覧（id, name, email, assignment_name）
@@ -49,7 +60,7 @@ export async function GET(req: NextRequest) {
       ORDER BY student_name
     `;
     const fromDb = (rows as { student_name: string }[]).map((r) => r.student_name);
-    const all = Array.from(new Set([...fromDb, ...registeredNames])).sort((a, b) =>
+    const all = Array.from(new Set([...PRESET_STUDENTS, ...fromDb, ...registeredNames])).sort((a, b) =>
       a.localeCompare(b, 'ja')
     );
     return NextResponse.json({ students: all });
