@@ -21,6 +21,35 @@ const STUDENT_NAMES = [
   '狩野怜菜',
 ];
 
+async function runSeed() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS registered_students (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  for (const name of STUDENT_NAMES) {
+    await sql`
+      INSERT INTO registered_students (name)
+      VALUES (${name})
+      ON CONFLICT (name) DO NOTHING
+    `;
+  }
+}
+
+/** GET /api/admin/seed-students — ブラウザから直接開いて実行できる */
+export async function GET(req: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(req);
+  if (denied) return denied;
+  try {
+    await runSeed();
+    return NextResponse.json({ ok: true, total: STUDENT_NAMES.length, message: `${STUDENT_NAMES.length}件を処理しました` });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  }
+}
+
 /**
  * POST /api/admin/seed-students
  * registered_students テーブルを作成し、受講生名を投入する（冪等）
@@ -30,29 +59,8 @@ export async function POST(req: NextRequest) {
   if (denied) return denied;
 
   try {
-    await sql`
-      CREATE TABLE IF NOT EXISTS registered_students (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
-
-    let inserted = 0;
-    for (const name of STUDENT_NAMES) {
-      const result = await sql`
-        INSERT INTO registered_students (name)
-        VALUES (${name})
-        ON CONFLICT (name) DO NOTHING
-      `;
-      if (result.length === 0) inserted++;
-    }
-
-    return NextResponse.json({
-      ok: true,
-      total: STUDENT_NAMES.length,
-      message: `${STUDENT_NAMES.length}件を処理しました（重複はスキップ）`,
-    });
+    await runSeed();
+    return NextResponse.json({ ok: true, total: STUDENT_NAMES.length, message: `${STUDENT_NAMES.length}件を処理しました（重複はスキップ）` });
   } catch (e) {
     console.error('seed-students error:', e);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
