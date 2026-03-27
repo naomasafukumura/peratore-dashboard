@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Chunk {
@@ -33,16 +33,33 @@ interface Pattern {
   has_spp_audio: boolean;
 }
 
+interface GoogleStudent {
+  id: number;
+  name: string;
+  email: string | null;
+  assignment_name: string | null;
+}
+
 interface Props {
   categories: Category[];
   stats: { pattern_count: number; audio_pattern_count: number };
 }
 
 export default function TeacherClient({ categories: initialCategories, stats }: Props) {
+  const [activeTab, setActiveTab] = useState<'chunks' | 'students'>('chunks');
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [selectedChunk, setSelectedChunk] = useState<Chunk | null>(null);
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // 受講生管理
+  const [googleStudents, setGoogleStudents] = useState<GoogleStudent[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [pendingAssignment, setPendingAssignment] = useState<Record<number, string>>({});
+  const [savingStudentId, setSavingStudentId] = useState<number | null>(null);
+  const [studentSaveMsg, setStudentSaveMsg] = useState<Record<number, string>>({});
+  // assignment名の選択肢（assignments テーブルにある名前 ＋ 入力中の値）
+  const [assignmentNames, setAssignmentNames] = useState<string[]>([]);
 
   // 新規パターン入力
   const [fpp, setFpp] = useState('');
@@ -68,6 +85,49 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
     const data = (await res.json()) as Category[];
     setCategories(data);
     return data;
+  };
+
+  const loadGoogleStudents = async () => {
+    setLoadingStudents(true);
+    try {
+      const [resG, resA] = await Promise.all([
+        fetch('/api/students?google=1', { credentials: 'include' }),
+        fetch('/api/students', { credentials: 'include' }),
+      ]);
+      const gData = await resG.json();
+      const aData = await resA.json();
+      if (Array.isArray(gData.students)) setGoogleStudents(gData.students);
+      if (Array.isArray(aData.students)) setAssignmentNames(aData.students);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'students') loadGoogleStudents();
+  }, [activeTab]);
+
+  const saveAssignment = async (student: GoogleStudent) => {
+    const name = pendingAssignment[student.id] ?? student.assignment_name ?? '';
+    setSavingStudentId(student.id);
+    try {
+      const res = await fetch('/api/students', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: student.id, assignmentName: name || null }),
+      });
+      if (res.ok) {
+        setGoogleStudents((prev) =>
+          prev.map((s) => s.id === student.id ? { ...s, assignment_name: name || null } : s)
+        );
+        setPendingAssignment((p) => { const n = { ...p }; delete n[student.id]; return n; });
+        setStudentSaveMsg((p) => ({ ...p, [student.id]: '保存しました' }));
+        setTimeout(() => setStudentSaveMsg((p) => { const n = { ...p }; delete n[student.id]; return n; }), 2000);
+      }
+    } finally {
+      setSavingStudentId(null);
+    }
   };
 
   const addChunk = async () => {
@@ -212,6 +272,20 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
           <div className="flex items-center gap-3">
             <Link href="/" className="text-text-muted hover:text-text-dark transition-colors">←</Link>
             <h1 className="text-lg font-bold text-text-dark">先生ダッシュボード</h1>
+            <div className="flex gap-1 ml-2">
+              <button
+                onClick={() => setActiveTab('chunks')}
+                className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${activeTab === 'chunks' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-dark'}`}
+              >
+                教材
+              </button>
+              <button
+                onClick={() => setActiveTab('students')}
+                className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${activeTab === 'students' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-dark'}`}
+              >
+                受講生管理
+              </button>
+            </div>
             <Link
               href="/teacher/lesson-form"
               className="text-xs font-medium text-primary hover:text-primary-dark ml-2"
@@ -232,7 +306,70 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
         </div>
       </header>
 
-      {lessonFormChunks.length > 0 && (
+      {activeTab === 'students' && (
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-5 shadow-[var(--shadow-card)]">
+            <h2 className="text-sm font-semibold text-text-dark mb-1">Googleログイン受講生</h2>
+            <p className="text-[11px] text-text-muted mb-4">
+              受講生がGoogleでログインするとここに表示されます。「教材セット名」を設定すると、その受講生がログインしたとき自動で専用教材が表示されます。
+            </p>
+            {loadingStudents ? (
+              <p className="text-sm text-text-muted py-8 text-center">読み込み中…</p>
+            ) : googleStudents.length === 0 ? (
+              <p className="text-sm text-text-muted py-8 text-center">まだ誰もGoogleログインしていません</p>
+            ) : (
+              <ul className="space-y-4">
+                {googleStudents.map((s) => {
+                  const pending = pendingAssignment[s.id];
+                  const currentValue = pending !== undefined ? pending : (s.assignment_name ?? '');
+                  const isDirty = pending !== undefined && pending !== (s.assignment_name ?? '');
+                  return (
+                    <li key={s.id} className="border-b border-border/60 pb-4 last:border-0 last:pb-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-text-dark">{s.name}</p>
+                          <p className="text-[11px] text-text-muted">{s.email ?? '—'}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex flex-col gap-1">
+                            <input
+                              list={`asgn-list-${s.id}`}
+                              value={currentValue}
+                              onChange={(e) => setPendingAssignment((p) => ({ ...p, [s.id]: e.target.value }))}
+                              placeholder="教材セット名（例: 秋山太郎）"
+                              className="px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark w-52"
+                            />
+                            <datalist id={`asgn-list-${s.id}`}>
+                              {assignmentNames.map((n) => <option key={n} value={n} />)}
+                            </datalist>
+                          </div>
+                          <button
+                            onClick={() => saveAssignment(s)}
+                            disabled={savingStudentId === s.id || !isDirty}
+                            className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40"
+                          >
+                            {savingStudentId === s.id ? '保存中…' : '保存'}
+                          </button>
+                        </div>
+                      </div>
+                      {studentSaveMsg[s.id] && (
+                        <p className="text-[11px] text-success mt-1">{studentSaveMsg[s.id]}</p>
+                      )}
+                      {s.assignment_name && (
+                        <p className="text-[11px] text-text-muted mt-1">
+                          現在の設定: <span className="font-medium text-text-dark">{s.assignment_name}</span>
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'chunks' && lessonFormChunks.length > 0 && (
         <div className="max-w-5xl mx-auto px-4 pt-4">
           <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] mb-2">
             <h2 className="text-sm font-semibold text-text-dark">レッスンフォームで追加したチャンク</h2>
@@ -286,7 +423,7 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto p-4 flex gap-6 mt-4">
+      {activeTab === 'chunks' && <div className="max-w-5xl mx-auto p-4 flex gap-6 mt-4">
         {/* 左: チャンク選択 */}
         <aside className="w-72 shrink-0 hidden md:block">
           <div className="sticky top-20">
@@ -512,7 +649,7 @@ export default function TeacherClient({ categories: initialCategories, stats }: 
             </>
           )}
         </main>
-      </div>
+      </div>}
     </div>
   );
 }
