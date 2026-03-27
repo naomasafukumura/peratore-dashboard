@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 const PLACEHOLDER_LESSON_MEMO =
   'レッスンで話したこと・使った表現・日本語メモなど、自由に書いてください。\n例：週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。';
@@ -10,6 +11,7 @@ const memoTextareaClass =
   'w-full px-3 py-3 bg-bg-page border border-border rounded-xl text-sm text-text-dark placeholder:text-text-light/90 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-shadow min-h-[12rem]';
 
 export default function LessonFormClient() {
+  const pathname = usePathname() || '/';
   const [students, setStudents] = useState<string[]>([]);
   const [surnameFilter, setSurnameFilter] = useState('');
   const [studentName, setStudentName] = useState('');
@@ -29,7 +31,10 @@ export default function LessonFormClient() {
     let cancelled = false;
     (async () => {
       try {
-        const st = await fetch('/api/teacher-auth/status');
+        const st = await fetch('/api/teacher-auth/status', {
+          cache: 'no-store',
+          credentials: 'include',
+        });
         const j = await st.json();
         if (!cancelled && typeof j.gateEnabled === 'boolean') {
           setTeacherGateEnabled(j.gateEnabled);
@@ -46,7 +51,7 @@ export default function LessonFormClient() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch('/api/students');
+      const res = await fetch('/api/students', { credentials: 'include' });
       const data = await res.json();
       if (!cancelled && Array.isArray(data.students)) {
         setStudents(data.students);
@@ -86,6 +91,7 @@ export default function LessonFormClient() {
     try {
       const resAnalyze = await fetch('/api/lesson-submission', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intent: 'analyze-memo',
@@ -95,7 +101,10 @@ export default function LessonFormClient() {
       });
       const dataAnalyze = await resAnalyze.json();
       if (!resAnalyze.ok) {
-        setMessage(dataAnalyze.error || '解析に失敗しました');
+        const hint =
+          typeof dataAnalyze.hint === 'string' ? dataAnalyze.hint.trim() : '';
+        const err = dataAnalyze.error || '解析に失敗しました';
+        setMessage(hint ? `${err}\n${hint}` : err);
         return;
       }
       const ex = dataAnalyze.extracted;
@@ -106,6 +115,7 @@ export default function LessonFormClient() {
 
       const resSubmit = await fetch('/api/lesson-submission', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           intent: 'submit-preview',
@@ -124,7 +134,10 @@ export default function LessonFormClient() {
       });
       const dataSubmit = await resSubmit.json();
       if (!resSubmit.ok) {
-        setMessage(dataSubmit.error || '登録処理に失敗しました');
+        const hint =
+          typeof dataSubmit.hint === 'string' ? dataSubmit.hint.trim() : '';
+        const err = dataSubmit.error || '登録処理に失敗しました';
+        setMessage(hint ? `${err}\n${hint}` : err);
         return;
       }
       setMessage(dataSubmit.message || '登録フローを受け付けました');
@@ -243,10 +256,20 @@ export default function LessonFormClient() {
         {message && (
           <div className="mt-3">
             <p
-              className={`text-xs px-0.5 ${message.includes('失敗') || message.includes('必須') || message.includes('OPENAI') || message.includes('解析') ? 'text-error' : 'text-text-muted'}`}
+              className={`text-xs px-0.5 ${message.includes('失敗') || message.includes('必須') || message.includes('OPENAI') || message.includes('解析') || message.includes('ログインが必要') ? 'text-error' : 'text-text-muted'}`}
             >
               {message}
             </p>
+            {message.includes('ログインが必要') && (
+              <p className="text-xs mt-2 text-text-muted">
+                <Link
+                  href={`/teacher/login?next=${encodeURIComponent(pathname)}`}
+                  className="font-medium text-primary underline"
+                >
+                  先生用ログインへ
+                </Link>
+              </p>
+            )}
             {similarPatterns.length > 0 && (
               <div className="mt-3 p-3 bg-amber-bg border border-amber-bd rounded-xl">
                 <p className="text-[11px] font-semibold text-amber mb-1">似たチャンクがすでにあります</p>
