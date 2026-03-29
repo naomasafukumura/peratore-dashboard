@@ -33,6 +33,7 @@ export default function LessonFormClient() {
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewPatterns, setPreviewPatterns] = useState<ExtractedPattern[]>([]);
+  const [selectedIndexes, setSelectedIndexes] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
   const [successStudentName, setSuccessStudentName] = useState<string | null>(null);
   const [similarPatterns, setSimilarPatterns] = useState<{ trigger: string; similarityPct: number }[]>([]);
@@ -95,6 +96,7 @@ export default function LessonFormClient() {
         return;
       }
       setPreviewPatterns(data.patterns);
+      setSelectedIndexes(new Set(data.patterns.map((_: ExtractedPattern, i: number) => i)));
       setStage('preview');
     } catch (e) {
       setMessage((e as Error).message);
@@ -116,7 +118,7 @@ export default function LessonFormClient() {
           intent: 'submit-preview',
           studentName: resolvedStudentName,
           rawLessonMemo: lessonMemo.trim(),
-          patterns: previewPatterns,
+          patterns: previewPatterns.filter((_, i) => selectedIndexes.has(i)),
         }),
       });
       const data = await res.json();
@@ -234,39 +236,59 @@ export default function LessonFormClient() {
             </p>
 
             <div className="space-y-3 mb-4">
-              {previewPatterns.map((p, i) => (
-                <div key={i} className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">チャンク {i + 1}</span>
-                    <span className="text-[10px] text-text-muted">{p.suggested_category}</span>
-                  </div>
-                  {p.situation_ja && (
-                    <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>
-                  )}
-                  <div className="space-y-1.5">
-                    <div>
-                      <span className="text-[10px] font-semibold text-text-muted">FPP　</span>
-                      <span className="text-sm text-text-dark">{p.fpp_question}</span>
+              {previewPatterns.map((p, i) => {
+                const checked = selectedIndexes.has(i);
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setSelectedIndexes(prev => {
+                      const next = new Set(prev);
+                      next.has(i) ? next.delete(i) : next.add(i);
+                      return next;
+                    })}
+                    className={`bg-bg-card border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] cursor-pointer transition-colors ${checked ? 'border-primary/50' : 'border-border opacity-50'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {}}
+                          className="w-4 h-4 accent-primary"
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">チャンク {i + 1}</span>
+                      </label>
+                      <span className="text-[10px] text-text-muted">{p.suggested_category}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-semibold text-text-muted">SPP　</span>
-                      <span className="text-sm text-text-dark">{p.spp}</span>
+                    {p.situation_ja && (
+                      <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>
+                    )}
+                    <div className="space-y-1.5">
+                      <div>
+                        <span className="text-[10px] font-semibold text-text-muted">FPP　</span>
+                        <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold text-text-muted">SPP　</span>
+                        <span className="text-sm text-text-dark">{p.spp}</span>
+                      </div>
+                      {p.followup_question && (
+                        <div>
+                          <span className="text-[10px] font-semibold text-text-muted">FQ　　</span>
+                          <span className="text-sm text-text-dark">{p.followup_question}</span>
+                        </div>
+                      )}
+                      {p.followup_answer && (
+                        <div>
+                          <span className="text-[10px] font-semibold text-text-muted">FA　　</span>
+                          <span className="text-sm text-text-dark">{p.followup_answer}</span>
+                        </div>
+                      )}
                     </div>
-                    {p.followup_question && (
-                      <div>
-                        <span className="text-[10px] font-semibold text-text-muted">FQ　　</span>
-                        <span className="text-sm text-text-dark">{p.followup_question}</span>
-                      </div>
-                    )}
-                    {p.followup_answer && (
-                      <div>
-                        <span className="text-[10px] font-semibold text-text-muted">FA　　</span>
-                        <span className="text-sm text-text-dark">{p.followup_answer}</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex gap-3">
@@ -280,10 +302,10 @@ export default function LessonFormClient() {
               <button
                 type="button"
                 onClick={save}
-                disabled={saving}
+                disabled={saving || selectedIndexes.size === 0}
                 className="flex-1 py-2.5 bg-orange-400 text-black rounded-[var(--radius-button)] text-sm font-semibold disabled:opacity-40"
               >
-                {saving ? '保存・音声生成中…' : `${previewPatterns.length}チャンクを保存 + 音声生成`}
+                {saving ? '保存・音声生成中…' : `${selectedIndexes.size}チャンクを保存 + 音声生成`}
               </button>
             </div>
 
