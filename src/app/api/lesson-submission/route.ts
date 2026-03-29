@@ -67,24 +67,24 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Prom
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
-メモに複数の会話のやり取りが含まれている場合は、**2往復（FPP→SPP、followup_question→followup_answer）を1パターンとして、すべてのパターンを抽出してください。**
+**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** メモに4つのQ→Aペアがあれば4チャンク出力します。
 
 【先生メモ】
 ${rawMemo}
 
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
-- patterns は配列。1つの会話でも配列に入れること。
+- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
 - 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフはいずれも自然な口語の英語に整えること:
-  - situation_ja … 受講生向けの状況説明（日本語。オンライン英会話の場面が分かるように）
-  - fpp_question … 1往復目・相手（講師側）のセリフ
-  - spp … 1往復目・受講生の模範回答
-  - followup_question … 2往復目・相手のフォロー質問（メモに無い場合でも、1往復目の流れから自然なフォローを補完してよい）
-  - followup_answer … 2往復目・受講生の返答（同上、補完可）
+  - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
+  - fpp_question … 相手（講師側）の質問
+  - spp … 受講生の模範回答
+  - followup_question … そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）
+  - followup_answer … followup_question への受講生の返答（同上、補完可）
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
-JSON の例（2パターンの場合）:
+JSON の例（Q→Aが4つある場合は4要素）:
 {"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
