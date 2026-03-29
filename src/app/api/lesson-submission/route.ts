@@ -244,6 +244,7 @@ export async function POST(req: NextRequest) {
       spp,
       followupQuestion: preview.followupQuestion,
       followupAnswer: preview.followupAnswer,
+      rawMemo: preview.rawLessonMemo,
     });
 
     const failedAudio = Object.entries(saved.audioResults)

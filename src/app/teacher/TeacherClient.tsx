@@ -1,655 +1,184 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-
-interface Chunk {
-  id: number;
-  chunkNumber: number;
-  titleEn: string;
-  titleJp: string;
-  patternCount: number;
-  /** レッスン後フォームからの自動登録 */
-  origin?: string | null;
-}
-
-interface Category {
-  id: number;
-  type: string;
-  name: string;
-  chunks: Chunk[];
-}
-
-interface Pattern {
-  id: number;
-  set_number: number;
-  situation: string | null;
-  fpp_intro: string | null;
-  fpp_question: string;
-  spp: string;
-  character: string;
-  has_fpp_intro_audio: boolean;
-  has_fpp_question_audio: boolean;
-  has_spp_audio: boolean;
-}
-
-interface GoogleStudent {
-  id: number;
-  name: string;
-  email: string | null;
-  assignment_name: string | null;
-}
+import { useState } from 'react';
 
 interface Props {
-  categories: Category[];
-  stats: { pattern_count: number; audio_pattern_count: number };
+  categoryNames: string[];
+  studentNames: string[];
 }
 
-export default function TeacherClient({ categories: initialCategories, stats }: Props) {
-  const [activeTab, setActiveTab] = useState<'chunks' | 'students'>('chunks');
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [selectedChunk, setSelectedChunk] = useState<Chunk | null>(null);
-  const [patterns, setPatterns] = useState<Pattern[]>([]);
-  const [loading, setLoading] = useState(false);
+const inputClass =
+  'w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder:text-text-light focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40';
 
-  // 受講生管理
-  const [googleStudents, setGoogleStudents] = useState<GoogleStudent[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [pendingAssignment, setPendingAssignment] = useState<Record<number, string>>({});
-  const [savingStudentId, setSavingStudentId] = useState<number | null>(null);
-  const [studentSaveMsg, setStudentSaveMsg] = useState<Record<number, string>>({});
-  // assignment名の選択肢（assignments テーブルにある名前 ＋ 入力中の値）
-  const [assignmentNames, setAssignmentNames] = useState<string[]>([]);
-
-  // 新規パターン入力
+export default function TeacherClient({ categoryNames, studentNames }: Props) {
+  const [category, setCategory] = useState('');
+  const [situation, setSituation] = useState('');
   const [fpp, setFpp] = useState('');
   const [spp, setSpp] = useState('');
-  const [situation, setSituation] = useState('');
+  const [followupQ, setFollowupQ] = useState('');
+  const [followupA, setFollowupA] = useState('');
+  const [studentName, setStudentName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
-  // 音声生成
-  const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const canSave = category.trim() && fpp.trim() && spp.trim();
 
-  const [movingChunkId, setMovingChunkId] = useState<number | null>(null);
-  const [pendingMoveCategory, setPendingMoveCategory] = useState<Record<number, number>>({});
-
-  // チャンク追加
-  const [showAddChunk, setShowAddChunk] = useState(false);
-  const [newChunkTitleEn, setNewChunkTitleEn] = useState('');
-  const [newChunkTitleJp, setNewChunkTitleJp] = useState('');
-  const [newChunkCategoryId, setNewChunkCategoryId] = useState<number | null>(null);
-  const [savingChunk, setSavingChunk] = useState(false);
-
-  const reloadCategories = async (): Promise<Category[]> => {
-    const res = await fetch('/api/categories');
-    const data = (await res.json()) as Category[];
-    setCategories(data);
-    return data;
-  };
-
-  const loadGoogleStudents = async () => {
-    setLoadingStudents(true);
+  const save = async () => {
+    setSaving(true);
+    setMessage(null);
     try {
-      const [resG, resA] = await Promise.all([
-        fetch('/api/students?google=1', { credentials: 'include' }),
-        fetch('/api/students', { credentials: 'include' }),
-      ]);
-      const gData = await resG.json();
-      const aData = await resA.json();
-      if (Array.isArray(gData.students)) setGoogleStudents(gData.students);
-      if (Array.isArray(aData.students)) setAssignmentNames(aData.students);
-    } finally {
-      setLoadingStudents(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'students') loadGoogleStudents();
-  }, [activeTab]);
-
-  const saveAssignment = async (student: GoogleStudent) => {
-    const name = pendingAssignment[student.id] ?? student.assignment_name ?? '';
-    setSavingStudentId(student.id);
-    try {
-      const res = await fetch('/api/students', {
-        method: 'PATCH',
+      const res = await fetch('/api/patterns/manual', {
+        method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: student.id, assignmentName: name || null }),
-      });
-      if (res.ok) {
-        setGoogleStudents((prev) =>
-          prev.map((s) => s.id === student.id ? { ...s, assignment_name: name || null } : s)
-        );
-        setPendingAssignment((p) => { const n = { ...p }; delete n[student.id]; return n; });
-        setStudentSaveMsg((p) => ({ ...p, [student.id]: '保存しました' }));
-        setTimeout(() => setStudentSaveMsg((p) => { const n = { ...p }; delete n[student.id]; return n; }), 2000);
-      }
-    } finally {
-      setSavingStudentId(null);
-    }
-  };
-
-  const addChunk = async () => {
-    if (!newChunkTitleEn.trim() || !newChunkCategoryId) return;
-    setSavingChunk(true);
-
-    const res = await fetch('/api/chunks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        categoryId: newChunkCategoryId,
-        titleEn: newChunkTitleEn.trim(),
-        titleJp: newChunkTitleJp.trim() || '',
-      }),
-    });
-
-    if (res.ok) {
-      await reloadCategories();
-      setNewChunkTitleEn('');
-      setNewChunkTitleJp('');
-      setShowAddChunk(false);
-    }
-    setSavingChunk(false);
-  };
-
-  const loadPatterns = async (chunk: Chunk) => {
-    setSelectedChunk(chunk);
-    setLoading(true);
-    const res = await fetch(`/api/patterns?chunkId=${chunk.id}`);
-    const data = await res.json();
-    setPatterns(data.patterns);
-    setLoading(false);
-  };
-
-  const addPattern = async () => {
-    if (!fpp.trim() || !spp.trim() || !selectedChunk) return;
-    setSaving(true);
-
-    const res = await fetch('/api/patterns', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chunkId: selectedChunk.id,
-        setNumber: patterns.length + 1,
-        situation: situation.trim() || null,
-        fppQuestion: fpp.trim(),
-        spp: spp.trim(),
-      }),
-    });
-
-    if (res.ok) {
-      await loadPatterns(selectedChunk);
-      setFpp('');
-      setSpp('');
-      setSituation('');
-    }
-    setSaving(false);
-  };
-
-  const generateAudio = async (patternId: number) => {
-    setGeneratingId(patternId);
-    try {
-      await fetch('/api/audio/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patternId }),
-      });
-      if (selectedChunk) await loadPatterns(selectedChunk);
-    } catch (err) {
-      alert('音声生成エラー: ' + (err as Error).message);
-    }
-    setGeneratingId(null);
-  };
-
-  const deletePattern = async (patternId: number) => {
-    if (!confirm('このパターンを削除しますか？')) return;
-    await fetch(`/api/patterns/${patternId}`, { method: 'DELETE' });
-    if (selectedChunk) await loadPatterns(selectedChunk);
-  };
-
-  const lessonFormChunks = useMemo(
-    () =>
-      categories.flatMap((cat) =>
-        (cat.chunks ?? [])
-          .filter((ch) => ch.origin === 'lesson_form')
-          .map((ch) => ({
-            ...ch,
-            categoryId: cat.id,
-            categoryLabel: `${cat.type} / ${cat.name}`,
-          }))
-      ),
-    [categories]
-  );
-
-  const moveLessonFormChunk = async (chunkId: number, fromCategoryId: number, toCategoryId: number) => {
-    if (toCategoryId === fromCategoryId) return;
-    setMovingChunkId(chunkId);
-    try {
-      const res = await fetch(`/api/chunks/${chunkId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId: toCategoryId }),
+        body: JSON.stringify({
+          categoryName: category.trim(),
+          situation: situation.trim(),
+          fppQuestion: fpp.trim(),
+          spp: spp.trim(),
+          followupQuestion: followupQ.trim(),
+          followupAnswer: followupA.trim(),
+          studentName: studentName.trim() || null,
+          character: '友人',
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'カテゴリの移動に失敗しました');
+        setMessage({ text: data.error || '保存失敗', ok: false });
         return;
       }
-      const refreshed = await reloadCategories();
-      setPendingMoveCategory((p) => {
-        const next = { ...p };
-        delete next[chunkId];
-        return next;
-      });
-      if (selectedChunk?.id === chunkId) {
-        for (const cat of refreshed) {
-          const ch = (cat.chunks ?? []).find((c) => c.id === chunkId);
-          if (ch) {
-            setSelectedChunk(ch);
-            break;
-          }
-        }
-      }
+      setMessage({ text: '保存・音声生成完了 ✓', ok: true });
+      setSituation('');
+      setFpp('');
+      setSpp('');
+      setFollowupQ('');
+      setFollowupA('');
+      setStudentName('');
+    } catch (e) {
+      setMessage({ text: (e as Error).message, ok: false });
     } finally {
-      setMovingChunkId(null);
+      setSaving(false);
     }
   };
 
-  // タイプでグルーピング
-  const grouped = new Map<string, Category[]>();
-  for (const cat of categories) {
-    const existing = grouped.get(cat.type) || [];
-    existing.push(cat);
-    grouped.set(cat.type, existing);
-  }
-
   return (
     <div className="min-h-screen bg-bg-page">
-      {/* ヘッダー */}
       <header className="bg-bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-text-muted hover:text-text-dark transition-colors">←</Link>
-            <h1 className="text-lg font-bold text-text-dark">先生ダッシュボード</h1>
-            <div className="flex gap-1 ml-2">
-              <button
-                onClick={() => setActiveTab('chunks')}
-                className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${activeTab === 'chunks' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-dark'}`}
-              >
-                教材
-              </button>
-              <button
-                onClick={() => setActiveTab('students')}
-                className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${activeTab === 'students' ? 'bg-primary text-white' : 'text-text-muted hover:text-text-dark'}`}
-              >
-                受講生管理
-              </button>
-            </div>
-            <Link
-              href="/teacher/lesson-form"
-              className="text-xs font-medium text-primary hover:text-primary-dark ml-2"
-            >
-              レッスン後フォーム
-            </Link>
-            <Link
-              href="/teacher/logout"
-              className="text-xs text-text-muted hover:text-text-dark ml-2"
-            >
-              ログアウト
-            </Link>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-text-muted">
-            <span>{stats.pattern_count} パターン</span>
-            <span className="text-success">{stats.audio_pattern_count} 音声済</span>
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <h1 className="text-base font-bold text-text-dark">新規教材管理</h1>
+          <div className="flex items-center gap-3 text-xs">
+            <Link href="/teacher/students" className="text-primary font-medium">受講生リンク一覧</Link>
+            <Link href="/teacher/lesson-form" className="text-primary font-medium">レッスン後フォーム</Link>
+            <Link href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</Link>
           </div>
         </div>
       </header>
 
-      {activeTab === 'students' && (
-        <div className="max-w-2xl mx-auto px-4 py-6">
-          <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-semibold text-text-dark mb-1">Googleログイン受講生</h2>
-            <p className="text-[11px] text-text-muted mb-4">
-              受講生がGoogleでログインするとここに表示されます。「教材セット名」を設定すると、その受講生がログインしたとき自動で専用教材が表示されます。
-            </p>
-            {loadingStudents ? (
-              <p className="text-sm text-text-muted py-8 text-center">読み込み中…</p>
-            ) : googleStudents.length === 0 ? (
-              <p className="text-sm text-text-muted py-8 text-center">まだ誰もGoogleログインしていません</p>
-            ) : (
-              <ul className="space-y-4">
-                {googleStudents.map((s) => {
-                  const pending = pendingAssignment[s.id];
-                  const currentValue = pending !== undefined ? pending : (s.assignment_name ?? '');
-                  const isDirty = pending !== undefined && pending !== (s.assignment_name ?? '');
-                  return (
-                    <li key={s.id} className="border-b border-border/60 pb-4 last:border-0 last:pb-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-text-dark">{s.name}</p>
-                          <p className="text-[11px] text-text-muted">{s.email ?? '—'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex flex-col gap-1">
-                            <input
-                              list={`asgn-list-${s.id}`}
-                              value={currentValue}
-                              onChange={(e) => setPendingAssignment((p) => ({ ...p, [s.id]: e.target.value }))}
-                              placeholder="教材セット名（例: 秋山太郎）"
-                              className="px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark w-52"
-                            />
-                            <datalist id={`asgn-list-${s.id}`}>
-                              {assignmentNames.map((n) => <option key={n} value={n} />)}
-                            </datalist>
-                          </div>
-                          <button
-                            onClick={() => saveAssignment(s)}
-                            disabled={savingStudentId === s.id || !isDirty}
-                            className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40"
-                          >
-                            {savingStudentId === s.id ? '保存中…' : '保存'}
-                          </button>
-                        </div>
-                      </div>
-                      {studentSaveMsg[s.id] && (
-                        <p className="text-[11px] text-success mt-1">{studentSaveMsg[s.id]}</p>
-                      )}
-                      {s.assignment_name && (
-                        <p className="text-[11px] text-text-muted mt-1">
-                          現在の設定: <span className="font-medium text-text-dark">{s.assignment_name}</span>
-                        </p>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
+      <main className="max-w-xl mx-auto px-4 py-6 pb-24 space-y-3">
 
-      {activeTab === 'chunks' && lessonFormChunks.length > 0 && (
-        <div className="max-w-5xl mx-auto px-4 pt-4">
-          <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] mb-2">
-            <h2 className="text-sm font-semibold text-text-dark">レッスンフォームで追加したチャンク</h2>
-            <p className="text-xs text-text-muted mt-1 mb-3">
-              自動カテゴリが合わないとき、移動先を選んで「カテゴリへ移動」できます（フォーム経由のチャンクのみ）。
-            </p>
-            <ul className="space-y-3">
-              {lessonFormChunks.map((row) => {
-                const pick =
-                  pendingMoveCategory[row.id] !== undefined ? pendingMoveCategory[row.id]! : row.categoryId;
-                return (
-                  <li
-                    key={row.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm border-b border-border/60 pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium text-text-dark block truncate">{row.titleEn}</span>
-                      <span className="text-xs text-text-muted">現在: {row.categoryLabel}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <select
-                        value={pick}
-                        onChange={(e) =>
-                          setPendingMoveCategory((p) => ({
-                            ...p,
-                            [row.id]: parseInt(e.target.value, 10),
-                          }))
-                        }
-                        className="px-2 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark max-w-[220px]"
-                      >
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.type} / {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        disabled={movingChunkId === row.id || pick === row.categoryId}
-                        onClick={() => moveLessonFormChunk(row.id, row.categoryId, pick)}
-                        className="px-3 py-1.5 bg-primary text-text-dark rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40"
-                      >
-                        {movingChunkId === row.id ? '移動中…' : 'カテゴリへ移動'}
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'chunks' && <div className="max-w-5xl mx-auto p-4 flex gap-6 mt-4">
-        {/* 左: チャンク選択 */}
-        <aside className="w-72 shrink-0 hidden md:block">
-          <div className="sticky top-20">
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">チャンク選択</h2>
-              <button
-                onClick={() => setShowAddChunk(!showAddChunk)}
-                className="text-xs text-primary hover:text-primary-dark font-medium transition-colors"
-              >
-                {showAddChunk ? '閉じる' : '+ 追加'}
-              </button>
-            </div>
-
-            {/* チャンク追加フォーム */}
-            {showAddChunk && (
-              <div className="bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-4 mb-4 border border-border">
-                <div className="space-y-2">
-                  <select
-                    value={newChunkCategoryId || ''}
-                    onChange={(e) => setNewChunkCategoryId(parseInt(e.target.value) || null)}
-                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                  >
-                    <option value="">カテゴリを選択...</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.type} / {cat.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    value={newChunkTitleEn}
-                    onChange={(e) => setNewChunkTitleEn(e.target.value)}
-                    placeholder="英語タイトル (例: I'm gonna ~)"
-                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                  <input
-                    value={newChunkTitleJp}
-                    onChange={(e) => setNewChunkTitleJp(e.target.value)}
-                    placeholder="日本語（任意: 〜する予定だよ）"
-                    className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  />
-                  <button
-                    onClick={addChunk}
-                    disabled={savingChunk || !newChunkTitleEn.trim() || !newChunkCategoryId}
-                    className="w-full px-3 py-2 bg-primary text-white rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary-dark disabled:opacity-40 transition-all"
-                  >
-                    {savingChunk ? '追加中...' : 'チャンクを追加'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-2">
-              {Array.from(grouped.entries()).map(([type, cats]) => (
-                <div key={type}>
-                  <p className="text-xs font-semibold text-primary mb-1 px-1">{type}</p>
-                  {cats.map((cat) => (
-                    <div key={cat.id} className="mb-2">
-                      <p className="text-xs text-text-muted px-1 mb-1">{cat.name}</p>
-                      {cat.chunks.map((chunk) => (
-                        <button
-                          key={chunk.id}
-                          onClick={() => loadPatterns(chunk)}
-                          className={`w-full text-left px-3 py-2 rounded-[var(--radius-button)] text-sm transition-all mb-0.5
-                            ${selectedChunk?.id === chunk.id
-                              ? 'bg-primary text-white shadow-[var(--shadow-card)]'
-                              : 'text-text-dark hover:bg-primary/5'
-                            }`}
-                        >
-                          <span className="block font-medium truncate">{chunk.titleEn}</span>
-                          <span className={`text-xs ${selectedChunk?.id === chunk.id ? 'text-white/70' : 'text-text-light'}`}>
-                            {chunk.patternCount}問
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* モバイル: チャンク選択ドロップダウン */}
-        <div className="md:hidden w-full mb-4">
-          <select
-            onChange={(e) => {
-              const chunkId = parseInt(e.target.value);
-              const allChunks = categories.flatMap(c => c.chunks);
-              const chunk = allChunks.find(ch => ch.id === chunkId);
-              if (chunk) loadPatterns(chunk);
-            }}
-            className="w-full px-4 py-3 bg-bg-card border border-border rounded-[var(--radius-button)] text-text-dark text-sm"
-            defaultValue=""
-          >
-            <option value="" disabled>チャンクを選択...</option>
-            {categories.map((cat) => (
-              <optgroup key={cat.id} label={`${cat.type} / ${cat.name}`}>
-                {cat.chunks.map((chunk) => (
-                  <option key={chunk.id} value={chunk.id}>
-                    {chunk.titleEn} ({chunk.patternCount}問)
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+        {/* カテゴリ */}
+        <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
+          <label className="block text-xs font-semibold text-text-dark mb-1">
+            カテゴリ <span className="text-error">*</span>
+          </label>
+          <input
+            list="category-list"
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            placeholder="リストから選ぶか直接入力"
+            className={inputClass}
+          />
+          <datalist id="category-list">
+            {categoryNames.map(n => <option key={n} value={n} />)}
+          </datalist>
         </div>
 
-        {/* 右: メインコンテンツ */}
-        <main className="flex-1 min-w-0">
-          {!selectedChunk ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                <span className="text-2xl">👈</span>
-              </div>
-              <p className="text-text-muted">左からチャンクを選んでください</p>
-            </div>
-          ) : (
-            <>
-              {/* チャンクヘッダー */}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-text-dark">{selectedChunk.titleEn}</h2>
-                {selectedChunk.titleJp && (
-                  <p className="text-text-muted text-sm mt-1">{selectedChunk.titleJp}</p>
-                )}
-              </div>
+        {/* メインフォーム */}
+        <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-text-dark mb-1">Situation</label>
+            <input
+              value={situation}
+              onChange={e => setSituation(e.target.value)}
+              placeholder="例: 同僚に週末の予定を聞かれた"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-dark mb-1">
+              FPP（相手のセリフ）<span className="text-error">*</span>
+            </label>
+            <input
+              value={fpp}
+              onChange={e => setFpp(e.target.value)}
+              placeholder="例: What are you gonna do this weekend?"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-dark mb-1">
+              SPP（模範回答）<span className="text-error">*</span>
+            </label>
+            <input
+              value={spp}
+              onChange={e => setSpp(e.target.value)}
+              placeholder="例: I'm gonna relax at home."
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-dark mb-1">Followup Question</label>
+            <input
+              value={followupQ}
+              onChange={e => setFollowupQ(e.target.value)}
+              placeholder="例: Oh, are you gonna watch Netflix?"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-dark mb-1">Followup Answer</label>
+            <input
+              value={followupA}
+              onChange={e => setFollowupA(e.target.value)}
+              placeholder="例: Yeah, something like that."
+              className={inputClass}
+            />
+          </div>
+        </div>
 
-              {/* 新規パターン追加フォーム */}
-              <div className="bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-6 mb-6 border border-border">
-                <h3 className="text-sm font-semibold text-text-dark mb-4">パターンを追加</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-text-muted mb-1">Situation（任意）</label>
-                    <input
-                      value={situation}
-                      onChange={(e) => setSituation(e.target.value)}
-                      placeholder="例: 同僚に週末の予定を聞かれた。"
-                      className="w-full px-4 py-2.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-text-muted mb-1">FPP <span className="text-error">*</span></label>
-                    <input
-                      value={fpp}
-                      onChange={(e) => setFpp(e.target.value)}
-                      placeholder="例: What are you gonna do?"
-                      className="w-full px-4 py-2.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-text-muted mb-1">SPP <span className="text-error">*</span></label>
-                    <input
-                      value={spp}
-                      onChange={(e) => setSpp(e.target.value)}
-                      placeholder="例: I'm gonna go see my parents."
-                      className="w-full px-4 py-2.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder-text-light focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                    />
-                  </div>
-                  <button
-                    onClick={addPattern}
-                    disabled={saving || !fpp.trim() || !spp.trim()}
-                    className="w-full px-4 py-3 bg-primary text-white rounded-[var(--radius-button)] font-medium text-sm hover:bg-primary-dark active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    {saving ? '追加中...' : 'パターンを追加'}
-                  </button>
-                </div>
-              </div>
+        {/* 受講生（任意） */}
+        <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
+          <label className="block text-xs font-semibold text-text-dark mb-1">
+            受講生に割り当て <span className="text-text-muted font-normal">（任意）</span>
+          </label>
+          <input
+            list="student-list"
+            value={studentName}
+            onChange={e => setStudentName(e.target.value)}
+            placeholder="名前を入力または選択"
+            className={inputClass}
+          />
+          <datalist id="student-list">
+            {studentNames.map(n => <option key={n} value={n} />)}
+          </datalist>
+        </div>
 
-              {/* 登録済みパターン一覧 */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-text-muted">
-                  登録済み ({patterns.length}問)
-                </h3>
-                {loading ? (
-                  <div className="py-12 text-center text-text-light">読み込み中...</div>
-                ) : patterns.length === 0 ? (
-                  <div className="py-12 text-center text-text-light">まだパターンがありません</div>
-                ) : (
-                  patterns.map((p) => (
-                    <div
-                      key={p.id}
-                      className="bg-bg-card rounded-[var(--radius-card)] shadow-[var(--shadow-card)] p-5 border border-border"
-                    >
-                      {p.situation && (
-                        <p className="text-xs text-text-light mb-2">{p.situation}</p>
-                      )}
-                      {p.fpp_intro && (
-                        <p className="text-sm text-text-muted italic mb-1">&ldquo;{p.fpp_intro}&rdquo;</p>
-                      )}
-                      <p className="text-base font-medium text-text-dark mb-1">
-                        &ldquo;{p.fpp_question}&rdquo;
-                      </p>
-                      <p className="text-base font-semibold text-primary">
-                        &ldquo;{p.spp}&rdquo;
-                      </p>
+        {/* 送信 */}
+        <button
+          onClick={save}
+          disabled={saving || !canSave}
+          className="w-full py-3 bg-orange-400 text-black rounded-[var(--radius-button)] text-sm font-semibold disabled:opacity-40 transition-opacity hover:bg-orange-500"
+        >
+          {saving ? '保存・音声生成中…' : '保存 + 音声生成'}
+        </button>
 
-                      {/* アクション */}
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                        <div className="flex gap-1 text-xs">
-                          {p.has_fpp_question_audio && <span className="px-2 py-0.5 bg-success/10 text-success rounded-full">FPP</span>}
-                          {p.has_spp_audio && <span className="px-2 py-0.5 bg-success/10 text-success rounded-full">SPP</span>}
-                        </div>
-                        <div className="ml-auto flex gap-2">
-                          {(!p.has_fpp_question_audio || !p.has_spp_audio) && (
-                            <button
-                              onClick={() => generateAudio(p.id)}
-                              disabled={generatingId === p.id}
-                              className="px-3 py-1.5 bg-primary/10 text-primary rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary/20 disabled:opacity-50 transition-all"
-                            >
-                              {generatingId === p.id ? '生成中...' : '音声生成'}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => deletePattern(p.id)}
-                            className="px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs transition-all"
-                          >
-                            削除
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </main>
-      </div>}
+        {message && (
+          <p className={`text-xs px-1 ${message.ok ? 'text-success' : 'text-error'}`}>
+            {message.text}
+          </p>
+        )}
+      </main>
     </div>
   );
 }

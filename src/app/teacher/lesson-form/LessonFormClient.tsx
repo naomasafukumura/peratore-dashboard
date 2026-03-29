@@ -168,6 +168,9 @@ export default function LessonFormClient() {
             <Link href="/practice-v2.html" className="text-xs text-primary font-medium">
               教材
             </Link>
+            <Link href="/teacher/dashboard" className="text-xs text-primary font-medium">
+              ダッシュボード
+            </Link>
             <Link
               href="/teacher/logout"
               className="text-xs text-text-muted hover:text-text-dark"

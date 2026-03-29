@@ -29,6 +29,7 @@ async function setup() {
   `;
 
   await sql`ALTER TABLE chunks ADD COLUMN IF NOT EXISTS origin TEXT`;
+  await sql`ALTER TABLE chunks ADD COLUMN IF NOT EXISTS raw_memo TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS students (
@@ -80,6 +81,51 @@ async function setup() {
       UNIQUE (student_name, chunk_id)
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS student_meta (
+      name TEXT PRIMARY KEY,
+      yomi TEXT NOT NULL DEFAULT ''
+    )
+  `;
+
+  // PRESET_STUDENTSのふりがなをシード（既存行は更新しない）
+  const presetYomi = [
+    ['伊吾田恵津子', 'いごたえつこ'],
+    ['犬塚美代子', 'いぬつかみよこ'],
+    ['井上優子', 'いのうえゆうこ'],
+    ['氏家敦子', 'うじいえあつこ'],
+    ['及川祐貴', 'おいかわゆき'],
+    ['小川早喜', 'おがわさき'],
+    ['小川美喜子', 'おがわみきこ'],
+    ['甲斐博美', 'かいひろみ'],
+    ['狩野怜菜', 'かのれな'],
+    ['川上潔', 'かわかみきよし'],
+    ['木戸真紀子', 'きどまきこ'],
+    ['桑野千尋', 'くわのちひろ'],
+    ['齋藤りの', 'さいとうりの'],
+    ['佐藤妙', 'さとうたえ'],
+    ['佐藤結衣', 'さとうゆい'],
+    ['高瀬範子', 'たかせのりこ'],
+    ['高橋通江', 'たかはしみちえ'],
+    ['徳原かずみ', 'とくはらかずみ'],
+    ['徳世由美子', 'とくよゆみこ'],
+    ['古屋淳', 'ふるやじゅん'],
+    ['前田結衣', 'まえだゆい'],
+    ['牧内晴代', 'まきうちはるよ'],
+    ['松隈由香', 'まつくまゆか'],
+    ['松本桂子', 'まつもとけいこ'],
+    ['山下千恵子', 'やましたちえこ'],
+    ['山田智美', 'やまだともみ'],
+    ['ロバス由貴', 'ろばすゆき'],
+  ];
+  for (const [name, yomi] of presetYomi) {
+    await sql`
+      INSERT INTO student_meta (name, yomi)
+      VALUES (${name}, ${yomi})
+      ON CONFLICT (name) DO NOTHING
+    `;
+  }
 
   console.log('All tables created successfully!');
 }

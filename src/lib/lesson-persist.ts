@@ -11,6 +11,7 @@ export type TeacherLessonPersistInput = {
   spp: string;
   followupQuestion: string;
   followupAnswer: string;
+  rawMemo?: string;
 };
 
 async function findOrCreateCategory(suggestedName: string): Promise<number> {
@@ -37,7 +38,7 @@ async function findOrCreateCategory(suggestedName: string): Promise<number> {
   return cat.id as number;
 }
 
-async function createChunk(categoryId: number, titleEn: string, titleJp: string): Promise<{ id: number }> {
+async function createChunk(categoryId: number, titleEn: string, titleJp: string, rawMemo?: string): Promise<{ id: number }> {
   const [maxOrder] = await sql`
     SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM chunks WHERE category_id = ${categoryId}
   `;
@@ -45,14 +46,15 @@ async function createChunk(categoryId: number, titleEn: string, titleJp: string)
     SELECT COALESCE(MAX(chunk_number), 0) + 1 AS next_number FROM chunks WHERE category_id = ${categoryId}
   `;
   const [chunk] = await sql`
-    INSERT INTO chunks (category_id, chunk_number, title_en, title_jp, sort_order, origin)
+    INSERT INTO chunks (category_id, chunk_number, title_en, title_jp, sort_order, origin, raw_memo)
     VALUES (
       ${categoryId},
       ${maxNum.next_number},
       ${titleEn.slice(0, 500)},
       ${(titleJp || '').slice(0, 500)},
       ${maxOrder.next_order},
-      ${'lesson_form'}
+      ${'lesson_form'},
+      ${rawMemo ?? null}
     )
     RETURNING id
   `;
@@ -229,7 +231,7 @@ export async function persistTeacherLesson(input: TeacherLessonPersistInput): Pr
   const similarPatterns = await findSimilarPatterns(input.trigger);
 
   const categoryId = await findOrCreateCategory(input.suggestedCategory);
-  const chunk = await createChunk(categoryId, input.trigger, input.situation);
+  const chunk = await createChunk(categoryId, input.trigger, input.situation, input.rawMemo);
   const pattern = await createPattern(chunk.id, input);
   await ensureAssignment(input.studentName.trim(), chunk.id);
 

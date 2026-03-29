@@ -191,13 +191,13 @@ peratore-dashboard/
 - [x] AI 整形（GPT-4o-mini）：situation 生成、カテゴリ候補、教材フィールドへ整形
 - [x] ElevenLabs 連携：`fpp_question` / `spp` / `followup_question` / `natural`（2 往復目回答）、`voices.ts`・「夫」入れ替え
 - [x] DB 書き込み：カテゴリ名マッチ or 新規カテゴリ、`chunks`・`patterns`・`assignments`、`audio_files`
-- [ ] 動作確認：`practice-v2.html?student=...` または `/api/practice-data?student=...` で追加カードが見えるか（Neon＋キー環境で要確認）
-  - [ ] **前提**: `.env.local` に `DATABASE_URL`（Neon）・`OPENAI_API_KEY`・`ELEVENLABS_API_KEY` が入っている（フォーム保存＋音声まで試す場合）
-  - [ ] **先生**: `npm run dev` のあと `/` または `/teacher/lesson-form` にアクセス（`TEACHER_PASSWORD` 設定時はログイン）。受講生を選び、プレビュー → **本登録（submit-preview）** まで完了し、画面上で失敗しない
-  - [ ] **名前の一致**: フォームで選んだ受講生名と DB の `assignments.student_name` が一致している（`/student` の受講生名とも揃える）
-  - [ ] **API**: ブラウザまたは `curl` で `GET /api/practice-data?student=（その名前をURLエンコード）` が **200** で JSON 配列を返す。レッスン追加分は該当カテゴリの `cards[]` に `id: "db-<patternのid>"` などで載る
-  - [ ] **画面**: `http://localhost:3000/practice-v2.html?student=（同じ名前）` を開き、カバー画面のカテゴリ一覧から当該フレーズが選べる（可能なら再生ボタンで音声も）
-  - [ ] 上記まで問題なければ、この行の親チェックを `[x]` にする
+- [x] 動作確認：`practice-v2.html?student=...` または `/api/practice-data?student=...` で追加カードが見えるか（Neon＋キー環境で要確認）
+  - [x] **前提**: `.env.local` に `DATABASE_URL`（Neon）・`OPENAI_API_KEY`・`ELEVENLABS_API_KEY` が入っている（フォーム保存＋音声まで試す場合）
+  - [x] **先生**: `npm run dev` のあと `/` または `/teacher/lesson-form` にアクセス（`TEACHER_PASSWORD` 設定時はログイン）。受講生を選び、プレビュー → **本登録（submit-preview）** まで完了し、画面上で失敗しない
+  - [x] **名前の一致**: フォームで選んだ受講生名と DB の `assignments.student_name` が一致している（`/student` の受講生名とも揃える）
+  - [x] **API**: ブラウザまたは `curl` で `GET /api/practice-data?student=（その名前をURLエンコード）` が **200** で JSON 配列を返す。レッスン追加分は該当カテゴリの `cards[]` に `id: "db-<patternのid>"` などで載る
+  - [x] **画面**: `http://localhost:3000/practice-v2.html?student=（同じ名前）` を開き、カバー画面のカテゴリ一覧から当該フレーズが選べる（可能なら再生ボタンで音声も）
+  - [x] 上記まで問題なければ、この行の親チェックを `[x]` にする
 
 ### Phase B — 受講生 Google ログイン
 
@@ -205,7 +205,7 @@ peratore-dashboard/
 - [x] 受講生テーブル `students`（`google_sub` / `email` / `name` / `assignment_name` … `assignments.student_name` と一致させる文字列）
 - [x] ログイン後の教材取得（`/api/practice-data` がセッションの `assignment_name` でフィルタ。`?student=` も従来どおり）
 - [x] ベース ＋ 個別（`practice-v2.html` で埋め込み `DATA` と API 応答を `mergePracticeData` でカテゴリ単位マージ）
-- [ ] 担当先生・複数クラスなどの拡張、共有リンク `?student=` の扱い見直し（必要なら）
+- [x] 担当先生・複数クラスなどの拡張、共有リンク `?student=` の扱い見直し（不要と判断：先生複数でも assignments は共有、`?student=` は全員公開でOK）
 
 ### Phase C — ベース教材を DB に
 
@@ -257,3 +257,29 @@ peratore-dashboard/
 
 - **先生ページ** … 先生だけが触れる **フォーム・管理用の Web ページ**の総称。
 - **先生が複数か**は本文で固定していない。同一 URL を共有＋認証で守る想定も、将来ロール分けもありうる。
+
+---
+
+## 続き用メモ（セッション記録）
+
+休憩後や別日に Cursor で「`task.md` の続き用メモを見て続けて」と言えば、文脈を拾いやすい。
+
+### 更新日: 2026-03-24
+
+**いまターミナルでやっていること（ここを自分で書き足す）**
+
+- （例: `claude` で ○○ を調査中 / `npm run dev` 起動中 / `db-setup` 実行予定 など）
+
+**直近コード側で入ったこと（参考）**
+
+- 先生ゲート: `src/lib/teacher-session-server.ts`（Node 専用。パスワード解決＋JWT 検証を API/RSC で統一）
+- `require-teacher-session.ts` / `redirect-teacher-login-if-needed.ts` は上記を利用
+- `next.config.ts` の `saturateMissingEnvFromDisk` で `AUTH_SECRET` / `TEACHER_PASSWORD` 等をディスクから補完（Turbopack・Edge 向け）
+- レッスン後フォーム: `credentials: 'include'`、401 時 `hint`（localhost と IP を混ぜない注意）
+- `proxy.ts` は従来どおり `teacher-token`（env ベース）
+
+**続きで確認するとよいこと**
+
+- ログインとフォームを **同じオリジン**（`localhost` と `192.168.x.x` を混ぜない）で試す
+- `.env.local` に `TEACHER_PASSWORD` / `OPENAI_API_KEY` / `AUTH_SECRET` / `DATABASE_URL`（使うなら）
+- 受講生 Google ログイン周り: `src/app/student/login/GoogleSignInButton.tsx` など
