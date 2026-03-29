@@ -79,9 +79,9 @@ ${rawMemo}
 - 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフはいずれも自然な口語の英語に整えること:
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
   - fpp_question … 相手（講師側）の質問
-  - spp … 受講生の模範回答
+  - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
   - followup_question … そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）
-  - followup_answer … followup_question への受講生の返答（同上、補完可）
+  - followup_answer … followup_question への受講生の返答（**1文のみ・短く簡潔に**）
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
