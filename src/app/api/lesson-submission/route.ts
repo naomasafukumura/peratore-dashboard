@@ -68,7 +68,7 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Prom
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
-**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** メモに4つのQ→Aペアがあれば4チャンク出力します。
+**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）
 
 【先生メモ】
 ${rawMemo}
