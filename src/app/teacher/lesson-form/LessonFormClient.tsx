@@ -98,8 +98,8 @@ export default function LessonFormClient() {
         setMessage(hint ? `${err}\n${hint}` : err);
         return;
       }
-      const ex = dataAnalyze.extracted;
-      if (!ex) {
+      const patterns = dataAnalyze.patterns;
+      if (!Array.isArray(patterns) || patterns.length === 0) {
         setMessage('解析結果がありません');
         return;
       }
@@ -112,15 +112,7 @@ export default function LessonFormClient() {
           intent: 'submit-preview',
           studentName: resolvedStudentName,
           rawLessonMemo: lessonMemo.trim(),
-          situation: (ex.situation_ja ?? '').trim(),
-          suggestedCategory: (ex.suggested_category ?? '').trim(),
-          character: (ex.character ?? '友人').trim() || '友人',
-          trigger: (ex.fpp_question ?? '').trim(),
-          spp: (ex.spp ?? '').trim(),
-          followupQuestion: (ex.followup_question ?? '').trim(),
-          followupAnswer: (ex.followup_answer ?? '').trim(),
-          sourceMode: 'free',
-          sourcePatternId: null,
+          patterns,
         }),
       });
       const dataSubmit = await resSubmit.json();
