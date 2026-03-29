@@ -137,8 +137,8 @@ export type SimilarPattern = {
   similarityPct: number;
 };
 
-/** trigger の類似度が 80% 以上の既存パターンを最大3件返す */
-async function findSimilarPatterns(trigger: string): Promise<SimilarPattern[]> {
+/** trigger の類似度が 70% 以上の既存パターンを最大3件返す */
+export async function findSimilarPatterns(trigger: string): Promise<SimilarPattern[]> {
   let rows: { pattern_id: number; chunk_id: number; fpp_question: string }[] = [];
   try {
     rows = (await sql`

@@ -10,6 +10,8 @@ const PLACEHOLDER_LESSON_MEMO =
 const memoTextareaClass =
   'w-full px-3 py-3 bg-bg-page border border-border rounded-xl text-sm text-text-dark placeholder:text-text-light/90 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-shadow min-h-[12rem]';
 
+type SimilarPattern = { trigger: string; similarityPct: number };
+
 type ExtractedPattern = {
   situation_ja: string;
   fpp_question: string;
@@ -18,6 +20,7 @@ type ExtractedPattern = {
   followup_answer: string;
   character: string;
   suggested_category: string;
+  similarPatterns?: SimilarPattern[];
 };
 
 export default function LessonFormClient() {
@@ -261,6 +264,16 @@ export default function LessonFormClient() {
                       </label>
                       <span className="text-[10px] text-text-muted">{p.suggested_category}</span>
                     </div>
+                    {p.similarPatterns && p.similarPatterns.length > 0 && (
+                      <div className="mb-2 p-2 bg-amber-bg border border-amber-bd rounded-lg">
+                        <p className="text-[10px] font-semibold text-amber mb-1">⚠️ 似たチャンクがすでにあります</p>
+                        {p.similarPatterns.map((s) => (
+                          <p key={s.trigger} className="text-[10px] text-text-muted">
+                            「{s.trigger}」<span className="text-amber font-medium ml-1">({s.similarityPct}%)</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     {p.situation_ja && (
                       <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>
                     )}

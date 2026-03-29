@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasDatabaseUrl, sql } from '@/lib/db';
-import { persistTeacherLesson } from '@/lib/lesson-persist';
+import { persistTeacherLesson, findSimilarPatterns, SimilarPattern } from '@/lib/lesson-persist';
 import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { PRACTICE_V2_EMBEDDED_CATEGORY_NAMES } from '@/lib/practice-v2-embedded-categories';
 
@@ -14,6 +14,7 @@ type ExtractedPattern = {
   followup_answer: string;
   character: string;
   suggested_category: string;
+  similarPatterns?: SimilarPattern[];
 };
 
 type Body = {
@@ -182,9 +183,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
+    // 各パターンの類似チェックをDBで実行
+    const patternsWithSimilar = await Promise.all(
+      result.patterns.map(async (p) => ({
+        ...p,
+        similarPatterns: hasDatabaseUrl() ? await findSimilarPatterns(p.fpp_question) : [],
+      }))
+    );
+
     return NextResponse.json({
       ok: true,
-      patterns: result.patterns,
+      patterns: patternsWithSimilar,
       message: `${result.patterns.length}パターンを解析しました。`,
     });
   }
