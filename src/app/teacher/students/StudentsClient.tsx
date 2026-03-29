@@ -6,7 +6,7 @@ import type { StudentEntry } from './page';
 
 export default function StudentsClient({ students: initialStudents }: { students: StudentEntry[] }) {
   const [students, setStudents] = useState(initialStudents);
-  const [copied, setCopied] = useState<string | null>(null);
+
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -18,13 +18,6 @@ export default function StudentsClient({ students: initialStudents }: { students
   const filtered = query.trim()
     ? students.filter(s => s.name.includes(query.trim()) || s.yomi.includes(query.trim()))
     : students;
-
-  const copyLink = (name: string) => {
-    const url = `${window.location.origin}/practice-v2.html?student=${encodeURIComponent(name)}`;
-    navigator.clipboard.writeText(url);
-    setCopied(name);
-    setTimeout(() => setCopied(null), 2000);
-  };
 
   const startEdit = (s: StudentEntry) => {
     setEditing(s.name);
@@ -173,9 +166,6 @@ export default function StudentsClient({ students: initialStudents }: { students
                     </Link>
                     {yomi && <p className="text-[10px] text-text-muted">{yomi}</p>}
                   </div>
-                  <span className="text-[11px] text-text-muted hidden sm:block truncate max-w-[140px]">
-                    ?student={name}
-                  </span>
                   <button
                     onClick={() => startEdit({ name, yomi })}
                     className="shrink-0 px-2 py-1.5 text-text-muted hover:text-text-dark rounded-[var(--radius-button)] text-xs transition-colors"
@@ -191,12 +181,14 @@ export default function StudentsClient({ students: initialStudents }: { students
                   >
                     {deleting === name ? '削除中…' : '削除'}
                   </button>
-                  <button
-                    onClick={() => copyLink(name)}
+                  <a
+                    href={`/practice-v2.html?student=${encodeURIComponent(name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="shrink-0 px-3 py-1.5 bg-primary/10 text-primary rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
-                    {copied === name ? 'コピー済 ✓' : 'コピー'}
-                  </button>
+                    専用ページ →
+                  </a>
                 </div>
               )}
             </li>
