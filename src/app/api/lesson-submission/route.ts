@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasDatabaseUrl, sql } from '@/lib/db';
 import { persistTeacherLesson, findSimilarPatterns, SimilarPattern } from '@/lib/lesson-persist';
-import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { PRACTICE_V2_EMBEDDED_CATEGORY_NAMES } from '@/lib/practice-v2-embedded-categories';
 
 export const dynamic = 'force-dynamic';
@@ -151,9 +150,6 @@ JSON の例（Q→Aが4つある場合は4要素）:
  * - intent: submit-preview … パターン配列を DB 保存・音声生成
  */
 export async function POST(req: NextRequest) {
-  const denied = await unauthorizedIfNotTeacher(req);
-  if (denied) return denied;
-
   let body: Body;
   try {
     body = await req.json();
