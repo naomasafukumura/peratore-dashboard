@@ -281,5 +281,6 @@ peratore-dashboard/
 **続きで確認するとよいこと**
 
 - ログインとフォームを **同じオリジン**（`localhost` と `192.168.x.x` を混ぜない）で試す
+- **要修正（録音）**: 例文では "the grocery store" と記載し英語で読んでいるが、説明文では "supermarket" として説明している。例文と英会話、もしくは説明英会話の再録音が必要
 - `.env.local` に `TEACHER_PASSWORD` / `OPENAI_API_KEY` / `AUTH_SECRET` / `DATABASE_URL`（使うなら）
 - 受講生 Google ログイン周り: `src/app/student/login/GoogleSignInButton.tsx` など
