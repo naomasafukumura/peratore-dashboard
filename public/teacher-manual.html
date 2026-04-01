@@ -21,7 +21,7 @@
   --r:24px;--rs:14px;
   --fen:'DM Sans',sans-serif;--fja:'Noto Sans JP',sans-serif;
 }
-html{font-size:16px;-webkit-font-smoothing:antialiased}
+html{font-size:16px;-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
 body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:100dvh}
 
 .manual{max-width:720px;margin:0 auto;padding:0 0 80px}
@@ -92,12 +92,21 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
 .m-divider{height:1px;background:var(--border);margin:12px 0 36px}
 
-.m-link-box{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;padding:16px 20px;margin:12px 0;box-shadow:var(--sh-s)}
+.m-link-box{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;padding:16px 20px;margin:12px 0;box-shadow:var(--sh-s);text-decoration:none;color:inherit;transition:box-shadow .2s}
+.m-link-box:hover{box-shadow:var(--sh-m)}
 .m-link-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:10px;flex-shrink:0;color:var(--accent)}
 .m-link-icon svg{width:20px;height:20px}
 .m-link-body{flex:1}
 .m-link-name{font-size:14px;font-weight:600;margin-bottom:2px}
 .m-link-url{font-size:12px;color:var(--text-muted);word-break:break-all}
+
+.m-sub-step{font-size:15px;font-weight:600;margin:24px 0 12px;padding-left:4px;border-left:3px solid var(--cta);padding-left:12px;color:var(--text)}
+
+.m-faq{margin:16px 0}
+.m-faq-item{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--rs);padding:18px 20px;margin-bottom:10px;box-shadow:var(--sh-s)}
+.m-faq-q{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}
+.m-faq-q::before{content:"Q";display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:6px;font-family:var(--fen);font-size:11px;font-weight:700;flex-shrink:0}
+.m-faq-a{font-size:14px;line-height:1.85;color:var(--text-sub);padding-left:30px}
 
 @media(min-width:640px){
   .manual{padding:20px 0 80px}
@@ -160,8 +169,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
         <div class="m-step">
           <div class="m-step-num cta">5</div>
           <div class="m-step-body">
-            <div class="m-step-name">受講生専用ページに自動反映!</div>
-            <div class="m-step-desc">受講生が専用リンクを開くと、追加した教材で練習できます</div>
+            <div class="m-step-name">受講生にリンクを送る!</div>
+            <div class="m-step-desc">受講生専用リンクをLINEで送れば、すぐに練習開始できます</div>
           </div>
         </div>
       </div>
@@ -175,45 +184,51 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <ol>
         <li><a href="#sec1">ログイン</a></li>
         <li><a href="#sec2">レッスン後フォームの使い方</a></li>
-        <li><a href="#sec3">AI解析結果の確認とチャンク選択</a></li>
-        <li><a href="#sec4">受講生リンク一覧</a></li>
-        <li><a href="#sec5">受講生の例文を修正する</a></li>
-        <li><a href="#sec6">新規教材を手動で作成する</a></li>
-        <li><a href="#sec7">受講生の専用ページを確認する</a></li>
-        <li><a href="#sec8">注意事項</a></li>
+        <li><a href="#sec3">AI解析結果の確認</a></li>
+        <li><a href="#sec4">保存完了 → 受講生にリンクを送る</a></li>
+        <li><a href="#sec5">受講生リンク一覧</a></li>
+        <li><a href="#sec6">受講生の例文を修正する</a></li>
+        <li><a href="#sec7">新規教材を手動で作成する</a></li>
+        <li><a href="#sec8">受講生の専用ページを確認する</a></li>
+        <li><a href="#sec9">よくある質問</a></li>
+        <li><a href="#sec10">注意事項</a></li>
       </ol>
     </div>
 
+    <!-- ============================================================ -->
     <!-- Section 1: ログイン -->
+    <!-- ============================================================ -->
     <div class="m-sec" id="sec1">
       <div class="m-sec-num">1</div>
       <h2 class="m-sec-title">ログイン</h2>
-
-      <img src="images/manual/teacher/01-login.png" alt="ログイン画面" class="m-screenshot">
 
       <div class="m-card">
         <p>以下のURLにアクセスして、パスワードを入力してログインします。</p>
       </div>
 
-      <div class="m-link-box">
+      <a href="https://peratore-dashboard.vercel.app/teacher/login" target="_blank" class="m-link-box">
         <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <div class="m-link-body">
           <div class="m-link-name">先生用ログインページ</div>
           <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/login</div>
         </div>
-      </div>
+      </a>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">パスワードを入力して「ログイン」ボタンを押します。パスワードはMasaさんから共有されたものを使ってください。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">ログインすると<strong>レッスン後フォーム</strong>のページに移動します。</div></div>
+      <img src="images/manual/teacher/01-login.png" alt="ログイン画面" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>パスワード</strong>を入力して「ログイン」ボタンを押します。パスワードはMasaさんから共有されたものを使ってください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">ログインすると<strong>レッスン後フォーム</strong>のページに自動で移動します。</div></div>
 
       <div class="m-highlight">
-        ログイン状態はブラウザに記憶されます。一度ログインすれば、次からはパスワード入力なしでアクセスできます。
+        ログイン状態はブラウザに記憶されます。<strong>一度ログインすれば、次からはパスワード入力なしでアクセスできます。</strong>
       </div>
     </div>
 
     <div class="m-divider"></div>
 
+    <!-- ============================================================ -->
     <!-- Section 2: レッスン後フォーム -->
+    <!-- ============================================================ -->
     <div class="m-sec" id="sec2">
       <div class="m-sec-num">2</div>
       <h2 class="m-sec-title">レッスン後フォームの使い方</h2>
@@ -222,195 +237,274 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
         <p>レッスンが終わったら、このフォームで<strong>受講生の名前</strong>と<strong>レッスンメモ</strong>を入力するだけです。あとはAIが自動で教材フォーマットに整えてくれます。</p>
       </div>
 
+      <!-- STEP 1 -->
+      <div class="m-sub-step">STEP 1: 受講生を選ぶ</div>
+
       <img src="images/manual/teacher/03-lesson-form-empty.png" alt="レッスン後フォーム（空の状態）" class="m-screenshot">
 
-      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 1: 受講生を選ぶ</h3>
-
-      <img src="images/manual/teacher/04-lesson-form-student-select.png" alt="受講生選択" class="m-screenshot">
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>受講生名</strong>を入力します。苗字を入力すると候補が表示されます。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">リストにない場合は<strong>フルネーム</strong>をそのまま入力してください。</div></div>
-
-      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 2: レッスンメモを入力する</h3>
-
-      <img src="images/manual/teacher/05-lesson-form-memo-filled.png" alt="レッスンメモ入力済み" class="m-screenshot">
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>レッスンメモ</strong>にレッスンで話した内容を自由に書きます。日本語でも英語でもOKです。</div></div>
-
-      <div class="m-highlight">
-        <strong>書き方のコツ:</strong> FPP（相手のセリフ）、SPP（模範回答）、追加質問、追加回答を意識して書くと、AIの解析精度が上がります。ただし、メモなので雑でも大丈夫です!
-      </div>
-
-      <div class="m-card">
-        <p><strong>メモの例:</strong></p>
-        <p>「週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。」</p>
-        <p>長文を入れた場合は、AIが自動で複数チャンクに分割してくれます。</p>
-      </div>
-
-      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 3: 「解析して確認」を押す</h3>
-
-      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「解析して確認」ボタン</strong>を押すと、AIがメモを解析してプレビュー画面を表示します。20文字以上の入力が必要です。</div></div>
-    </div>
-
-    <div class="m-divider"></div>
-
-    <!-- Section 3: 解析結果 -->
-    <div class="m-sec" id="sec3">
-      <div class="m-sec-num">3</div>
-      <h2 class="m-sec-title">AI解析結果の確認とチャンク選択</h2>
-
-      <div class="m-card">
-        <p>AIがレッスンメモを解析すると、<strong>チャンク（会話のかたまり）</strong>ごとに分割された結果が表示されます。</p>
-      </div>
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">各チャンクには<strong>Situation</strong>（場面）、<strong>FPP</strong>（相手のセリフ）、<strong>SPP</strong>（模範回答）、<strong>Followup Question</strong>、<strong>Followup Answer</strong>が自動生成されています。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">内容を確認して、<strong>使いたいチャンクにチェック</strong>を入れます。全部使っても、一部だけでもOKです。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">長文の場合は複数のチャンクが生成されます（かぶりはないようにAIが調整します）。</div></div>
-
-      <div class="m-highlight">
-        <strong>確認ポイント:</strong> SPP（模範回答）が長すぎる場合は、AIが1文に簡潔にまとめます。不自然に感じたら、保存後に「受講生例文の修正」から直せます。
-      </div>
-
-      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">チャンクを選択したら<strong>「保存 + 音声生成」ボタン</strong>を押します。音声が自動生成され、受講生の専用ページに即反映されます。</div></div>
-
-      <div class="m-important">
-        <div class="m-important-title">保存完了後</div>
-        <p>保存が完了すると<strong>「〇〇さんの教材を確認 →」</strong>というリンクが表示されます。<br>タップすると、受講生専用の練習ページが開きます。</p>
-      </div>
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>受講生名</strong>の欄をクリックして、苗字を入力すると候補が表示されます。該当する受講生を選んでください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">リストにない新規の受講生は、<strong>フルネーム</strong>をそのまま入力すればOKです。自動で登録されます。</div></div>
 
       <div class="m-caution">
-        <div class="m-caution-title">受講生にリンクを送ってください</div>
+        <div class="m-caution-title">名前の表記に注意</div>
         <ul>
-          <li>「〇〇さんの教材を確認 →」を押すと受講生の専用ページが開きます</li>
-          <li>開いたページの<strong>URL</strong>をコピーして、<strong>LINEやメール</strong>で受講生に送ってください</li>
-          <li>受講生はこのリンクをブックマークしておけば、いつでも練習できます</li>
-          <li>次にフレーズを追加した時も、同じリンクに自動で反映されるので<strong>リンクの再送は不要</strong>です</li>
+          <li>「秋山太郎」で登録した受講生は、毎回「秋山太郎」で入力してください</li>
+          <li>「あきやまたろう」「Akiyama」などで入力すると<strong>別の受講生として登録されてしまいます</strong></li>
         </ul>
       </div>
 
+      <!-- STEP 2 -->
+      <div class="m-sub-step">STEP 2: レッスンメモを入力する</div>
+
+      <img src="images/manual/teacher/05-lesson-form-memo-filled.png" alt="受講生選択＋メモ入力済み" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>レッスンメモ</strong>に、レッスンで話した内容を自由に書きます。日本語でも英語でもOKです。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">長い内容を入力した場合は、AIが自動で<strong>複数のチャンク（会話のかたまり）</strong>に分割してくれます。</div></div>
+
       <div class="m-highlight">
-        リンクを後から確認したい場合は、<strong>受講生リンク一覧</strong>（後述）から「専用ページ →」で開けます。
+        <strong>書き方のコツ:</strong> 「相手が何を言って、受講生が何を返したか」が伝わるように書くと、AIの解析精度が上がります。ただし雑なメモでも大丈夫です!<br><br>
+        <strong>メモの例:</strong><br>
+        「週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。」
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="m-sub-step">STEP 3: 「解析して確認」ボタンを押す</div>
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「解析して確認」ボタン</strong>を押すと、AIがメモを解析してプレビュー画面を表示します。20文字以上の入力が必要です。</div></div>
+
+      <div class="m-highlight">
+        ボタンを押した後、AIの解析には<strong>数秒〜10秒ほど</strong>かかります。そのまま待ってください。
       </div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 4: 受講生リンク一覧 -->
-    <div class="m-sec" id="sec4">
-      <div class="m-sec-num">4</div>
-      <h2 class="m-sec-title">受講生リンク一覧</h2>
-
-      <img src="images/manual/teacher/06-students-list.png" alt="受講生リンク一覧" class="m-screenshot">
+    <!-- ============================================================ -->
+    <!-- Section 3: AI解析結果の確認 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec3">
+      <div class="m-sec-num">3</div>
+      <h2 class="m-sec-title">AI解析結果の確認</h2>
 
       <div class="m-card">
-        <p>全受講生のリストが表示されます。ここから<strong>例文の修正</strong>や<strong>専用ページの確認</strong>ができます。</p>
+        <p>AIがレッスンメモを解析すると、<strong>チャンク（会話のかたまり）</strong>ごとに分割された結果が表示されます。各チャンクの内容を確認して、保存するものを選びましょう。</p>
       </div>
 
-      <div class="m-link-box">
+      <img src="images/manual/teacher/11-preview-chunks.png" alt="AI解析結果（3チャンク、似たチャンク警告付き）" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">各チャンクには以下の情報が自動生成されています:<br>
+        <strong>FPP</strong> = First Pair Part（相手のセリフ。会話のきっかけとなる一言）<br>
+        <strong>SPP</strong> = Second Pair Part（模範回答。受講生が返すべきセリフ）<br>
+        <strong>FQ</strong> = Followup Question（相手からの追加質問）<br>
+        <strong>FA</strong> = Followup Answer（追加質問への回答）</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">使いたいチャンクの<strong>チェックボックス</strong>をONにします。全部使っても、一部だけでもOKです。チェックを外せばそのチャンクは保存されません。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「似たチャンクが既にあります」</strong>という警告が出た場合、その受講生にすでに似た内容の教材が登録済みです。重複になるので、チェックを外してもOKです。</div></div>
+
+      <div class="m-highlight">
+        <strong>確認ポイント:</strong> SPP（模範回答）が自然かどうかをチェックしてください。不自然に感じたら、<strong>保存後に修正できます</strong>（Section 6参照）。
+      </div>
+
+      <img src="images/manual/teacher/12-preview-save-button.png" alt="保存ボタン部分" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">チャンクを選択したら、下にある<strong>「保存 + 音声生成」ボタン</strong>を押します。音声が自動生成され、受講生の専用ページに即反映されます。</div></div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- Section 4: 保存完了 → リンクを送る（最重要） -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec4">
+      <div class="m-sec-num" style="background:var(--cta)">4</div>
+      <h2 class="m-sec-title">保存完了 → 受講生にリンクを送る</h2>
+
+      <div class="m-important">
+        <div class="m-important-title">これが一番大事なステップです</div>
+        <p>保存が完了すると<strong>「〇〇さんの教材を確認 →」</strong>というリンクが表示されます。<br>このリンクを受講生に送ってください!</p>
+      </div>
+
+      <div class="m-card">
+        <p><strong>手順:</strong></p>
+        <p>1. 保存完了画面に表示される「〇〇さんの教材を確認 →」をタップして、受講生の専用ページを開きます。</p>
+        <p>2. 開いたページの<strong>URL</strong>をコピーします。</p>
+        <p>3. <strong>LINEやメール</strong>でそのURLを受講生に送ります。</p>
+      </div>
+
+      <div class="m-highlight">
+        <strong>リンクは一度送ればOKです。</strong>次にフレーズを追加した時も、同じURLに自動で追加されます。リンクの再送は不要です。受講生にはブックマークしてもらうと便利です。
+      </div>
+
+      <div class="m-caution">
+        <div class="m-caution-title">リンクを送り忘れないでください</div>
+        <ul>
+          <li>リンクを送らないと、受講生は教材にアクセスできません</li>
+          <li>後からリンクを確認する方法はあります（Section 5の「受講生リンク一覧」）</li>
+          <li>ただし、レッスン直後に送る方がスムーズです</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- Section 5: 受講生リンク一覧 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec5">
+      <div class="m-sec-num">5</div>
+      <h2 class="m-sec-title">受講生リンク一覧</h2>
+
+      <div class="m-card">
+        <p>全受講生のリストが表示されるページです。ここから<strong>受講生の専用ページURL</strong>を確認したり、<strong>例文の修正</strong>画面に移動できます。</p>
+      </div>
+
+      <a href="https://peratore-dashboard.vercel.app/teacher/students" target="_blank" class="m-link-box">
         <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <div class="m-link-body">
           <div class="m-link-name">受講生リンク一覧ページ</div>
           <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/students</div>
         </div>
-      </div>
+      </a>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>名前・ふりがなで検索</strong>できます。受講生が多い場合に便利です。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>「削除」ボタン</strong> — その受講生に割り当てた例文を確認・編集するページに移動します。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「専用ページ →」ボタン</strong> — 受講生の練習ページを直接開きます。受講生にこのリンクを共有してください。</div></div>
+      <img src="images/manual/teacher/06-students-list.png" alt="受講生リンク一覧" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>検索バー</strong>で名前・ふりがなを入力して受講生を絞り込めます。受講生が多い場合に便利です。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>受講生名をクリック</strong>すると、その受講生の例文一覧・修正ページに移動します。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「専用ページ →」ボタン</strong>で受講生の練習ページを直接開けます。このURLをコピーして受講生に送ってください。</div></div>
 
       <div class="m-highlight">
-        新しい受講生は、レッスンフォームで名前を入力した時点で自動的にリストに追加されます。<strong>手動で登録する必要はありません。</strong>
+        新しい受講生は、レッスンフォームで名前を入力した時点で<strong>自動的にリストに追加</strong>されます。手動で登録する必要はありません。
       </div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 5: 例文修正 -->
-    <div class="m-sec" id="sec5">
-      <div class="m-sec-num">5</div>
-      <h2 class="m-sec-title">受講生の例文を修正する</h2>
-
-      <img src="images/manual/teacher/07-student-detail.png" alt="受講生の例文詳細" class="m-screenshot">
-
-      <div class="m-card">
-        <p>受講生リンク一覧から受講生名をクリックすると、その受講生に割り当てられた<strong>全ての例文</strong>が表示されます。</p>
-      </div>
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>各例文のフィールド</strong>（Situation、Trigger、SPP、Followup Question、Followup Answer）を直接編集できます。テキストをクリックして書き換えてください。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>T / S / FQ / FA ボタン</strong> — 各音声を個別に再生して確認できます。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「保存 + 音声再生成」ボタン</strong> — 例文を修正した後、このボタンで保存と音声の再生成を行います。</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>「削除」ボタン</strong> — この例文を削除します。</div></div>
-      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>「教材を見る →」リンク</strong>（右上）— この受講生の練習ページを開いて、実際の表示を確認できます。</div></div>
-
-      <div class="m-highlight">
-        例文を修正すると<strong>音声も自動で再生成</strong>されます。修正したら必ず「保存 + 音声再生成」を押してください。
-      </div>
-    </div>
-
-    <div class="m-divider"></div>
-
-    <!-- Section 6: 新規教材作成 -->
+    <!-- ============================================================ -->
+    <!-- Section 6: 例文修正 -->
+    <!-- ============================================================ -->
     <div class="m-sec" id="sec6">
       <div class="m-sec-num">6</div>
-      <h2 class="m-sec-title">新規教材を手動で作成する</h2>
-
-      <img src="images/manual/teacher/08-dashboard.png" alt="新規教材管理" class="m-screenshot">
+      <h2 class="m-sec-title">受講生の例文を修正する</h2>
 
       <div class="m-card">
-        <p>レッスンメモからの自動生成ではなく、<strong>個別に教材を手動で追加</strong>したい場合はこのページを使います。</p>
+        <p>受講生リンク一覧から受講生名をクリックすると、その受講生に割り当てられた<strong>全ての例文</strong>が表示されます。ここで内容の修正や削除ができます。</p>
       </div>
 
-      <div class="m-link-box">
+      <img src="images/manual/teacher/07-student-detail.png" alt="受講生の例文詳細（秋山太郎）" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>各フィールド</strong>（Situation、FPP、SPP、FQ、FA）のテキストを直接クリックして編集できます。修正したい箇所をクリックして書き換えてください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>T / S / FQ / FA ボタン</strong>を押すと、そのフィールドの音声を個別に再生して確認できます。</div></div>
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">修正したら必ず<strong>「保存 + 音声再生成」ボタン</strong>を押してください。テキストと音声が一緒に更新されます。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「削除」ボタン</strong>で、その例文を完全に削除できます。削除すると受講生の専用ページからも消えます。</div></div>
+
+      <div class="m-highlight">
+        例文を修正すると<strong>音声も自動で再生成</strong>されます。修正したら「保存 + 音声再生成」を押すのを忘れずに!
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- Section 7: 新規教材作成 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec7">
+      <div class="m-sec-num">7</div>
+      <h2 class="m-sec-title">新規教材を手動で作成する</h2>
+
+      <div class="m-card">
+        <p>レッスンメモからのAI自動生成ではなく、<strong>1つずつ手動で教材を作成したい場合</strong>はこのページを使います。通常はレッスンフォーム（Section 2）を使えば十分です。</p>
+      </div>
+
+      <a href="https://peratore-dashboard.vercel.app/teacher/dashboard" target="_blank" class="m-link-box">
         <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
         <div class="m-link-body">
           <div class="m-link-name">新規教材管理ページ</div>
           <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/dashboard</div>
         </div>
-      </div>
+      </a>
+
+      <img src="images/manual/teacher/08-dashboard.png" alt="新規教材管理フォーム" class="m-screenshot">
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>カテゴリ</strong> — リストから選ぶか、新しいカテゴリ名を直接入力します。</div></div>
       <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>Situation</strong> — 場面の説明（日本語）。例:「同僚に週末の予定を聞かれた」</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>FPP（相手のセリフ）</strong> — 必須。相手が言うセリフ。例:「What are you gonna do this weekend?」</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>SPP（模範回答）</strong> — 必須。受講生が言う回答。例:「I'm gonna relax at home.」</div></div>
-      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>Followup Question / Answer</strong> — 任意。2往復目の会話。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>FPP（相手のセリフ）</strong> — 必須。会話のきっかけとなる相手のセリフ。例:「What are you gonna do this weekend?」</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>SPP（模範回答）</strong> — 必須。受講生が返すべき回答。例:「I'm gonna relax at home.」</div></div>
+      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>Followup Question / Answer</strong> — 任意。2往復目の会話がある場合に入力します。</div></div>
       <div class="anno"><div class="anno-icon">6</div><div class="anno-text"><strong>受講生に割り当て</strong> — 任意。特定の受講生に紐づける場合は名前を入力します。空欄にすると全員共通の教材になります。</div></div>
       <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「保存 + 音声生成」</strong>を押すと、教材が保存され音声が自動生成されます。</div></div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 7: 専用ページ確認 -->
-    <div class="m-sec" id="sec7">
-      <div class="m-sec-num">7</div>
+    <!-- ============================================================ -->
+    <!-- Section 8: 受講生専用ページ確認 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec8">
+      <div class="m-sec-num">8</div>
       <h2 class="m-sec-title">受講生の専用ページを確認する</h2>
 
-      <img src="images/manual/teacher/09-student-practice-page.png" alt="受講生の専用ページ" class="m-screenshot">
-
       <div class="m-card">
-        <p>受講生の専用ページでは、<strong>共通のベース教材</strong>に加えて、<strong>先生がレッスンで追加した個別教材</strong>が「レッスンで追加（最近）」カテゴリとして表示されます。</p>
+        <p>受講生の専用ページを開くと、先生が追加した教材がどう表示されるかを確認できます。受講生と全く同じ画面が見えます。</p>
       </div>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>「レッスンで追加（最近）」</strong>カテゴリに、先生が追加した教材が表示されます。受講生はこれを選んで練習できます。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">それ以下のカテゴリは<strong>全受講生共通のベース教材</strong>です。これらは修正不可で、全員が同じ内容で練習します。</div></div>
+      <img src="images/manual/teacher/09-student-practice-page.png" alt="受講生の専用練習ページ" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>「レッスンで追加（最近）」</strong>カテゴリに、先生が追加した教材が表示されます。受講生はこのカテゴリを選んで練習できます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">それ以下のカテゴリは<strong>全受講生共通のベース教材</strong>です。全員が同じ内容で練習します。先生が追加した個別教材とは別物です。</div></div>
 
       <div class="m-highlight">
-        受講生に専用ページのリンクを送るには、<strong>受講生リンク一覧</strong>から「専用ページ →」をクリックしてURLをコピーしてください。
+        受講生が専用ページを開くと、<strong>先生が追加した教材</strong>と<strong>共通のベース教材</strong>の両方が一つのページにまとまって表示されます。受講生は特別な操作なしで、追加された教材で練習できます。
       </div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 8: 注意事項 -->
-    <div class="m-sec" id="sec8">
-      <div class="m-sec-num">8</div>
+    <!-- ============================================================ -->
+    <!-- Section 9: よくある質問 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec9">
+      <div class="m-sec-num">9</div>
+      <h2 class="m-sec-title">よくある質問</h2>
+
+      <div class="m-faq">
+        <div class="m-faq-item">
+          <div class="m-faq-q">同じ受講生に複数回教材を追加できますか?</div>
+          <div class="m-faq-a">はい、できます。追加するたびに同じ受講生の専用ページに自動で追加されます。URLも変わりませんので、最初に送ったリンクのまま使えます。</div>
+        </div>
+        <div class="m-faq-item">
+          <div class="m-faq-q">受講生の名前を間違えて入力してしまいました。</div>
+          <div class="m-faq-a">受講生リンク一覧ページから、該当の受講生をクリックして修正できます。名前の表記は統一してください（漢字なら毎回漢字で）。</div>
+        </div>
+        <div class="m-faq-item">
+          <div class="m-faq-q">受講生に送るリンクを忘れてしまいました。</div>
+          <div class="m-faq-a">受講生リンク一覧ページ（Section 5）から「専用ページ →」を押して、そのURLをコピーして送ってください。</div>
+        </div>
+        <div class="m-faq-item">
+          <div class="m-faq-q">「似たチャンクが既にあります」と警告が出ました。</div>
+          <div class="m-faq-a">その受講生にすでに似た内容の教材が登録済みということです。重複になるので、そのチャンクのチェックを外してもOKです。もちろん、あえて追加したい場合はチェックしたまま保存しても大丈夫です。</div>
+        </div>
+        <div class="m-faq-item">
+          <div class="m-faq-q">音声がおかしい場合はどうすればいい?</div>
+          <div class="m-faq-a">受講生の例文修正ページ（Section 6）で英文を微修正して「保存 + 音声再生成」を押してください。音声が再生成されます。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- Section 10: 注意事項 -->
+    <!-- ============================================================ -->
+    <div class="m-sec" id="sec10">
+      <div class="m-sec-num">10</div>
       <h2 class="m-sec-title">注意事項</h2>
 
       <div class="m-caution">
         <div class="m-caution-title">よくある間違い</div>
         <ul>
-          <li><strong>ログインURLと受講生ページを混同しない</strong> — 先生用ページ（/teacher/...）と受講生用ページ（/practice-v2.html?student=...）は別物です。受講生にはログインURLを送らないでください</li>
-          <li><strong>チャンクを選択しないとリンクが生成されない</strong> — AI解析後、使いたいチャンクにチェックを入れてから「保存」を押してください</li>
-          <li><strong>名前の表記を統一する</strong> — 「秋山太郎」で登録した受講生は、毎回同じ表記で入力してください。「あきやまたろう」等で入力すると別の受講生として扱われます</li>
+          <li><strong>先生用URLと受講生用URLを混同しない</strong> — 先生用ページ（/teacher/...）と受講生用ページ（/practice-v2.html?student=...）は別物です。受講生にはログインURLを送らないでください</li>
+          <li><strong>チャンクを1つも選択しないまま保存を押さない</strong> — AI解析後、使いたいチャンクにチェックを入れてから「保存」を押してください</li>
+          <li><strong>名前の表記を統一する</strong> — 「秋山太郎」で登録した受講生は、毎回「秋山太郎」で入力してください。表記が変わると別の受講生として登録されます</li>
+          <li><strong>例文を修正したら「保存 + 音声再生成」を忘れない</strong> — テキストを書き換えただけではページから移動すると消えてしまいます。必ず保存ボタンを押してください</li>
         </ul>
       </div>
 
@@ -420,7 +514,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       </div>
     </div>
 
-    <!-- ページナビ -->
+    <!-- フッター: ページナビ -->
     <div style="display:flex;gap:12px;margin-top:40px">
       <a href="teacher/lesson-form" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;background:var(--cta);color:#fff;border-radius:14px;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 4px 20px var(--cta-glow)">レッスン後フォームを開く <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
     </div>
