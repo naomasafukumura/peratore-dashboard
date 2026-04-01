@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>先生用マニュアル - ペラトレ教材生成システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#FAFAF7;--surface:#FFFFFF;--surface-alt:#F4F7F8;
+  --text:#182124;--text-sub:#4E5B60;--text-muted:#7B8A90;
+  --accent:#2F6F75;--accent-soft:rgba(47,111,117,0.10);--accent-hover:#255A5F;
+  --cta:#E9852D;--cta-hover:#D4751F;--cta-soft:rgba(233,133,45,0.12);--cta-glow:rgba(233,133,45,.25);
+  --border:#E7ECEE;--border-lt:#EEF2F4;
+  --green:#2E8B57;--green-bg:#ECF8F1;--green-bd:#CBE8D7;
+  --amber:#9A6B16;--amber-bg:#FFF7E8;--amber-bd:#F0DEB6;
+  --red:#B14E3A;--red-bg:#FFF1EE;--red-bd:#EDC9C0;
+  --sh-s:0 1px 3px rgba(0,0,0,.04);--sh-m:0 4px 16px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.04);
+  --r:24px;--rs:14px;
+  --fen:'DM Sans',sans-serif;--fja:'Noto Sans JP',sans-serif;
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:100dvh}
+
+.manual{max-width:720px;margin:0 auto;padding:0 0 80px}
+
+.m-hd{display:flex;align-items:center;gap:12px;padding:16px 24px;position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border)}
+.m-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text);text-decoration:none;transition:all .2s}
+.m-back:active{transform:scale(.95)}
+.m-back svg{width:18px;height:18px}
+.m-hd-t{font-size:15px;font-weight:600}
+.m-hd-badge{padding:3px 10px;background:var(--cta-soft);color:var(--cta);font-size:12px;font-weight:600;border-radius:6px}
+
+.m-body{padding:0 24px}
+
+.m-hero{text-align:center;padding:32px 0 40px}
+.m-hero-icon{width:72px;height:72px;background:var(--cta);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;color:#fff;box-shadow:0 8px 24px var(--cta-glow)}
+.m-hero-icon svg{width:36px;height:36px}
+.m-hero-title{font-size:24px;font-weight:700;line-height:1.4;margin-bottom:10px}
+.m-hero-hl{color:var(--accent)}
+.m-hero-sub{font-size:14px;color:var(--text-muted);line-height:1.7}
+
+.m-toc{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:24px;margin-bottom:32px;box-shadow:var(--sh-s)}
+.m-toc-title{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:14px;text-transform:uppercase;letter-spacing:.03em}
+.m-toc ol{padding-left:20px;margin:0}
+.m-toc li{font-size:14px;line-height:2.2;color:var(--text-sub)}
+.m-toc a{color:var(--accent);text-decoration:none;font-weight:500}
+.m-toc a:hover{text-decoration:underline}
+
+.m-sec{margin-bottom:40px}
+.m-sec-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--accent);color:#fff;border-radius:8px;font-family:var(--fen);font-size:13px;font-weight:700;margin-bottom:10px}
+.m-sec-title{font-size:19px;font-weight:700;line-height:1.4;margin-bottom:14px}
+
+.m-screenshot{width:100%;max-width:100%;display:block;margin:20px auto;border-radius:16px;border:1.5px solid var(--border);box-shadow:var(--sh-m)}
+.m-screenshot.narrow{max-width:400px}
+
+.anno{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+.anno-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:50%;font-family:var(--fen);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.anno-icon.cta{background:var(--cta)}
+.anno-text{font-size:14px;line-height:1.75;color:var(--text-sub)}
+.anno-text strong{color:var(--text);font-weight:600}
+
+.m-highlight{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:2px 12px 12px 2px;padding:16px 20px;margin:16px 0;font-size:14px;line-height:1.85;color:var(--text-sub)}
+.m-highlight strong{color:var(--accent);font-weight:600}
+
+.m-card{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:22px;box-shadow:var(--sh-s);margin-bottom:14px}
+.m-card p{font-size:14px;line-height:1.85;color:var(--text-sub)}
+.m-card p+p{margin-top:10px}
+
+.m-important{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);padding:22px;margin:18px 0;text-align:center}
+.m-important-title{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.m-important p{font-size:14px;line-height:1.8;color:var(--text-sub)}
+
+.m-caution{background:var(--amber-bg);border:1.5px solid var(--amber-bd);border-radius:var(--r);padding:22px;margin:16px 0}
+.m-caution-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:10px}
+.m-caution ul{list-style:none;padding:0}
+.m-caution li{font-size:13px;line-height:1.85;color:var(--text-sub);padding-left:20px;position:relative;margin-bottom:6px}
+.m-caution li::before{content:"";position:absolute;left:0;top:9px;width:8px;height:8px;background:var(--amber);border-radius:2px;opacity:.5}
+
+.m-step-flow{display:flex;flex-direction:column;gap:0;margin:20px 0}
+.m-step{display:flex;gap:16px;align-items:flex-start;position:relative;padding-bottom:24px}
+.m-step:last-child{padding-bottom:0}
+.m-step::before{content:"";position:absolute;left:17px;top:36px;bottom:0;width:2px;background:var(--border);z-index:0}
+.m-step:last-child::before{display:none}
+.m-step-num{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:10px;font-family:var(--fen);font-size:14px;font-weight:700;flex-shrink:0;position:relative;z-index:1}
+.m-step-num.cta{background:var(--cta)}
+.m-step-body{flex:1;padding-top:6px}
+.m-step-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.m-step-desc{font-size:13px;line-height:1.75;color:var(--text-muted)}
+
+.m-divider{height:1px;background:var(--border);margin:12px 0 36px}
+
+.m-link-box{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;padding:16px 20px;margin:12px 0;box-shadow:var(--sh-s)}
+.m-link-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:10px;flex-shrink:0;color:var(--accent)}
+.m-link-icon svg{width:20px;height:20px}
+.m-link-body{flex:1}
+.m-link-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.m-link-url{font-size:12px;color:var(--text-muted);word-break:break-all}
+
+@media(min-width:640px){
+  .manual{padding:20px 0 80px}
+  .m-hd{padding:20px 32px}
+  .m-body{padding:0 32px}
+  .m-hero-title{font-size:28px}
+}
+</style>
+</head>
+<body>
+<div class="manual">
+
+  <div class="m-hd">
+    <a href="practice-v2.html" class="m-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+    <span class="m-hd-t">先生用マニュアル</span>
+    <span class="m-hd-badge">Teacher</span>
+  </div>
+
+  <div class="m-body">
+
+    <!-- Hero -->
+    <div class="m-hero">
+      <div class="m-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
+      <h1 class="m-hero-title"><span class="m-hero-hl">ペラトレ</span>教材生成システム<br>操作マニュアル</h1>
+      <p class="m-hero-sub">レッスン後に先生がフォームに入力するだけで、<br>受講生専用の練習教材が自動で作成されます。</p>
+    </div>
+
+    <!-- 全体の流れ -->
+    <div class="m-sec">
+      <h2 class="m-sec-title">全体の流れ</h2>
+      <div class="m-step-flow">
+        <div class="m-step">
+          <div class="m-step-num">1</div>
+          <div class="m-step-body">
+            <div class="m-step-name">ログイン</div>
+            <div class="m-step-desc">先生用パスワードでログインします</div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">2</div>
+          <div class="m-step-body">
+            <div class="m-step-name">受講生を選んでレッスンメモを入力</div>
+            <div class="m-step-desc">レッスンで話した内容を自由に書くだけ</div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">3</div>
+          <div class="m-step-body">
+            <div class="m-step-name">AIが自動で教材フォーマットに変換</div>
+            <div class="m-step-desc">situation / trigger / 模範回答 / フォローが自動生成されます</div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">4</div>
+          <div class="m-step-body">
+            <div class="m-step-name">チャンクを選んで保存</div>
+            <div class="m-step-desc">内容を確認して保存。音声も自動生成されます</div>
+          </div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num cta">5</div>
+          <div class="m-step-body">
+            <div class="m-step-name">受講生専用ページに自動反映!</div>
+            <div class="m-step-desc">受講生が専用リンクを開くと、追加した教材で練習できます</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- 目次 -->
+    <div class="m-toc" id="toc">
+      <div class="m-toc-title">目次</div>
+      <ol>
+        <li><a href="#sec1">ログイン</a></li>
+        <li><a href="#sec2">レッスン後フォームの使い方</a></li>
+        <li><a href="#sec3">AI解析結果の確認とチャンク選択</a></li>
+        <li><a href="#sec4">受講生リンク一覧</a></li>
+        <li><a href="#sec5">受講生の例文を修正する</a></li>
+        <li><a href="#sec6">新規教材を手動で作成する</a></li>
+        <li><a href="#sec7">受講生の専用ページを確認する</a></li>
+        <li><a href="#sec8">注意事項</a></li>
+      </ol>
+    </div>
+
+    <!-- Section 1: ログイン -->
+    <div class="m-sec" id="sec1">
+      <div class="m-sec-num">1</div>
+      <h2 class="m-sec-title">ログイン</h2>
+
+      <img src="images/manual/teacher/01-login.png" alt="ログイン画面" class="m-screenshot">
+
+      <div class="m-card">
+        <p>以下のURLにアクセスして、パスワードを入力してログインします。</p>
+      </div>
+
+      <div class="m-link-box">
+        <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="m-link-body">
+          <div class="m-link-name">先生用ログインページ</div>
+          <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/login</div>
+        </div>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">パスワードを入力して「ログイン」ボタンを押します。パスワードはMasaさんから共有されたものを使ってください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">ログインすると<strong>レッスン後フォーム</strong>のページに移動します。</div></div>
+
+      <div class="m-highlight">
+        ログイン状態はブラウザに記憶されます。一度ログインすれば、次からはパスワード入力なしでアクセスできます。
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 2: レッスン後フォーム -->
+    <div class="m-sec" id="sec2">
+      <div class="m-sec-num">2</div>
+      <h2 class="m-sec-title">レッスン後フォームの使い方</h2>
+
+      <div class="m-card">
+        <p>レッスンが終わったら、このフォームで<strong>受講生の名前</strong>と<strong>レッスンメモ</strong>を入力するだけです。あとはAIが自動で教材フォーマットに整えてくれます。</p>
+      </div>
+
+      <img src="images/manual/teacher/03-lesson-form-empty.png" alt="レッスン後フォーム（空の状態）" class="m-screenshot">
+
+      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 1: 受講生を選ぶ</h3>
+
+      <img src="images/manual/teacher/04-lesson-form-student-select.png" alt="受講生選択" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>受講生名</strong>を入力します。苗字を入力すると候補が表示されます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">リストにない場合は<strong>フルネーム</strong>をそのまま入力してください。</div></div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 2: レッスンメモを入力する</h3>
+
+      <img src="images/manual/teacher/05-lesson-form-memo-filled.png" alt="レッスンメモ入力済み" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>レッスンメモ</strong>にレッスンで話した内容を自由に書きます。日本語でも英語でもOKです。</div></div>
+
+      <div class="m-highlight">
+        <strong>書き方のコツ:</strong> FPP（相手のセリフ）、SPP（模範回答）、追加質問、追加回答を意識して書くと、AIの解析精度が上がります。ただし、メモなので雑でも大丈夫です!
+      </div>
+
+      <div class="m-card">
+        <p><strong>メモの例:</strong></p>
+        <p>「週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。」</p>
+        <p>長文を入れた場合は、AIが自動で複数チャンクに分割してくれます。</p>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:20px 0 12px">STEP 3: 「解析して確認」を押す</h3>
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「解析して確認」ボタン</strong>を押すと、AIがメモを解析してプレビュー画面を表示します。20文字以上の入力が必要です。</div></div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 3: 解析結果 -->
+    <div class="m-sec" id="sec3">
+      <div class="m-sec-num">3</div>
+      <h2 class="m-sec-title">AI解析結果の確認とチャンク選択</h2>
+
+      <div class="m-card">
+        <p>AIがレッスンメモを解析すると、<strong>チャンク（会話のかたまり）</strong>ごとに分割された結果が表示されます。</p>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">各チャンクには<strong>Situation</strong>（場面）、<strong>FPP</strong>（相手のセリフ）、<strong>SPP</strong>（模範回答）、<strong>Followup Question</strong>、<strong>Followup Answer</strong>が自動生成されています。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">内容を確認して、<strong>使いたいチャンクにチェック</strong>を入れます。全部使っても、一部だけでもOKです。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">長文の場合は複数のチャンクが生成されます（かぶりはないようにAIが調整します）。</div></div>
+
+      <div class="m-highlight">
+        <strong>確認ポイント:</strong> SPP（模範回答）が長すぎる場合は、AIが1文に簡潔にまとめます。不自然に感じたら、保存後に「受講生例文の修正」から直せます。
+      </div>
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">チャンクを選択したら<strong>「保存 + 音声生成」ボタン</strong>を押します。音声が自動生成され、受講生の専用ページに即反映されます。</div></div>
+
+      <div class="m-important">
+        <div class="m-important-title">保存完了後</div>
+        <p>保存が完了すると<strong>「〇〇さんの教材を確認 →」</strong>というリンクが表示されます。<br>タップすると、受講生専用の練習ページが開きます。</p>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 4: 受講生リンク一覧 -->
+    <div class="m-sec" id="sec4">
+      <div class="m-sec-num">4</div>
+      <h2 class="m-sec-title">受講生リンク一覧</h2>
+
+      <img src="images/manual/teacher/06-students-list.png" alt="受講生リンク一覧" class="m-screenshot">
+
+      <div class="m-card">
+        <p>全受講生のリストが表示されます。ここから<strong>例文の修正</strong>や<strong>専用ページの確認</strong>ができます。</p>
+      </div>
+
+      <div class="m-link-box">
+        <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="m-link-body">
+          <div class="m-link-name">受講生リンク一覧ページ</div>
+          <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/students</div>
+        </div>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>名前・ふりがなで検索</strong>できます。受講生が多い場合に便利です。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>「削除」ボタン</strong> — その受講生に割り当てた例文を確認・編集するページに移動します。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「専用ページ →」ボタン</strong> — 受講生の練習ページを直接開きます。受講生にこのリンクを共有してください。</div></div>
+
+      <div class="m-highlight">
+        新しい受講生は、レッスンフォームで名前を入力した時点で自動的にリストに追加されます。<strong>手動で登録する必要はありません。</strong>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 5: 例文修正 -->
+    <div class="m-sec" id="sec5">
+      <div class="m-sec-num">5</div>
+      <h2 class="m-sec-title">受講生の例文を修正する</h2>
+
+      <img src="images/manual/teacher/07-student-detail.png" alt="受講生の例文詳細" class="m-screenshot">
+
+      <div class="m-card">
+        <p>受講生リンク一覧から受講生名をクリックすると、その受講生に割り当てられた<strong>全ての例文</strong>が表示されます。</p>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>各例文のフィールド</strong>（Situation、Trigger、SPP、Followup Question、Followup Answer）を直接編集できます。テキストをクリックして書き換えてください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>T / S / FQ / FA ボタン</strong> — 各音声を個別に再生して確認できます。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「保存 + 音声再生成」ボタン</strong> — 例文を修正した後、このボタンで保存と音声の再生成を行います。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>「削除」ボタン</strong> — この例文を削除します。</div></div>
+      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>「教材を見る →」リンク</strong>（右上）— この受講生の練習ページを開いて、実際の表示を確認できます。</div></div>
+
+      <div class="m-highlight">
+        例文を修正すると<strong>音声も自動で再生成</strong>されます。修正したら必ず「保存 + 音声再生成」を押してください。
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 6: 新規教材作成 -->
+    <div class="m-sec" id="sec6">
+      <div class="m-sec-num">6</div>
+      <h2 class="m-sec-title">新規教材を手動で作成する</h2>
+
+      <img src="images/manual/teacher/08-dashboard.png" alt="新規教材管理" class="m-screenshot">
+
+      <div class="m-card">
+        <p>レッスンメモからの自動生成ではなく、<strong>個別に教材を手動で追加</strong>したい場合はこのページを使います。</p>
+      </div>
+
+      <div class="m-link-box">
+        <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="m-link-body">
+          <div class="m-link-name">新規教材管理ページ</div>
+          <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/dashboard</div>
+        </div>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>カテゴリ</strong> — リストから選ぶか、新しいカテゴリ名を直接入力します。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>Situation</strong> — 場面の説明（日本語）。例:「同僚に週末の予定を聞かれた」</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>FPP（相手のセリフ）</strong> — 必須。相手が言うセリフ。例:「What are you gonna do this weekend?」</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>SPP（模範回答）</strong> — 必須。受講生が言う回答。例:「I'm gonna relax at home.」</div></div>
+      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>Followup Question / Answer</strong> — 任意。2往復目の会話。</div></div>
+      <div class="anno"><div class="anno-icon">6</div><div class="anno-text"><strong>受講生に割り当て</strong> — 任意。特定の受講生に紐づける場合は名前を入力します。空欄にすると全員共通の教材になります。</div></div>
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「保存 + 音声生成」</strong>を押すと、教材が保存され音声が自動生成されます。</div></div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 7: 専用ページ確認 -->
+    <div class="m-sec" id="sec7">
+      <div class="m-sec-num">7</div>
+      <h2 class="m-sec-title">受講生の専用ページを確認する</h2>
+
+      <img src="images/manual/teacher/09-student-practice-page.png" alt="受講生の専用ページ" class="m-screenshot">
+
+      <div class="m-card">
+        <p>受講生の専用ページでは、<strong>共通のベース教材</strong>に加えて、<strong>先生がレッスンで追加した個別教材</strong>が「レッスンで追加（最近）」カテゴリとして表示されます。</p>
+      </div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>「レッスンで追加（最近）」</strong>カテゴリに、先生が追加した教材が表示されます。受講生はこれを選んで練習できます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">それ以下のカテゴリは<strong>全受講生共通のベース教材</strong>です。これらは修正不可で、全員が同じ内容で練習します。</div></div>
+
+      <div class="m-highlight">
+        受講生に専用ページのリンクを送るには、<strong>受講生リンク一覧</strong>から「専用ページ →」をクリックしてURLをコピーしてください。
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 8: 注意事項 -->
+    <div class="m-sec" id="sec8">
+      <div class="m-sec-num">8</div>
+      <h2 class="m-sec-title">注意事項</h2>
+
+      <div class="m-caution">
+        <div class="m-caution-title">よくある間違い</div>
+        <ul>
+          <li><strong>ログインURLと受講生ページを混同しない</strong> — 先生用ページ（/teacher/...）と受講生用ページ（/practice-v2.html?student=...）は別物です。受講生にはログインURLを送らないでください</li>
+          <li><strong>チャンクを選択しないとリンクが生成されない</strong> — AI解析後、使いたいチャンクにチェックを入れてから「保存」を押してください</li>
+          <li><strong>名前の表記を統一する</strong> — 「秋山太郎」で登録した受講生は、毎回同じ表記で入力してください。「あきやまたろう」等で入力すると別の受講生として扱われます</li>
+        </ul>
+      </div>
+
+      <div class="m-important">
+        <div class="m-important-title">困ったときは</div>
+        <p>操作で分からないことがあれば、Masaさんに連絡してください。<br>例文の内容に問題があった場合は、受講生リンク一覧から修正できます。</p>
+      </div>
+    </div>
+
+    <!-- ページナビ -->
+    <div style="display:flex;gap:12px;margin-top:40px">
+      <a href="teacher/lesson-form" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;background:var(--cta);color:#fff;border-radius:14px;font-size:15px;font-weight:600;text-decoration:none;box-shadow:0 4px 20px var(--cta-glow)">レッスン後フォームを開く <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:12px">
+      <a href="teacher/students" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);border-radius:14px;font-size:14px;font-weight:600;text-decoration:none">受講生リンク一覧</a>
+      <a href="teacher/dashboard" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);border-radius:14px;font-size:14px;font-weight:600;text-decoration:none">新規教材管理</a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

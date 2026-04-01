@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>使い方ガイド - Pattern Practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -27,17 +27,14 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
 .manual{max-width:520px;margin:0 auto;padding:0 0 60px}
 
-/* Header */
 .m-hd{display:flex;align-items:center;gap:12px;padding:16px 24px;position:sticky;top:0;z-index:20;background:var(--bg)}
 .m-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text);flex-shrink:0;text-decoration:none;transition:all .2s var(--ease)}
 .m-back:active{transform:scale(.95)}
 .m-back svg{width:18px;height:18px}
 .m-hd-t{font-size:15px;font-weight:600}
 
-/* Content */
 .m-body{padding:0 24px}
 
-/* Hero */
 .m-hero{text-align:center;padding:20px 0 32px}
 .m-hero-icon{width:64px;height:64px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff}
 .m-hero-icon svg{width:32px;height:32px}
@@ -45,42 +42,34 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .m-hero-hl{color:var(--accent)}
 .m-hero-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
 
-/* Section */
 .m-sec{margin-bottom:28px}
 .m-sec-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:6px;font-family:var(--fen);font-size:12px;font-weight:700;margin-bottom:8px}
 .m-sec-title{font-size:17px;font-weight:700;line-height:1.4;margin-bottom:12px}
 
-/* Screenshot image */
 .m-screenshot{width:100%;max-width:280px;display:block;margin:16px auto;border-radius:16px;border:1.5px solid var(--border);box-shadow:var(--sh-m)}
 
-/* Annotation callout */
 .anno{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
 .anno-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:50%;font-family:var(--fen);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
 .anno-text{font-size:13px;line-height:1.7;color:var(--text-sub)}
 .anno-text strong{color:var(--text);font-weight:600}
 
-/* Highlight box */
 .m-highlight{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:2px 10px 10px 2px;padding:14px 18px;margin:12px 0;font-size:14px;line-height:1.8;color:var(--text-sub)}
 .m-highlight strong{color:var(--accent);font-weight:600}
 
-/* Card */
 .m-card{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:20px;box-shadow:var(--sh-s);margin-bottom:12px}
 .m-card p{font-size:14px;line-height:1.85;color:var(--text-sub)}
 .m-card p+p{margin-top:10px}
 
-/* Important box */
 .m-important{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);padding:20px;margin:16px 0;text-align:center}
 .m-important-title{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
 .m-important p{font-size:14px;line-height:1.8;color:var(--text-sub)}
 
-/* Caution list */
 .m-caution{background:var(--amber-bg);border:1.5px solid var(--amber-bd);border-radius:var(--r);padding:20px;margin:12px 0}
 .m-caution-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:10px}
 .m-caution ul{list-style:none;padding:0}
 .m-caution li{font-size:13px;line-height:1.8;color:var(--text-sub);padding-left:20px;position:relative;margin-bottom:4px}
 .m-caution li::before{content:"";position:absolute;left:0;top:8px;width:8px;height:8px;background:var(--amber);border-radius:2px;opacity:.5}
 
-/* Settings */
 .m-settings{display:flex;flex-direction:column;gap:10px}
 .m-setting{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)}
 .m-setting-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:8px;flex-shrink:0;color:var(--accent)}
@@ -92,14 +81,12 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .m-setting-opt{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-sub)}
 .m-setting-opt.rec{background:var(--accent-soft);border-color:rgba(47,111,117,.3);color:var(--accent)}
 
-/* CTA */
 .m-cta{padding:24px 0;text-align:center}
 .m-cta-btn{display:inline-flex;align-items:center;gap:8px;padding:16px 32px;background:var(--cta);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:600;font-family:var(--fja);cursor:pointer;text-decoration:none;transition:all .2s var(--ease);box-shadow:0 4px 20px var(--cta-glow)}
 .m-cta-btn:hover{background:var(--cta-hover);box-shadow:0 6px 28px var(--cta-glow)}
 .m-cta-btn:active{transform:scale(.98)}
 .m-cta-btn svg{width:18px;height:18px}
 
-/* Divider */
 .m-divider{height:1px;background:var(--border);margin:8px 0 28px}
 
 @media(min-width:640px){
@@ -189,10 +176,10 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>サブカテゴリ（チャンク）</strong> — 練習したいチャンクを個別に選べます。タップでオン/オフ。カテゴリの丸ぽちを押すと全選択/全解除できます。</div></div>
       <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>✅ 検品済みマーク</strong> — Masaが内容を確認済みのチャンクについています。</div></div>
       <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>ⓘ 解説ボタン</strong> — タップすると、そのチャンクが「どういう場面で使うのか」の解説が表示されます。練習前に読むと、場面がイメージしやすくなります。</div></div>
+
+      <img src="images/manual/02-home-selected.png" alt="チャンクを選択した状態" class="m-screenshot">
+
       <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>スタートボタン</strong>（画面下のオレンジボタン）— チャンクを選んだら、このボタンで練習開始です。</div></div>
-      <div class="anno"><div class="anno-icon">6</div><div class="anno-text"><strong>マニュアルボタン</strong>（右上の本アイコン）— このページを開きます。</div></div>
-      <div class="anno"><div class="anno-icon">7</div><div class="anno-text"><strong>設定ボタン</strong>（右上の歯車アイコン）— 入力モードや録音時間を変更できます。</div></div>
-      <div class="anno"><div class="anno-icon">8</div><div class="anno-text"><strong>一覧ボタン</strong>（右上のリストアイコン）— 全カードを一覧で確認・音声再生できます。</div></div>
 
       <div class="m-highlight">
         <strong>練習したいチャンクだけを選んで、集中的に繰り返すのがおすすめです。</strong>
@@ -201,72 +188,68 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
     <div class="m-divider"></div>
 
-    <!-- Section 2: 練習画面 -->
+    <!-- Section 1.5: ヘッダーのボタン -->
     <div class="m-sec">
       <div class="m-sec-num">2</div>
-      <h2 class="m-sec-title">練習画面</h2>
-
-      <img src="images/manual/02-practice.png" alt="練習画面" class="m-screenshot">
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>シチュエーション</strong> — 場面の説明が表示されます。「こういう状況で聞かれた」とイメージしてください。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>相手の質問</strong> — 英語の質問が吹き出しで表示されます。音声も自動で流れます。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>マイクボタン</strong> — タップして声で回答します。話し終わったら自動で止まります。</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>戻るボタン</strong>（左上）— ホーム画面に戻ります。</div></div>
-      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>進捗バー</strong> — 今どこまで進んだかが一目でわかります。</div></div>
-
-      <div class="m-highlight">
-        設定でInput Modeを「Text」にすると、キーボードでタイプして回答することもできます。電車の中など声が出せない場面で使えます。
-      </div>
-    </div>
-
-    <div class="m-divider"></div>
-
-    <!-- Section 3: 回答確認 -->
-    <div class="m-sec">
-      <div class="m-sec-num">3</div>
-      <h2 class="m-sec-title">回答確認（Turn 1）</h2>
-
-      <img src="images/manual/03-review.png" alt="回答確認画面" class="m-screenshot">
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>YOUR REPLY</strong> — あなたが答えた内容が表示されます。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>ONE NATURAL REPLY</strong> — 自然な回答例です。「こういう言い方もあるんだ」と参考にしてください。模範回答と違っても、意味が通じていれば正解です。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>できた</strong> — 手応えがあればこちら。Turn 2（相手のさらなる返答）に進みます。</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>再度録音</strong> — うまく録音できなかった時に、もう一度録り直せます。</div></div>
-    </div>
-
-    <div class="m-divider"></div>
-
-    <!-- Section 4: 自己評価 -->
-    <div class="m-sec">
-      <div class="m-sec-num">4</div>
-      <h2 class="m-sec-title">自己評価（Turn 2）</h2>
-
-      <img src="images/manual/04-self-eval.png" alt="自己評価画面" class="m-screenshot">
+      <h2 class="m-sec-title">ヘッダーのボタン</h2>
 
       <div class="m-card">
-        <p>2往復の会話が終わった後、自分の手応えを記録します。この記録が次に繰り返す時の参考になります。</p>
+        <p>画面右上に4つのアイコンが並んでいます。それぞれの機能を説明します。</p>
       </div>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>できた</strong> — すぐに答えられた、手応えがあった時はこちら。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>できなかった</strong> — うまく言えなかった時はこちら。繰り返せば必ずできるようになります。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>再生</strong> — 2往復分の会話をもう一度音声で聞けます。</div></div>
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>✏️ 編集モード</strong>（ペンアイコン）— 先生が教材を編集するためのモードです。受講生は使いません。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>📖 カードビュー</strong>（本アイコン）— 2枚のカードを並べて表示する見開きモードです。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>⚙️ 設定</strong>（歯車アイコン）— 入力モードや録音時間、フォントサイズを変更できます。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>≡ 一覧</strong>（リストアイコン）— 全カードを一覧で確認・音声再生できます。</div></div>
+
+      <img src="images/manual/06-settings.png" alt="設定画面" class="m-screenshot">
+
+      <div class="m-card">
+        <p><strong>設定で変更できる項目:</strong></p>
+        <p><strong>INPUT MODE</strong> — Voice（声で回答）か Text（タイピングで回答）を選べます。電車の中など声が出せない場面ではTextが便利です。</p>
+        <p><strong>SPEAK TIME</strong> — マイクボタンを押してから録音できる秒数です。初期値は7秒。長めに答えたい場合は伸ばしてください。</p>
+        <p><strong>TURN 2</strong> — 2往復目を「聞くだけ」にするか「自分も言う」にするか選べます。</p>
+        <p><strong>FONT SIZE</strong> — チャットの文字サイズを調整できます。</p>
+      </div>
+
+      <img src="images/manual/07-list-view.png" alt="一覧表示" class="m-screenshot">
+
+      <div class="m-card">
+        <p><strong>一覧表示</strong>では、全てのカードの内容と音声をまとめて確認できます。再生ボタンで個別に音声を聞けます。</p>
+      </div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 5: 実践モード -->
+    <!-- Section 2: 練習画面 -->
     <div class="m-sec">
-      <div class="m-sec-num">5</div>
-      <h2 class="m-sec-title">実践モード</h2>
+      <div class="m-sec-num">3</div>
+      <h2 class="m-sec-title">練習の流れ</h2>
 
-      <img src="images/manual/05-practice-mode.png" alt="実践モード" class="m-screenshot">
+      <div class="m-card">
+        <p>練習は<strong>Turn 1 → Turn 2 → 自己評価 → 実践モード</strong>の流れで進みます。</p>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:16px 0 10px">Turn 1: 最初の質問に答える</h3>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>シチュエーション</strong>が表示されます。「こういう状況で聞かれた」とイメージしてください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>相手の質問</strong>が吹き出しで表示され、音声も自動で流れます。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>マイクボタン</strong>をタップして声で回答します。設定した秒数で自動で止まります。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text">回答後、あなたの答えと<strong>模範回答</strong>が表示されます。「できた」で次へ、「再度録音」でやり直しできます。</div></div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:16px 0 10px">Turn 2: フォローの質問に答える</h3>
+
+      <div class="anno"><div class="anno-icon">5</div><div class="anno-text">Turn 1の後、相手が<strong>追加の質問</strong>をしてきます。同じようにマイクで答えてください。</div></div>
+      <div class="anno"><div class="anno-icon">6</div><div class="anno-text">Turn 2が終わると<strong>自己評価</strong>です。「できた」「できなかった」を選びます。この記録が次の練習に活かされます。</div></div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:16px 0 10px">実践モード: 自分の言葉で答える</h3>
 
       <div class="m-card">
         <p>自己評価が終わると、同じ質問がもう一度流れます。今度はシチュエーションや模範回答なしで、<strong>あなたなりの答えを自由に言ってみる</strong>コーナーです。</p>
         <p>さっき練習したパターンを使って、自分の言葉で答えてみてください。</p>
       </div>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>「ヒントを見る」</strong> — パターン（I'm gonna ~ など）を忘れた時にタップすると確認できます。</div></div>
+      <div class="anno"><div class="anno-icon">7</div><div class="anno-text"><strong>「ヒントを見る」</strong> — パターン（I'm gonna ~ など）を忘れた時にタップすると確認できます。</div></div>
 
       <div class="m-highlight">
         ここが一番大事な練習です。模範回答をなぞるのではなく、<strong>自分の言葉で答える</strong>ことで、本当に使える英語になります。
@@ -275,42 +258,26 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
     <div class="m-divider"></div>
 
-    <!-- Section 6: 設定 -->
+    <!-- Section: レッスンで追加された教材 -->
     <div class="m-sec">
-      <div class="m-sec-num">6</div>
-      <h2 class="m-sec-title">設定</h2>
-      <div class="m-settings">
-        <div class="m-setting">
-          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
-          <div class="m-setting-body">
-            <div class="m-setting-name">Input Mode（入力モード）</div>
-            <div class="m-setting-desc">基本は「Voice」で声で答えてください。声が出せない時は「Text」でテキスト入力もできます。</div>
-            <div class="m-setting-opts">
-              <span class="m-setting-opt rec">Voice（おすすめ）</span>
-              <span class="m-setting-opt">Text</span>
-            </div>
-          </div>
-        </div>
-        <div class="m-setting">
-          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <div class="m-setting-body">
-            <div class="m-setting-name">Speak Time（録音時間）</div>
-            <div class="m-setting-desc">マイクボタンを押してから録音できる秒数です。短い文なら7秒で十分ですが、長めに答えたい場合は伸ばしてください。</div>
-            <div class="m-setting-opts">
-              <span class="m-setting-opt">5秒</span>
-              <span class="m-setting-opt rec">7秒（初期値）</span>
-              <span class="m-setting-opt">10〜20秒</span>
-            </div>
-          </div>
-        </div>
+      <div class="m-sec-num">4</div>
+      <h2 class="m-sec-title">レッスンで追加された教材</h2>
+
+      <div class="m-card">
+        <p>先生がレッスン後に追加してくれた<strong>あなた専用のフレーズ</strong>は、ホーム画面の一番上に<strong>「レッスンで追加（最近）」</strong>というカテゴリで表示されます。</p>
+        <p>レッスンの内容をもとにした練習なので、<strong>最優先で繰り返し練習してください</strong>。自分が実際に話したい内容だから、一番定着しやすいです。</p>
+      </div>
+
+      <div class="m-highlight">
+        レッスンの後に先生がフレーズを追加すると、<strong>自動的にあなたの教材に追加されます</strong>。特別な操作は不要です。次にページを開いた時にはもう入っています。
       </div>
     </div>
 
     <div class="m-divider"></div>
 
-    <!-- Section 7: 練習のコツ -->
+    <!-- Section 5: 練習のコツ -->
     <div class="m-sec">
-      <div class="m-sec-num">7</div>
+      <div class="m-sec-num">5</div>
       <h2 class="m-sec-title">練習のコツ</h2>
 
       <div class="m-important">
