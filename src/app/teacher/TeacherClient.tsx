@@ -20,14 +20,15 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
   const [followupA, setFollowupA] = useState('');
   const [studentName, setStudentName] = useState('');
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean; student?: string } | null>(null);
 
-  const canSave = category.trim() && fpp.trim() && spp.trim();
+  const canSave = category.trim() && fpp.trim() && spp.trim() && studentName.trim();
 
   const save = async () => {
     setSaving(true);
     setMessage(null);
     try {
+      const savedStudent = studentName.trim();
       const res = await fetch('/api/patterns/manual', {
         method: 'POST',
         credentials: 'include',
@@ -39,7 +40,7 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
           spp: spp.trim(),
           followupQuestion: followupQ.trim(),
           followupAnswer: followupA.trim(),
-          studentName: studentName.trim() || null,
+          studentName: savedStudent,
           character: '友人',
         }),
       });
@@ -48,7 +49,7 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
         setMessage({ text: data.error || '保存失敗', ok: false });
         return;
       }
-      setMessage({ text: '保存・音声生成完了 ✓', ok: true });
+      setMessage({ text: `保存・音声生成完了 ✓`, ok: true, student: savedStudent });
       setSituation('');
       setFpp('');
       setSpp('');
@@ -76,6 +77,27 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-6 pb-24 space-y-3">
+
+        {/* 受講生（必須・先頭に移動） */}
+        <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
+          <label className="block text-xs font-semibold text-text-dark mb-1">
+            受講生 <span className="text-error">*</span>
+          </label>
+          <input
+            list="student-list"
+            value={studentName}
+            onChange={e => setStudentName(e.target.value)}
+            placeholder="名前を入力または選択"
+            className={inputClass}
+            autoFocus
+          />
+          <datalist id="student-list">
+            {studentNames.map(n => <option key={n} value={n} />)}
+          </datalist>
+          {!studentName.trim() && (
+            <p className="text-[11px] text-text-muted mt-1">受講生を選択しないと保存できません</p>
+          )}
+        </div>
 
         {/* カテゴリ */}
         <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
@@ -147,23 +169,6 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
           </div>
         </div>
 
-        {/* 受講生（任意） */}
-        <div className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]">
-          <label className="block text-xs font-semibold text-text-dark mb-1">
-            受講生に割り当て <span className="text-text-muted font-normal">（任意）</span>
-          </label>
-          <input
-            list="student-list"
-            value={studentName}
-            onChange={e => setStudentName(e.target.value)}
-            placeholder="名前を入力または選択"
-            className={inputClass}
-          />
-          <datalist id="student-list">
-            {studentNames.map(n => <option key={n} value={n} />)}
-          </datalist>
-        </div>
-
         {/* 送信 */}
         <button
           onClick={save}
@@ -174,9 +179,19 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
         </button>
 
         {message && (
-          <p className={`text-xs px-1 ${message.ok ? 'text-success' : 'text-error'}`}>
-            {message.text}
-          </p>
+          <div className={`text-xs px-1 ${message.ok ? 'text-success' : 'text-error'}`}>
+            <p>{message.text}</p>
+            {message.ok && message.student && (
+              <a
+                href={`/practice-v2.html?student=${encodeURIComponent(message.student)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-medium mt-1 inline-block"
+              >
+                {message.student} のレッスンページを確認 →
+              </a>
+            )}
+          </div>
         )}
       </main>
     </div>
