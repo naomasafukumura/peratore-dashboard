@@ -36,21 +36,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params;
 
-  // chunk_id を先に取得（パターン削除後は取れなくなるため）
-  const [pattern] = await sql`SELECT chunk_id FROM patterns WHERE id = ${id}`;
-  const chunkId = pattern?.chunk_id ?? null;
-
   await sql`DELETE FROM audio_files WHERE pattern_id = ${id}`;
   await sql`DELETE FROM patterns WHERE id = ${id}`;
-
-  // 同じ chunk に他のパターンが残っていなければ assignments と chunk も削除
-  if (chunkId != null) {
-    const remaining = await sql`SELECT id FROM patterns WHERE chunk_id = ${chunkId} LIMIT 1`;
-    if (remaining.length === 0) {
-      await sql`DELETE FROM assignments WHERE chunk_id = ${chunkId}`;
-      await sql`DELETE FROM chunks WHERE id = ${chunkId}`;
-    }
-  }
 
   return NextResponse.json({ ok: true });
 }
