@@ -45,5 +45,15 @@ export default async function StudentsPage() {
     });
   }
 
-  return <StudentsClient students={entries} />;
+  let pendingDeletions: string[] = [];
+  if (hasDatabaseUrl()) {
+    try {
+      const rows = await sql`
+        SELECT student_name FROM student_deletion_requests WHERE status = 'pending'
+      `;
+      pendingDeletions = (rows as { student_name: string }[]).map(r => r.student_name);
+    } catch {}
+  }
+
+  return <StudentsClient students={entries} pendingDeletions={pendingDeletions} />;
 }

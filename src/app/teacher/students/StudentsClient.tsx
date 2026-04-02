@@ -4,8 +4,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { StudentEntry } from './page';
 
-export default function StudentsClient({ students: initialStudents }: { students: StudentEntry[] }) {
+export default function StudentsClient({
+  students: initialStudents,
+  pendingDeletions: initialPending,
+}: {
+  students: StudentEntry[];
+  pendingDeletions: string[];
+}) {
   const [students, setStudents] = useState(initialStudents);
+  const [pendingDeletions, setPendingDeletions] = useState<Set<string>>(new Set(initialPending));
 
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
@@ -13,7 +20,9 @@ export default function StudentsClient({ students: initialStudents }: { students
   const [editYomi, setEditYomi] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState<string | null>(null);
+  const [noteTarget, setNoteTarget] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
   const filtered = query.trim()
     ? students.filter(s => s.name.includes(query.trim()) || s.yomi.includes(query.trim()))
@@ -31,19 +40,30 @@ export default function StudentsClient({ students: initialStudents }: { students
     setRenameError(null);
   };
 
-  const deleteStudent = async (name: string) => {
-    if (!confirm(`「${name}」を削除しますか？\n登録された例文の割り当てもすべて削除されます。`)) return;
-    setDeleting(name);
+  const openNoteModal = (name: string) => {
+    setNoteTarget(name);
+    setNote('');
+  };
+
+  const submitDeletionRequest = async () => {
+    if (!noteTarget) return;
+    setRequesting(noteTarget);
     try {
-      await fetch('/api/students/delete', {
+      const res = await fetch('/api/students/deletion-request', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ studentName: noteTarget, note }),
       });
-      setStudents(prev => prev.filter(s => s.name !== name));
+      if (res.ok) {
+        setPendingDeletions(prev => new Set([...prev, noteTarget]));
+        setNoteTarget(null);
+      } else {
+        const d = await res.json();
+        alert(`依頼失敗: ${d.error}`);
+      }
     } finally {
-      setDeleting(null);
+      setRequesting(null);
     }
   };
 
@@ -85,6 +105,38 @@ export default function StudentsClient({ students: initialStudents }: { students
 
   return (
     <div className="min-h-screen bg-bg-page">
+      {/* 削除依頼モーダル */}
+      {noteTarget && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
+          <div className="bg-bg-card border border-border rounded-[var(--radius-card)] shadow-lg p-5 w-full max-w-sm">
+            <h2 className="text-sm font-bold text-text-dark mb-1">削除依頼</h2>
+            <p className="text-xs text-text-muted mb-3">「{noteTarget}」の削除を管理者に依頼します。</p>
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="理由・メモ（任意）"
+              rows={3}
+              className="w-full px-3 py-2 bg-bg-page border border-border rounded-xl text-xs text-text-dark resize-none mb-3"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setNoteTarget(null)}
+                className="flex-1 py-2 border border-border rounded-xl text-xs text-text-muted"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={submitDeletionRequest}
+                disabled={requesting === noteTarget}
+                className="flex-1 py-2 bg-error text-white rounded-xl text-xs font-semibold disabled:opacity-40"
+              >
+                {requesting === noteTarget ? '送信中…' : '依頼を送る'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -94,6 +146,7 @@ export default function StudentsClient({ students: initialStudents }: { students
           <div className="flex items-center gap-3 text-xs">
             <Link href="/teacher/lesson-form" className="text-primary font-medium">レッスン後フォーム</Link>
             <Link href="/teacher/dashboard" className="text-text-muted hover:text-text-dark">ダッシュボード</Link>
+            <Link href="/teacher/admin" className="text-text-muted hover:text-text-dark">管理</Link>
             <Link href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</Link>
           </div>
         </div>
@@ -173,14 +226,19 @@ export default function StudentsClient({ students: initialStudents }: { students
                   >
                     ✎
                   </button>
-                  <button
-                    onClick={() => deleteStudent(name)}
-                    disabled={deleting === name}
-                    className="shrink-0 px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs transition-colors disabled:opacity-40"
-                    title="受講生を削除"
-                  >
-                    {deleting === name ? '削除中…' : '削除'}
-                  </button>
+                  {pendingDeletions.has(name) ? (
+                    <span className="shrink-0 px-3 py-1.5 text-text-muted text-xs border border-border rounded-[var(--radius-button)]">
+                      依頼中…
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => openNoteModal(name)}
+                      className="shrink-0 px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs transition-colors"
+                      title="削除依頼を送る"
+                    >
+                      削除依頼
+                    </button>
+                  )}
                   <a
                     href={`/practice-v2.html?student=${encodeURIComponent(name)}`}
                     target="_blank"
