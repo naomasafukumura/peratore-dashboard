@@ -1,4 +1,5 @@
 import { hasDatabaseUrl, sql } from '@/lib/db';
+import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
 import StudentsClient from './StudentsClient';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ const PRESET_STUDENTS = [
 export type StudentEntry = { name: string; yomi: string };
 
 export default async function StudentsPage() {
+  await redirectTeacherLoginIfNeeded('/teacher/students');
 
   let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '' }));
 

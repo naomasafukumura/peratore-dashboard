@@ -1,4 +1,5 @@
 import { hasDatabaseUrl, sql } from '@/lib/db';
+import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
 import TeacherClient from '../TeacherClient';
 import TeacherDbMissing from '../TeacherDbMissing';
 
@@ -15,6 +16,7 @@ const PRESET_STUDENTS = [
 ];
 
 export default async function TeacherDashboardPage() {
+  await redirectTeacherLoginIfNeeded('/teacher/dashboard');
 
   if (!hasDatabaseUrl()) {
     return <TeacherDbMissing />;
