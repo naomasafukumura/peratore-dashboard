@@ -55,23 +55,40 @@ export default async function StudentHomePage() {
         </p>
       )}
 
-      {!missingLabel && recentSummary.length > 0 && (
-        <section className="mt-6 rounded-xl border border-border bg-bg-card p-4">
-          <h2 className="text-sm font-semibold text-text-dark">{recentCategoryLabel}</h2>
-          <p className="mt-1 text-xs text-text-muted">直近 {recentSummary.length} 件（新しい順）</p>
-          <ol className="mt-3 space-y-2 text-sm text-text-dark list-decimal list-inside">
-            {recentSummary.map((row) => (
-              <li key={row.patternId} className="pl-0">
-                <span className="text-text-muted text-xs">[{row.categoryName}] {row.section}</span>
-                <br />
-                <span className="font-medium">{row.trigger}</span>
-                <span className="text-text-muted"> → </span>
-                <span>{row.spp}</span>
-              </li>
+      {!missingLabel && recentSummary.length > 0 && (() => {
+        // 月別グループ化
+        const groups = new Map<string, typeof recentSummary>();
+        for (const item of recentSummary) {
+          const d = item.createdAt ? new Date(item.createdAt) : null;
+          const key = d && !isNaN(d.getTime())
+            ? `${d.getFullYear()}年${d.getMonth() + 1}月`
+            : '日付不明';
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(item);
+        }
+        return (
+          <section className="mt-6 rounded-xl border border-border bg-bg-card p-4">
+            <h2 className="text-sm font-semibold text-text-dark">{recentCategoryLabel}</h2>
+            <p className="mt-1 text-xs text-text-muted">全 {recentSummary.length} 件</p>
+            {Array.from(groups.entries()).map(([month, items]) => (
+              <div key={month} className="mt-4">
+                <p className="text-xs font-semibold text-text-muted border-b border-border pb-1 mb-2">{month}（{items.length}件）</p>
+                <ol className="space-y-2 text-sm text-text-dark list-decimal list-inside">
+                  {items.map((row) => (
+                    <li key={row.patternId} className="pl-0">
+                      <span className="text-text-muted text-xs">[{row.categoryName}] {row.section}</span>
+                      <br />
+                      <span className="font-medium">{row.trigger}</span>
+                      <span className="text-text-muted"> → </span>
+                      <span>{row.spp}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ))}
-          </ol>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {!missingLabel && recentSummary.length === 0 && (
         <p className="mt-6 text-xs text-text-muted">

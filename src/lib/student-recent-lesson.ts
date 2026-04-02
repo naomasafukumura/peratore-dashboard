@@ -7,6 +7,7 @@ export type RecentLessonSummaryItem = {
   spp: string;
   section: string;
   categoryName: string;
+  createdAt: string | null;
 };
 
 /** patterns.created_at カラムが存在しない場合に追加（冪等） */
@@ -28,7 +29,7 @@ function formatCategoryLabel(_dateVal: unknown): string {
  */
 export async function fetchRecentLessonForStudent(
   studentName: string,
-  limit = 20
+  limit = 200
 ): Promise<{
   summary: RecentLessonSummaryItem[];
   categoryLabel: string;
@@ -70,6 +71,7 @@ export async function fetchRecentLessonForStudent(
     spp: r.spp || '',
     section: r.chunk_title_en || '',
     categoryName: r.category_name || '',
+    createdAt: r.created_at ? String(r.created_at) : null,
   }));
 
   const cards = rows.map((r: Record<string, any>) =>
