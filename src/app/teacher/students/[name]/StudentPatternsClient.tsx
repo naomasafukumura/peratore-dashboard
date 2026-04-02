@@ -108,7 +108,12 @@ export default function StudentPatternsClient({
     if (!confirm('このフレーズを削除しますか？')) return;
     setDeleting(id);
     try {
-      await fetch(`/api/patterns/${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`/api/patterns/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`削除失敗: ${data.error ?? res.status}`);
+        return;
+      }
       setPatterns(prev => prev.filter(p => p.id !== id));
     } finally {
       setDeleting(null);
