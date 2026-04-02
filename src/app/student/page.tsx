@@ -27,10 +27,12 @@ export default async function StudentHomePage() {
   const missingLabel = !name;
 
   let recentSummary: Awaited<ReturnType<typeof fetchRecentLessonForStudent>>['summary'] = [];
+  let recentCategoryLabel = 'レッスンで追加した例文（最近）';
   if (name) {
     try {
       const r = await fetchRecentLessonForStudent(name);
       recentSummary = r.summary;
+      if (r.categoryLabel) recentCategoryLabel = r.categoryLabel;
     } catch {
       recentSummary = [];
     }
@@ -55,7 +57,7 @@ export default async function StudentHomePage() {
 
       {!missingLabel && recentSummary.length > 0 && (
         <section className="mt-6 rounded-xl border border-border bg-bg-card p-4">
-          <h2 className="text-sm font-semibold text-text-dark">レッスンで追加した例文（最近）</h2>
+          <h2 className="text-sm font-semibold text-text-dark">{recentCategoryLabel}</h2>
           <p className="mt-1 text-xs text-text-muted">直近 {recentSummary.length} 件（新しい順）</p>
           <ol className="mt-3 space-y-2 text-sm text-text-dark list-decimal list-inside">
             {recentSummary.map((row) => (

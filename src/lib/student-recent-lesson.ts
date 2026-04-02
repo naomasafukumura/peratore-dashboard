@@ -9,10 +9,24 @@ export type RecentLessonSummaryItem = {
   categoryName: string;
 };
 
-const RECENT_CATEGORY = {
-  category: 'レッスンで追加（最近）',
-  icon: 'message',
-} as const;
+/** patterns.created_at カラムが存在しない場合に追加（冪等） */
+let _createdAtEnsured = false;
+async function ensureCreatedAt(): Promise<void> {
+  if (_createdAtEnsured) return;
+  try {
+    await sql`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
+  } catch { /* ignore */ }
+  _createdAtEnsured = true;
+}
+
+/** JST (UTC+9) で "M/Dレッスン復習" にフォーマット */
+function formatCategoryLabel(dateVal: unknown): string {
+  if (!dateVal) return 'レッスンで追加（最近）';
+  const d = new Date(dateVal as string);
+  if (isNaN(d.getTime())) return 'レッスンで追加（最近）';
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()}レッスン復習`;
+}
 
 /**
  * 受講生に割り当て済みかつレッスンフォーム由来チャンクのパターンを、新しい順に最大 limit 件。
@@ -22,12 +36,15 @@ export async function fetchRecentLessonForStudent(
   limit = 20
 ): Promise<{
   summary: RecentLessonSummaryItem[];
+  categoryLabel: string;
   practiceCategory: { category: string; icon: string; cards: Record<string, unknown>[] } | null;
 }> {
   const name = studentName?.trim();
   if (!name) {
-    return { summary: [], practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスンで追加（最近）', practiceCategory: null };
   }
+
+  await ensureCreatedAt();
 
   const rows = await sql`
     SELECT p.*,
@@ -47,8 +64,10 @@ export async function fetchRecentLessonForStudent(
   `;
 
   if (!rows.length) {
-    return { summary: [], practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスンで追加（最近）', practiceCategory: null };
   }
+
+  const categoryLabel = formatCategoryLabel(rows[0].created_at);
 
   const summary: RecentLessonSummaryItem[] = rows.map((r: Record<string, any>) => ({
     patternId: r.id,
@@ -64,9 +83,10 @@ export async function fetchRecentLessonForStudent(
 
   return {
     summary,
+    categoryLabel,
     practiceCategory: {
-      category: RECENT_CATEGORY.category,
-      icon: RECENT_CATEGORY.icon,
+      category: categoryLabel,
+      icon: 'message',
       cards,
     },
   };
