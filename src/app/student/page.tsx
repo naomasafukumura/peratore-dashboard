@@ -27,7 +27,7 @@ export default async function StudentHomePage() {
   const missingLabel = !name;
 
   let recentSummary: Awaited<ReturnType<typeof fetchRecentLessonForStudent>>['summary'] = [];
-  let recentCategoryLabel = 'レッスンで追加した例文（最近）';
+  let recentCategoryLabel = 'レッスン復習集';
   if (name) {
     try {
       const r = await fetchRecentLessonForStudent(name);

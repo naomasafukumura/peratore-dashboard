@@ -19,13 +19,8 @@ async function ensureCreatedAt(): Promise<void> {
   _createdAtEnsured = true;
 }
 
-/** JST (UTC+9) で "M/Dレッスン復習" にフォーマット */
-function formatCategoryLabel(dateVal: unknown): string {
-  if (!dateVal) return 'レッスンで追加（最近）';
-  const d = new Date(dateVal as string);
-  if (isNaN(d.getTime())) return 'レッスンで追加（最近）';
-  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()}レッスン復習`;
+function formatCategoryLabel(_dateVal: unknown): string {
+  return 'レッスン復習集';
 }
 
 /**
@@ -41,7 +36,7 @@ export async function fetchRecentLessonForStudent(
 }> {
   const name = studentName?.trim();
   if (!name) {
-    return { summary: [], categoryLabel: 'レッスンで追加（最近）', practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategory: null };
   }
 
   await ensureCreatedAt();
@@ -64,7 +59,7 @@ export async function fetchRecentLessonForStudent(
   `;
 
   if (!rows.length) {
-    return { summary: [], categoryLabel: 'レッスンで追加（最近）', practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategory: null };
   }
 
   const categoryLabel = formatCategoryLabel(rows[0].created_at);
