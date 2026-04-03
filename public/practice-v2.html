@@ -1783,7 +1783,7 @@ document.getElementById('lvAllPlay').addEventListener('click', (e) => {
 });
 
 // ===== List View Search =====
-function fuzzyMatch(query, target) {
+function lvFuzzySearch(query, target) {
   if (!query) return true;
   const q = query.toLowerCase().replace(/\s+/g, '');
   const t = target.toLowerCase();
@@ -1813,8 +1813,8 @@ function lvApplyFilter() {
     if (!el.classList.contains('lv-phrase')) return;
     const section = el.querySelector('.lv-phrase-sec')?.textContent || '';
     const catName = el._hdr?.querySelector('.lv-cat-hdr-text')?.textContent || '';
-    const phraseMatch = !phraseQ || fuzzyMatch(phraseQ, section);
-    const titleMatch = !titleQ || fuzzyMatch(titleQ, catName);
+    const phraseMatch = !phraseQ || lvFuzzySearch(phraseQ, section);
+    const titleMatch = !titleQ || lvFuzzySearch(titleQ, catName);
     el.classList.toggle('lv-hidden', !phraseMatch || !titleMatch);
   });
 
@@ -1822,7 +1822,7 @@ function lvApplyFilter() {
   allEls.forEach(el => {
     if (!el.classList.contains('lv-cat-hdr')) return;
     const catName = el.querySelector('.lv-cat-hdr-text')?.textContent || '';
-    const titleMatch = !titleQ || fuzzyMatch(titleQ, catName);
+    const titleMatch = !titleQ || lvFuzzySearch(titleQ, catName);
     const hasVisible = allEls.some(p =>
       p.classList.contains('lv-phrase') && p._hdr === el && !p.classList.contains('lv-hidden')
     );
