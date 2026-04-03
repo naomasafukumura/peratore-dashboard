@@ -1812,8 +1812,9 @@ function lvApplyFilter() {
   allEls.forEach(el => {
     if (!el.classList.contains('lv-phrase')) return;
     const section = el.querySelector('.lv-phrase-sec')?.textContent || '';
+    const displayId = el.querySelector('.lv-phrase-id')?.textContent || '';
     const catName = el._hdr?.querySelector('.lv-cat-hdr-text')?.textContent || '';
-    const phraseMatch = !phraseQ || lvFuzzySearch(phraseQ, section);
+    const phraseMatch = !phraseQ || lvFuzzySearch(phraseQ, section) || lvFuzzySearch(phraseQ, displayId + ' ' + section);
     const titleMatch = !titleQ || lvFuzzySearch(titleQ, catName);
     el.classList.toggle('lv-hidden', !phraseMatch || !titleMatch);
   });
@@ -1835,6 +1836,9 @@ function lvApplyFilter() {
   const $titleInput = document.getElementById('lvSearchTitle');
   const $phraseClear = document.getElementById('lvSearchPhraseClear');
   const $titleClear = document.getElementById('lvSearchTitleClear');
+
+  $phraseInput.addEventListener('focus', () => { $phraseInput.select(); });
+  $titleInput.addEventListener('focus', () => { $titleInput.select(); });
 
   $phraseInput.addEventListener('input', () => {
     $phraseClear.classList.toggle('show', $phraseInput.value.length > 0);
