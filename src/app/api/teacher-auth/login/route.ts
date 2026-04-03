@@ -1,9 +1,6 @@
-import { SignJWT } from 'jose';
+import { createTeacherSessionToken } from '@/lib/teacher-hmac';
 import { TEACHER_SESSION_COOKIE } from '@/lib/teacher-token';
-import {
-  resolveTeacherAuthSecret,
-  resolveTeacherPassword,
-} from '@/lib/teacher-password-resolve';
+import { resolveTeacherPassword } from '@/lib/teacher-password-resolve';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -29,14 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'パスワードが違います' }, { status: 401 });
   }
 
-  // 検証と同じキー導出ロジックを使ってJWTを署名する
-  const rawKey = resolveTeacherAuthSecret()?.trim() || expected;
-  const key = new TextEncoder().encode(rawKey);
-  const token = await new SignJWT({ role: 'teacher' })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(key);
+  const token = createTeacherSessionToken();
   const res = NextResponse.json({ ok: true });
   res.cookies.set(TEACHER_SESSION_COOKIE, token, {
     httpOnly: true,
