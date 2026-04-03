@@ -30,7 +30,7 @@ export default function TeacherLoginForm({ initialGateEnabled }: Props) {
         setError(data.error || 'ログインに失敗しました');
         return;
       }
-      window.location.replace(nextPath.startsWith('/') ? nextPath : '/teacher');
+      window.location.replace('/teacher');
     } catch {
       setError('通信エラー');
     } finally {
