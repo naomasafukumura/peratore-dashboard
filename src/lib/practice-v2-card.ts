@@ -8,6 +8,7 @@ export function practiceCardFromPattern(
   return {
     id: `db-${p.id}`,
     section: sectionTitleEn,
+    createdAt: p.created_at ? String(p.created_at) : null,
     trigger: p.fpp_question,
     triggerAudio: p.has_trigger_audio ? `/api/audio/${p.id}?type=fpp_question` : '',
     triggerJa: p.situation || '',

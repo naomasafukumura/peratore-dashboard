@@ -1599,10 +1599,11 @@ function openListView() {
       el.className = 'lv-phrase';
       el.setAttribute('data-lv-card-id', card.id);
       const hasT2 = st.followup && st.conclusion2Examples && st.conclusion2Examples.length > 0;
+      const cardDate = card.createdAt ? (() => { const d = new Date(card.createdAt); return isNaN(d.getTime()) ? '' : (d.getMonth()+1) + '/' + d.getDate(); })() : '';
       el.innerHTML = `
         <div class="lv-phrase-hdr">
           <span class="lv-phrase-id">${displayId}</span>
-          <span class="lv-phrase-sec">${escapeHtml(card.section)}</span>
+          <span class="lv-phrase-sec">${escapeHtml(card.section)}${cardDate ? ' <span style="font-size:9px;color:var(--text-faint);font-weight:400">('+cardDate+')</span>' : ''}</span>
           <button class="lv-card-repeat" data-card-idx="${total - 1}" title="リピート">${repeatSvg}</button>
           <button class="lv-play-all" data-card-idx="${total - 1}">${playSvg} 再生</button>
         </div>
