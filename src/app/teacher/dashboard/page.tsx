@@ -5,6 +5,8 @@ import TeacherDbMissing from '../TeacherDbMissing';
 
 export const dynamic = 'force-dynamic';
 
+export const dynamic = 'force-dynamic';
+
 const PRESET_STUDENTS = [
   '伊吾田恵津子', '犬塚美代子', '井上優子', '氏家敦子',
   '及川祐貴', '小川早喜', '小川美喜子', '甲斐博美',
