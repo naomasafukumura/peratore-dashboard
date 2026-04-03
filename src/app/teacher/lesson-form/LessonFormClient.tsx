@@ -157,16 +157,16 @@ export default function LessonFormClient() {
             {stage === 'preview' ? (
               <button onClick={() => setStage('form')} className="text-text-muted hover:text-text-dark shrink-0 text-sm">←</button>
             ) : (
-              <Link href="/teacher" className="text-text-muted hover:text-text-dark shrink-0 text-sm">←</Link>
+              <a href="/teacher" className="text-text-muted hover:text-text-dark shrink-0 text-sm">←</a>
             )}
             <h1 className="text-base font-bold text-text-dark truncate">
               {stage === 'preview' ? `解析結果（${previewPatterns.length}チャンク）` : 'レッスン後フォーム'}
             </h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <Link href="/teacher" className="text-xs text-primary font-medium">ダッシュボード</Link>
+            <a href="/teacher" className="text-xs text-primary font-medium">ダッシュボード</a>
             <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-medium">マニュアル</a>
-            <Link href="/teacher/logout" className="text-xs text-text-muted hover:text-text-dark">ログアウト</Link>
+            <a href="/teacher/logout" className="text-xs text-text-muted hover:text-text-dark">ログアウト</a>
           </div>
         </div>
       </header>
