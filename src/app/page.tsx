@@ -1,9 +1,5 @@
-import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
-import LessonFormClient from './teacher/lesson-form/LessonFormClient';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default async function Home() {
-  await redirectTeacherLoginIfNeeded('/');
-  return <LessonFormClient />;
+export default function Home() {
+  redirect('/teacher');
 }
