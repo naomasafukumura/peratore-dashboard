@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 const cards = [
   {
     href: '/teacher/lesson-form',
@@ -69,7 +67,7 @@ export default function TeacherHome() {
           </div>
           <div className="flex items-center gap-3 text-xs">
             <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-primary font-medium">マニュアル</a>
-            <Link href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</Link>
+            <a href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</a>
           </div>
         </div>
       </header>
@@ -106,9 +104,9 @@ export default function TeacherHome() {
                 {inner}
               </a>
             ) : (
-              <Link key={card.href} href={card.href} prefetch={false}>
+              <a key={card.href} href={card.href}>
                 {inner}
-              </Link>
+              </a>
             );
           })}
         </div>
