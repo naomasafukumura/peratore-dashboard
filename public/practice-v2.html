@@ -1674,10 +1674,12 @@ function openListView() {
       const idx = parseInt(btn.dataset.cardIdx);
       const card = lvFlatCards[idx];
       if (!card) return;
+      const repeatBtn = body.querySelector(`.lv-card-repeat[data-card-idx="${idx}"]`);
+      const doRepeat = repeatBtn && repeatBtn.classList.contains('on');
       lvStopAll();
       btn._origHtml = btn.innerHTML;
       btn.innerHTML = stopSvg + ' 停止';
-      lvPlayCards([card], false, () => { lvStopAll(); });
+      lvPlayCards([card], doRepeat, () => { lvStopAll(); if (repeatBtn) repeatBtn.classList.remove('on'); });
     });
   });
 
@@ -1685,13 +1687,7 @@ function openListView() {
   body.querySelectorAll('.lv-card-repeat').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (btn.classList.contains('on')) { lvStopAll(); btn.classList.remove('on'); return; }
-      const idx = parseInt(btn.dataset.cardIdx);
-      const card = lvFlatCards[idx];
-      if (!card) return;
-      lvStopAll();
-      btn.classList.add('on');
-      lvPlayCards([card], true, () => { btn.classList.remove('on'); });
+      btn.classList.toggle('on');
     });
   });
 
