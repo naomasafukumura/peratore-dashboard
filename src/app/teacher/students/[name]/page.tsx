@@ -1,5 +1,4 @@
 import { hasDatabaseUrl, sql } from '@/lib/db';
-import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
 import StudentPatternsClient from './StudentPatternsClient';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +6,6 @@ export const dynamic = 'force-dynamic';
 export default async function StudentDetailPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   const studentName = decodeURIComponent(name);
-  await redirectTeacherLoginIfNeeded(`/teacher/students/${name}`);
 
   let patterns: any[] = [];
 
