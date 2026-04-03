@@ -74,15 +74,19 @@ export default async function StudentHomePage() {
               <div key={month} className="mt-4">
                 <p className="text-xs font-semibold text-text-muted border-b border-border pb-1 mb-2">{month}（{items.length}件）</p>
                 <ol className="space-y-2 text-sm text-text-dark list-decimal list-inside">
-                  {items.map((row) => (
-                    <li key={row.patternId} className="pl-0">
-                      <span className="text-text-muted text-xs">[{row.categoryName}] {row.section}</span>
-                      <br />
-                      <span className="font-medium">{row.trigger}</span>
-                      <span className="text-text-muted"> → </span>
-                      <span>{row.spp}</span>
-                    </li>
-                  ))}
+                  {items.map((row) => {
+                    const d = row.createdAt ? new Date(row.createdAt) : null;
+                    const dateLabel = d && !isNaN(d.getTime()) ? `${d.getMonth() + 1}/${d.getDate()}` : null;
+                    return (
+                      <li key={row.patternId} className="pl-0">
+                        <span className="text-text-muted text-xs">[{row.categoryName}] {row.section}{dateLabel && <span className="ml-1 text-text-faint">({dateLabel})</span>}</span>
+                        <br />
+                        <span className="font-medium">{row.trigger}</span>
+                        <span className="text-text-muted"> → </span>
+                        <span>{row.spp}</span>
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
             ))}
