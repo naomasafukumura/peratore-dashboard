@@ -1852,11 +1852,13 @@ function lvMakeAC(input, drop, clearBtn, getOptions) {
     drop.classList.toggle('open', opts.length > 0);
   }
 
-  input.addEventListener('focus', () => {
+  function openDrop() {
     const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
     const opts = q ? getOptions().filter(o => lvFuzzySearch(q, o)) : getOptions();
     showDrop(opts);
-  });
+  }
+  input.addEventListener('focus', openDrop);
+  input.addEventListener('click', openDrop);
 
   input.addEventListener('input', () => {
     clearBtn.classList.toggle('show', input.value.length > 0);
