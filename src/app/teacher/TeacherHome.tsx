@@ -106,7 +106,7 @@ export default function TeacherHome() {
                 {inner}
               </a>
             ) : (
-              <Link key={card.href} href={card.href}>
+              <Link key={card.href} href={card.href} prefetch={false}>
                 {inner}
               </Link>
             );

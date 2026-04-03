@@ -26,11 +26,15 @@ export async function verifyTeacherSessionToken(
 ): Promise<boolean> {
   const key = verificationKey();
   if (!key) return true;
-  if (!token) return false;
+  if (!token) {
+    console.warn('[teacher-auth] cookie not found');
+    return false;
+  }
   try {
     await jwtVerify(token, key);
     return true;
-  } catch {
+  } catch (e) {
+    console.warn('[teacher-auth] JWT verify failed:', e instanceof Error ? e.message : String(e));
     return false;
   }
 }

@@ -1,4 +1,5 @@
-import { createTeacherJwt, TEACHER_SESSION_COOKIE } from '@/lib/teacher-token';
+import { SignJWT } from 'jose';
+import { TEACHER_SESSION_COOKIE } from '@/lib/teacher-token';
 import {
   resolveTeacherAuthSecret,
   resolveTeacherPassword,
@@ -28,15 +29,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'パスワードが違います' }, { status: 401 });
   }
 
-  if (!process.env.TEACHER_PASSWORD?.trim()) {
-    process.env.TEACHER_PASSWORD = expected;
-  }
-  const authSecret = resolveTeacherAuthSecret();
-  if (authSecret && !process.env.TEACHER_AUTH_SECRET?.trim()) {
-    process.env.TEACHER_AUTH_SECRET = authSecret;
-  }
-
-  const token = await createTeacherJwt();
+  // 検証と同じキー導出ロジックを使ってJWTを署名する
+  const rawKey = resolveTeacherAuthSecret()?.trim() || expected;
+  const key = new TextEncoder().encode(rawKey);
+  const token = await new SignJWT({ role: 'teacher' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(key);
   const res = NextResponse.json({ ok: true });
   res.cookies.set(TEACHER_SESSION_COOKIE, token, {
     httpOnly: true,
