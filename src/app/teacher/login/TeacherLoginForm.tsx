@@ -9,7 +9,7 @@ type Props = { initialGateEnabled: boolean };
 export default function TeacherLoginForm({ initialGateEnabled }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get('next') || '/';
+  const nextPath = searchParams.get('next') || '/teacher';
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
