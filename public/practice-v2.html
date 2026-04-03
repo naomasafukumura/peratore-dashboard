@@ -380,6 +380,15 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-range-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
+.lv-search-bar{display:flex;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
+.lv-search-wrap{flex:1;min-width:140px;position:relative}
+.lv-search-label{font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;display:block}
+.lv-search-input{width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--bg);box-sizing:border-box}
+.lv-search-input:focus{outline:none;border-color:var(--accent)}
+.lv-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:none}
+.lv-search-clear.show{display:block}
+.lv-phrase.lv-hidden{display:none}
+.lv-cat-hdr.lv-hidden{display:none}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
 .lv-phrase{background:var(--surface);border:1px solid var(--border-lt);border-radius:16px;padding:12px;box-shadow:var(--sh-s)}
 .lv-phrase-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
@@ -1022,6 +1031,20 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     <select id="lvRangeTo"></select>
     <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
     <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+  </div>
+  <div class="lv-search-bar">
+    <div class="lv-search-wrap">
+      <span class="lv-search-label">フレーズ検索</span>
+      <input type="text" id="lvSearchPhrase" class="lv-search-input" placeholder="例: What are you gonna…" list="lvPhraseList">
+      <datalist id="lvPhraseList"></datalist>
+      <button class="lv-search-clear" id="lvSearchPhraseClear">×</button>
+    </div>
+    <div class="lv-search-wrap">
+      <span class="lv-search-label">タイトル検索</span>
+      <input type="text" id="lvSearchTitle" class="lv-search-input" placeholder="例: 返答・未来" list="lvTitleList">
+      <datalist id="lvTitleList"></datalist>
+      <button class="lv-search-clear" id="lvSearchTitleClear">×</button>
+    </div>
   </div>
   <div class="lv-body" id="lvBody"></div>
   <button class="lv-top-btn" id="lvTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
@@ -1687,6 +1710,36 @@ function openListView() {
   });
   document.getElementById('lvTitle').textContent = 'Phrases';
   document.getElementById('lvCount').textContent = total + ' cards';
+
+  // 例文検索のdatalistを更新
+  const $phraseList = document.getElementById('lvPhraseList');
+  $phraseList.innerHTML = '';
+  const seenSections = new Set();
+  allCards.forEach(item => {
+    const sec = item.card.section;
+    if (seenSections.has(sec)) return;
+    seenSections.add(sec);
+    const opt = document.createElement('option');
+    opt.value = item.displayId + ' ' + sec;
+    $phraseList.appendChild(opt);
+  });
+
+  // タイトル検索のdatalistを更新
+  const $titleList = document.getElementById('lvTitleList');
+  $titleList.innerHTML = '';
+  DATA.forEach(cat => {
+    if (!cat.cards || !cat.cards.length) return;
+    const opt = document.createElement('option');
+    opt.value = cat.category;
+    $titleList.appendChild(opt);
+  });
+
+  // 検索入力をリセット
+  document.getElementById('lvSearchPhrase').value = '';
+  document.getElementById('lvSearchTitle').value = '';
+  document.getElementById('lvSearchPhraseClear').classList.remove('show');
+  document.getElementById('lvSearchTitleClear').classList.remove('show');
+
   $cover.classList.add('hide');
   document.getElementById('listView').classList.add('show');
 }
@@ -1728,6 +1781,80 @@ document.getElementById('lvAllPlay').addEventListener('click', (e) => {
   btn.innerHTML = stopSvg + ' 停止';
   lvPlayCards(lvFlatCards, false, () => { lvStopAll(); });
 });
+
+// ===== List View Search =====
+function fuzzyMatch(query, target) {
+  if (!query) return true;
+  const q = query.toLowerCase().replace(/\s+/g, '');
+  const t = target.toLowerCase();
+  let matched = 0, ti = 0;
+  for (let qi = 0; qi < q.length; qi++) {
+    while (ti < t.length && t[ti] !== q[qi]) ti++;
+    if (ti < t.length) { matched++; ti++; }
+  }
+  return q.length === 0 || matched / q.length >= 0.7;
+}
+
+function lvApplyFilter() {
+  const phraseQ = document.getElementById('lvSearchPhrase').value.trim();
+  const titleQ = document.getElementById('lvSearchTitle').value.trim();
+  const body = document.getElementById('lvBody');
+
+  // 各phraseにヒットするカテゴリヘッダーを事前に紐付け
+  const allEls = Array.from(body.children);
+  let currentHdr = null;
+  allEls.forEach(el => {
+    if (el.classList.contains('lv-cat-hdr')) { currentHdr = el; }
+    else if (el.classList.contains('lv-phrase')) { el._hdr = currentHdr; }
+  });
+
+  // phraseを絞り込み
+  allEls.forEach(el => {
+    if (!el.classList.contains('lv-phrase')) return;
+    const section = el.querySelector('.lv-phrase-sec')?.textContent || '';
+    const catName = el._hdr?.querySelector('.lv-cat-hdr-text')?.textContent || '';
+    const phraseMatch = !phraseQ || fuzzyMatch(phraseQ, section);
+    const titleMatch = !titleQ || fuzzyMatch(titleQ, catName);
+    el.classList.toggle('lv-hidden', !phraseMatch || !titleMatch);
+  });
+
+  // カテゴリヘッダーを、配下に表示中のカードがあるときだけ表示
+  allEls.forEach(el => {
+    if (!el.classList.contains('lv-cat-hdr')) return;
+    const catName = el.querySelector('.lv-cat-hdr-text')?.textContent || '';
+    const titleMatch = !titleQ || fuzzyMatch(titleQ, catName);
+    const hasVisible = allEls.some(p =>
+      p.classList.contains('lv-phrase') && p._hdr === el && !p.classList.contains('lv-hidden')
+    );
+    el.classList.toggle('lv-hidden', !titleMatch || !hasVisible);
+  });
+}
+
+(function() {
+  const $phraseInput = document.getElementById('lvSearchPhrase');
+  const $titleInput = document.getElementById('lvSearchTitle');
+  const $phraseClear = document.getElementById('lvSearchPhraseClear');
+  const $titleClear = document.getElementById('lvSearchTitleClear');
+
+  $phraseInput.addEventListener('input', () => {
+    $phraseClear.classList.toggle('show', $phraseInput.value.length > 0);
+    lvApplyFilter();
+  });
+  $titleInput.addEventListener('input', () => {
+    $titleClear.classList.toggle('show', $titleInput.value.length > 0);
+    lvApplyFilter();
+  });
+  $phraseClear.addEventListener('click', () => {
+    $phraseInput.value = '';
+    $phraseClear.classList.remove('show');
+    lvApplyFilter();
+  });
+  $titleClear.addEventListener('click', () => {
+    $titleInput.value = '';
+    $titleClear.classList.remove('show');
+    lvApplyFilter();
+  });
+})();
 
 // ===== Stage helpers =====
 function clearStage() {

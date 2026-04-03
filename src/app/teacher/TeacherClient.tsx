@@ -69,8 +69,8 @@ export default function TeacherClient({ categoryNames, studentNames }: Props) {
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <h1 className="text-base font-bold text-text-dark">新規教材管理</h1>
           <div className="flex items-center gap-3 text-xs">
-            <Link href="/teacher/students" className="text-primary font-medium">受講生リンク一覧</Link>
-            <Link href="/teacher/lesson-form" className="text-primary font-medium">レッスン後フォーム</Link>
+            <Link href="/teacher" className="text-primary font-medium">ダッシュボード</Link>
+            <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-primary font-medium">マニュアル</a>
             <Link href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</Link>
           </div>
         </div>

@@ -30,7 +30,7 @@ export default function TeacherLoginForm({ initialGateEnabled }: Props) {
         setError(data.error || 'ログインに失敗しました');
         return;
       }
-      window.location.href = nextPath.startsWith('/') ? nextPath : '/';
+      window.location.replace(nextPath.startsWith('/') ? nextPath : '/teacher');
     } catch {
       setError('通信エラー');
     } finally {
@@ -99,6 +99,10 @@ export default function TeacherLoginForm({ initialGateEnabled }: Props) {
           </button>
         </form>
       </div>
+      <p className="mt-4 text-xs text-text-muted">
+        管理者ログインは
+        <Link href="/teacher/admin/login" className="text-primary underline ml-1">こちら</Link>
+      </p>
     </div>
   );
 }

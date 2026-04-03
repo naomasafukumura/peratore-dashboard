@@ -164,8 +164,8 @@ export default function LessonFormClient() {
             </h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <Link href="/practice-v2.html" className="text-xs text-primary font-medium">教材</Link>
-            <Link href="/teacher/dashboard" className="text-xs text-primary font-medium">ダッシュボード</Link>
+            <Link href="/teacher" className="text-xs text-primary font-medium">ダッシュボード</Link>
+            <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-medium">マニュアル</a>
             <Link href="/teacher/logout" className="text-xs text-text-muted hover:text-text-dark">ログアウト</Link>
           </div>
         </div>

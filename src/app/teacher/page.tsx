@@ -1,7 +1,9 @@
-import { redirect } from 'next/navigation';
+import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
+import TeacherHome from './TeacherHome';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TeacherPage() {
-  redirect('/teacher/students');
+  await redirectTeacherLoginIfNeeded('/teacher');
+  return <TeacherHome />;
 }

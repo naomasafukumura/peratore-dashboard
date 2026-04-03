@@ -46,8 +46,36 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'approve') {
-    // 実際に削除
+    // バックアップテーブル作成（初回のみ）
+    await sql`
+      CREATE TABLE IF NOT EXISTS deleted_student_assignments (
+        id SERIAL PRIMARY KEY,
+        student_name TEXT NOT NULL,
+        chunk_id INT NOT NULL,
+        deleted_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS deleted_student_meta (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        yomi TEXT,
+        deleted_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
+    // assignments をバックアップしてから削除
+    await sql`
+      INSERT INTO deleted_student_assignments (student_name, chunk_id)
+      SELECT student_name, chunk_id FROM assignments WHERE student_name = ${request.student_name}
+    `;
     await sql`DELETE FROM assignments WHERE student_name = ${request.student_name}`;
+
+    // student_meta をバックアップしてから削除
+    await sql`
+      INSERT INTO deleted_student_meta (name, yomi)
+      SELECT name, yomi FROM student_meta WHERE name = ${request.student_name}
+    `.catch(() => {});
     await sql`DELETE FROM student_meta WHERE name = ${request.student_name}`.catch(() => {});
   }
 
