@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { hasDatabaseUrl, sql } from '@/lib/db';
 import { redirectTeacherLoginIfNeeded } from '@/lib/redirect-teacher-login-if-needed';
 import StudentsClient from './StudentsClient';
@@ -20,6 +21,8 @@ const PRESET_STUDENTS = [
 export type StudentEntry = { name: string; yomi: string };
 
 export default async function StudentsPage() {
+  const jar = await cookies();
+  console.log('[debug-students] cookies present:', jar.getAll().map(c => c.name));
   await redirectTeacherLoginIfNeeded('/teacher/students');
 
   let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '' }));
