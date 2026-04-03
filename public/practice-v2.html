@@ -387,6 +387,11 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-search-input:focus{outline:none;border-color:var(--accent)}
 .lv-search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:none}
 .lv-search-clear.show{display:block}
+.lv-ac-drop{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-height:200px;overflow-y:auto;display:none}
+.lv-ac-drop.open{display:block}
+.lv-ac-opt{padding:6px 10px;font-size:12px;font-family:var(--fja);color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-ac-opt:hover,.lv-ac-opt.active{background:var(--accent);color:#fff}
+.lv-search-note{font-size:10px;color:var(--text-muted);padding:4px 16px 6px;background:var(--surface)}
 .lv-phrase.lv-hidden{display:none}
 .lv-cat-hdr.lv-hidden{display:none}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
@@ -1035,17 +1040,18 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
   <div class="lv-search-bar">
     <div class="lv-search-wrap">
       <span class="lv-search-label">フレーズ検索</span>
-      <input type="text" id="lvSearchPhrase" class="lv-search-input" placeholder="例: What are you gonna…" list="lvPhraseList">
-      <datalist id="lvPhraseList"></datalist>
+      <input type="text" id="lvSearchPhrase" class="lv-search-input" placeholder="例: What are you gonna…" autocomplete="off">
+      <div class="lv-ac-drop" id="lvPhraseDrop"></div>
       <button class="lv-search-clear" id="lvSearchPhraseClear">×</button>
     </div>
     <div class="lv-search-wrap">
       <span class="lv-search-label">タイトル検索</span>
-      <input type="text" id="lvSearchTitle" class="lv-search-input" placeholder="例: 返答・未来" list="lvTitleList">
-      <datalist id="lvTitleList"></datalist>
+      <input type="text" id="lvSearchTitle" class="lv-search-input" placeholder="例: 返答・未来" autocomplete="off">
+      <div class="lv-ac-drop" id="lvTitleDrop"></div>
       <button class="lv-search-clear" id="lvSearchTitleClear">×</button>
     </div>
   </div>
+  <p class="lv-search-note">＊どちらかの検索一つで検索してください。両方がマッチしない場合は検索結果が表示されません。</p>
   <div class="lv-body" id="lvBody"></div>
   <button class="lv-top-btn" id="lvTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
 </div>
@@ -1711,27 +1717,19 @@ function openListView() {
   document.getElementById('lvTitle').textContent = 'Phrases';
   document.getElementById('lvCount').textContent = total + ' cards';
 
-  // 例文検索のdatalistを更新
-  const $phraseList = document.getElementById('lvPhraseList');
-  $phraseList.innerHTML = '';
+  // オートコンプリート候補を更新
   const seenSections = new Set();
+  lvPhraseOptions = [];
   allCards.forEach(item => {
     const sec = item.card.section;
     if (seenSections.has(sec)) return;
     seenSections.add(sec);
-    const opt = document.createElement('option');
-    opt.value = item.displayId + ' ' + sec;
-    $phraseList.appendChild(opt);
+    lvPhraseOptions.push(item.displayId + ' ' + sec);
   });
-
-  // タイトル検索のdatalistを更新
-  const $titleList = document.getElementById('lvTitleList');
-  $titleList.innerHTML = '';
+  lvTitleOptions = [];
   DATA.forEach(cat => {
     if (!cat.cards || !cat.cards.length) return;
-    const opt = document.createElement('option');
-    opt.value = cat.category;
-    $titleList.appendChild(opt);
+    lvTitleOptions.push(cat.category);
   });
 
   // 検索入力をリセット
@@ -1831,33 +1829,68 @@ function lvApplyFilter() {
   });
 }
 
+// オートコンプリート候補（lvRenderList実行時に更新）
+var lvPhraseOptions = [];
+var lvTitleOptions = [];
+
+function lvMakeAC(input, drop, clearBtn, getOptions) {
+  function showDrop(opts) {
+    drop.innerHTML = '';
+    opts.forEach(val => {
+      const d = document.createElement('div');
+      d.className = 'lv-ac-opt';
+      d.textContent = val;
+      d.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = val;
+        clearBtn.classList.add('show');
+        drop.classList.remove('open');
+        lvApplyFilter();
+      });
+      drop.appendChild(d);
+    });
+    drop.classList.toggle('open', opts.length > 0);
+  }
+
+  input.addEventListener('focus', () => {
+    const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
+    const opts = q ? getOptions().filter(o => lvFuzzySearch(q, o)) : getOptions();
+    showDrop(opts);
+  });
+
+  input.addEventListener('input', () => {
+    clearBtn.classList.toggle('show', input.value.length > 0);
+    lvApplyFilter();
+    const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
+    const opts = q ? getOptions().filter(o => lvFuzzySearch(q, o)) : getOptions();
+    showDrop(opts);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => drop.classList.remove('open'), 150);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clearBtn.classList.remove('show');
+    drop.classList.remove('open');
+    lvApplyFilter();
+  });
+}
+
 (function() {
-  const $phraseInput = document.getElementById('lvSearchPhrase');
-  const $titleInput = document.getElementById('lvSearchTitle');
-  const $phraseClear = document.getElementById('lvSearchPhraseClear');
-  const $titleClear = document.getElementById('lvSearchTitleClear');
-
-  $phraseInput.addEventListener('focus', () => { $phraseInput.select(); });
-  $titleInput.addEventListener('focus', () => { $titleInput.select(); });
-
-  $phraseInput.addEventListener('input', () => {
-    $phraseClear.classList.toggle('show', $phraseInput.value.length > 0);
-    lvApplyFilter();
-  });
-  $titleInput.addEventListener('input', () => {
-    $titleClear.classList.toggle('show', $titleInput.value.length > 0);
-    lvApplyFilter();
-  });
-  $phraseClear.addEventListener('click', () => {
-    $phraseInput.value = '';
-    $phraseClear.classList.remove('show');
-    lvApplyFilter();
-  });
-  $titleClear.addEventListener('click', () => {
-    $titleInput.value = '';
-    $titleClear.classList.remove('show');
-    lvApplyFilter();
-  });
+  lvMakeAC(
+    document.getElementById('lvSearchPhrase'),
+    document.getElementById('lvPhraseDrop'),
+    document.getElementById('lvSearchPhraseClear'),
+    () => lvPhraseOptions
+  );
+  lvMakeAC(
+    document.getElementById('lvSearchTitle'),
+    document.getElementById('lvTitleDrop'),
+    document.getElementById('lvSearchTitleClear'),
+    () => lvTitleOptions
+  );
 })();
 
 // ===== Stage helpers =====
