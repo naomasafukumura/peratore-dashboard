@@ -1,8 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 const cards = [
   {
@@ -58,16 +56,6 @@ const cards = [
 ];
 
 export default function TeacherHome() {
-  const router = useRouter();
-
-  // キャッシュからLPが表示されていても、未認証ならログインへ飛ばす
-  useEffect(() => {
-    fetch('/api/teacher-auth/me', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(({ ok }) => { if (!ok) router.replace('/teacher/login'); })
-      .catch(() => {});
-  }, [router]);
-
   return (
     <div className="min-h-screen bg-bg-page">
       {/* Header */}
