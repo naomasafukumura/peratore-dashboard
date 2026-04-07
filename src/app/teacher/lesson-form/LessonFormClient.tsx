@@ -33,14 +33,22 @@ function matchScore(query: string, target: string): number {
   return matched / query.length;
 }
 
-function studentMatches(query: string, s: { name: string; yomi: string }): boolean {
+function isHiragana(s: string): boolean {
+  return /^[\u3040-\u309F]+$/.test(s);
+}
+
+function studentMatches(query: string, s: { name: string; yomi: string; displayName: string }): boolean {
   if (!query) return true;
-  return matchScore(query, s.name) >= 0.7 || matchScore(query, s.yomi) >= 0.7;
+  if (isHiragana(query)) {
+    if (query.length < 2) return false;
+    return matchScore(query, s.yomi) >= 0.9 || matchScore(query, s.displayName) >= 0.9;
+  }
+  return matchScore(query, s.name) >= 0.7;
 }
 
 export default function LessonFormClient() {
   const pathname = usePathname() || '/';
-  const [students, setStudents] = useState<{ name: string; yomi: string }[]>([]);
+  const [students, setStudents] = useState<{ name: string; yomi: string; displayName: string }[]>([]);
   const [studentName, setStudentName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const studentInputRef = useRef<HTMLInputElement>(null);

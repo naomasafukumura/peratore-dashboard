@@ -70,11 +70,13 @@ export async function GET(req: NextRequest) {
 
     if (withYomi) {
       let yomiMap = new Map<string, string>();
+      let displayNameMap = new Map<string, string>();
       try {
-        const metaRows = await sql`SELECT name, yomi FROM student_meta WHERE yomi IS NOT NULL`;
-        yomiMap = new Map((metaRows as { name: string; yomi: string }[]).map(r => [r.name, r.yomi]));
+        const metaRows = await sql`SELECT name, yomi, display_name FROM student_meta`;
+        yomiMap = new Map((metaRows as { name: string; yomi: string; display_name: string }[]).map(r => [r.name, r.yomi ?? '']));
+        displayNameMap = new Map((metaRows as { name: string; yomi: string; display_name: string }[]).map(r => [r.name, r.display_name ?? '']));
       } catch {}
-      return NextResponse.json({ students: all.map(name => ({ name, yomi: yomiMap.get(name) ?? '' })) });
+      return NextResponse.json({ students: all.map(name => ({ name, yomi: yomiMap.get(name) ?? '', displayName: displayNameMap.get(name) ?? '' })) });
     }
 
     return NextResponse.json({ students: all });
