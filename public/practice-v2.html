@@ -414,6 +414,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-play-all{margin-left:auto;display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;font-weight:700;font-family:var(--fja);cursor:pointer;transition:all .15s}
 .lv-play-all svg{width:10px;height:10px}
 .lv-play-all:active{background:var(--accent-soft);transform:scale(.95)}
+.lv-practice-btn{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;border:1.5px solid var(--green-bd);background:transparent;color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);cursor:pointer;transition:all .15s}
+.lv-practice-btn:active{background:var(--green-bg);transform:scale(.95)}
 .lv-hint{font-size:11px;color:var(--text-muted);padding:2px 40px 4px;line-height:1.5;animation:fadeIn .2s var(--eo)}
 .lv-hint-ja{color:var(--text-sub)}
 .lv-hint-tip{color:var(--accent);font-size:10px}
@@ -634,6 +636,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .rv-item-date{color:var(--text-faint);margin-left:4px}
 .rv-item-trigger{font-size:14px;font-weight:500;font-family:var(--fen);color:var(--text);margin-top:2px}
 .rv-item-spp{font-size:13px;color:var(--text-sub);margin-top:1px}
+.rv-practice-btn{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
+.rv-practice-btn:active{background:var(--green-bg)}
 
 .fb-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center}
 .fb-overlay.show{display:flex}
@@ -698,7 +702,10 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     </button>
   </div>
   <div class="cv-hero">
-    <div class="cv-title"><span class="cv-hl">Pattern</span> Practice</div>
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <div class="cv-title"><span class="cv-hl">Pattern</span> Practice</div>
+      <span id="cvStudentName" style="font-size:18px;font-weight:600;color:var(--text-sub);margin-left:8px"></span>
+    </div>
   </div>
   <div class="cv-sec">
     <div class="cv-sec-hdr">Category</div>
@@ -1181,8 +1188,14 @@ async function loadDataFromAPI() {
   try {
     const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const apiData = await res.json();
+    const apiJson = await res.json();
+    const apiData = Array.isArray(apiJson) ? apiJson : (apiJson.data || []);
+    const displayName = !Array.isArray(apiJson) ? (apiJson.displayName || null) : null;
     DATA = mergePracticeData(FALLBACK_DATA, apiData);
+    if (displayName) {
+      const el = document.getElementById('cvStudentName');
+      if (el) el.textContent = displayName;
+    }
   } catch(e) {
     console.log('API not available, using embedded data:', e.message);
     DATA = FALLBACK_DATA;
@@ -1533,12 +1546,22 @@ $startBtn.addEventListener('click', () => {
 $backBtn.addEventListener('click', () => {
   stopAll();
   $prac.classList.remove('show');
-  $cover.classList.remove('hide');
+  if (lvFromListView) {
+    lvFromListView = false;
+    openListView();
+  } else {
+    $cover.classList.remove('hide');
+  }
 });
 
 document.getElementById('completeBtn').addEventListener('click', () => {
   $complete.classList.remove('show');
-  $cover.classList.remove('hide');
+  if (lvFromListView) {
+    lvFromListView = false;
+    openListView();
+  } else {
+    $cover.classList.remove('hide');
+  }
 });
 
 $coverListBtn.addEventListener('click', openListView);
@@ -1587,6 +1610,7 @@ function playAudioOrFallback(audioPath, fallbackText) {
 // ===== List View Player State =====
 let lvPlayState = { active: false, cancel: false };
 let lvFlatCards = [];
+let lvFromListView = false;
 
 function lvStopAll() {
   lvPlayState.cancel = true;
@@ -1668,6 +1692,7 @@ function openListView() {
           <span class="lv-phrase-sec">${escapeHtml(card.section)}${cardDate ? ' <span style="font-size:9px;color:var(--text-faint);font-weight:400">('+cardDate+')</span>' : ''}</span>
           <button class="lv-card-repeat" data-card-idx="${total - 1}" title="リピート">${repeatSvg}</button>
           <button class="lv-play-all" data-card-idx="${total - 1}">${playSvg} 再生</button>
+          <button class="lv-practice-btn" data-card-idx="${total - 1}">練習する</button>
         </div>
         <div class="lv-sit">${escapeHtml(st.situation)}</div>
         <div class="lv-turn-label">Turn 1</div>
@@ -1751,6 +1776,28 @@ function openListView() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       btn.classList.toggle('on');
+    });
+  });
+
+  // 練習するボタン
+  body.querySelectorAll('.lv-practice-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.cardIdx);
+      const card = lvFlatCards[idx];
+      if (!card) return;
+      lvStopAll();
+      lvFromListView = true;
+      cards = [card];
+      currentIdx = 0;
+      stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
+      responseTimes = [];
+      cardTurnResults = [];
+      document.getElementById('listView').classList.remove('show');
+      $cover.classList.add('hide');
+      $prac.classList.add('show');
+      $complete.classList.remove('show');
+      loadCard();
     });
   });
 
@@ -3931,16 +3978,26 @@ async function initReviewSearch(studentName) {
   const btn = document.getElementById('rvSearchBtn');
   if (btn) btn.classList.add('show');
 
-  // Load review data
+  // Load review data (sessionStorage cache for fast return from practice)
   try {
-    const url = '/api/student/recent-lesson?student=' + encodeURIComponent(studentName);
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) return;
-    const json = await res.json();
-    _rvData = (json.summary || []).map(item => ({
-      ...item,
-      _date: item.createdAt ? new Date(item.createdAt) : null,
-    }));
+    const cacheKey = 'rvData_' + studentName;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      _rvData = JSON.parse(cached).map(item => ({
+        ...item,
+        _date: item.createdAt ? new Date(item.createdAt) : null,
+      }));
+    } else {
+      const url = '/api/student/recent-lesson?student=' + encodeURIComponent(studentName);
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) return;
+      const json = await res.json();
+      _rvData = (json.summary || []).map(item => ({
+        ...item,
+        _date: item.createdAt ? new Date(item.createdAt) : null,
+      }));
+      sessionStorage.setItem(cacheKey, JSON.stringify(json.summary || []));
+    }
   } catch (e) {
     console.log('review search load error:', e.message);
     return;
@@ -3952,6 +4009,13 @@ async function initReviewSearch(studentName) {
     renderReviewList(_rvData);
     document.getElementById('rvSearchInput').focus();
   });
+
+  // ?rv=1 で戻ってきた場合は自動オープン
+  if (new URLSearchParams(location.search).get('rv') === '1') {
+    history.replaceState(null, '', location.pathname);
+    document.getElementById('rvPanel').classList.add('show');
+    renderReviewList(_rvData);
+  }
 
   document.getElementById('rvPanelClose').addEventListener('click', () => {
     document.getElementById('rvPanel').classList.remove('show');
@@ -4021,6 +4085,11 @@ function renderReviewList(items) {
         html += '<div class="rv-item-meta">[' + (item.categoryName || '') + '] ' + (item.section || '') + (dl ? '<span class="rv-item-date">(' + dl + ')</span>' : '') + '</div>';
         html += '<div class="rv-item-trigger">' + (item.trigger || '') + '</div>';
         html += '<div class="rv-item-spp">' + (item.spp || '') + '</div>';
+        if (item.patternId) {
+          const studentParam = new URLSearchParams(location.search).get('student') || '';
+          const practiceUrl = '/practice/pattern/' + item.patternId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
+          html += '<a class="rv-practice-btn" href="' + practiceUrl + '">練習する</a>';
+        }
         html += '</div>';
       }
       html += '</div></div>';

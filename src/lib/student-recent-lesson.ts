@@ -20,7 +20,11 @@ async function ensureCreatedAt(): Promise<void> {
   _createdAtEnsured = true;
 }
 
-function formatCategoryLabel(_dateVal: unknown): string {
+function formatCategoryLabel(dateVal: unknown): string {
+  const d = dateVal ? new Date(String(dateVal)) : null;
+  if (d && !isNaN(d.getTime())) {
+    return `${d.getFullYear()}年${d.getMonth() + 1}月復習集`;
+  }
   return 'レッスン復習集';
 }
 

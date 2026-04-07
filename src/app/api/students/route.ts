@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   if (denied) return denied;
 
   const googleMode = req.nextUrl.searchParams.get('google') === '1';
+  const withYomi = req.nextUrl.searchParams.get('withYomi') === '1';
 
   try {
     if (googleMode) {
@@ -66,10 +67,63 @@ export async function GET(req: NextRequest) {
     const all = Array.from(new Set([...PRESET_STUDENTS, ...fromDb, ...registeredNames])).sort((a, b) =>
       a.localeCompare(b, 'ja')
     );
+
+    if (withYomi) {
+      let yomiMap = new Map<string, string>();
+      try {
+        const metaRows = await sql`SELECT name, yomi FROM student_meta WHERE yomi IS NOT NULL`;
+        yomiMap = new Map((metaRows as { name: string; yomi: string }[]).map(r => [r.name, r.yomi]));
+      } catch {}
+      return NextResponse.json({ students: all.map(name => ({ name, yomi: yomiMap.get(name) ?? '' })) });
+    }
+
     return NextResponse.json({ students: all });
   } catch (e) {
     console.error('students GET:', e);
     return NextResponse.json({ students: [], error: (e as Error).message });
+  }
+}
+
+/**
+ * POST /api/students
+ * body: { name: string, yomi?: string, displayName?: string }
+ * 受講生を registered_students に追加し、yomi/displayName を student_meta に保存
+ */
+export async function POST(req: NextRequest) {
+  const denied = await unauthorizedIfNotTeacher(req);
+  if (denied) return denied;
+
+  try {
+    const { name, yomi, displayName } = await req.json();
+    const trimmed = typeof name === 'string' ? name.trim() : '';
+    const trimmedYomi = typeof yomi === 'string' ? yomi.trim() : '';
+    const trimmedDisplay = typeof displayName === 'string' ? displayName.trim() : '';
+    if (!trimmed) return NextResponse.json({ error: '受講生名を入力してください' }, { status: 400 });
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS registered_students (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE
+      )
+    `;
+    await sql`
+      INSERT INTO registered_students (name) VALUES (${trimmed})
+      ON CONFLICT (name) DO NOTHING
+    `;
+    if (trimmedYomi || trimmedDisplay) {
+      await sql`ALTER TABLE student_meta ADD COLUMN IF NOT EXISTS display_name TEXT`;
+      await sql`
+        INSERT INTO student_meta (name, yomi, display_name)
+        VALUES (${trimmed}, ${trimmedYomi || null}, ${trimmedDisplay || null})
+        ON CONFLICT (name) DO UPDATE
+          SET yomi = COALESCE(EXCLUDED.yomi, student_meta.yomi),
+              display_name = COALESCE(EXCLUDED.display_name, student_meta.display_name)
+      `;
+    }
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error('students POST:', e);
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
 

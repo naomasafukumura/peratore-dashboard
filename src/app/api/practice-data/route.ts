@@ -91,7 +91,16 @@ export async function GET(req: NextRequest) {
     // 空カテゴリを除外
     const data = Array.from(catMap.values()).filter(c => c.cards.length > 0);
 
-    return NextResponse.json(data);
+    // display_name を取得
+    let displayName: string | null = null;
+    if (studentName) {
+      try {
+        const meta = await sql`SELECT display_name FROM student_meta WHERE name = ${studentName} LIMIT 1`;
+        displayName = (meta[0] as any)?.display_name ?? null;
+      } catch { /* カラム未作成の場合はスキップ */ }
+    }
+
+    return NextResponse.json({ data, displayName });
   } catch (e) {
     console.error('Practice data error:', e);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

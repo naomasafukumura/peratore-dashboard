@@ -18,11 +18,17 @@ export default function StudentsClient({
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editYomi, setEditYomi] = useState('');
+  const [editDisplayName, setEditDisplayName] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [requesting, setRequesting] = useState<string | null>(null);
   const [noteTarget, setNoteTarget] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newYomi, setNewYomi] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const filtered = query.trim()
     ? students.filter(s => s.name.includes(query.trim()) || s.yomi.includes(query.trim()))
@@ -30,8 +36,9 @@ export default function StudentsClient({
 
   const startEdit = (s: StudentEntry) => {
     setEditing(s.name);
-    setEditName(s.name);
-    setEditYomi(s.yomi);
+    setEditName(s.name ?? '');
+    setEditYomi(s.yomi ?? '');
+    setEditDisplayName(s.displayName ?? '');
     setRenameError(null);
   };
 
@@ -43,6 +50,43 @@ export default function StudentsClient({
   const openNoteModal = (name: string) => {
     setNoteTarget(name);
     setNote('');
+  };
+
+  const handleAddStudent = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (students.some(s => s.name === trimmed)) {
+      setAddError('すでに登録済みです');
+      return;
+    }
+    setAdding(true);
+    setAddError(null);
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed, yomi: newYomi.trim(), displayName: newDisplayName.trim() }),
+      });
+      if (!res.ok) {
+        const j = await res.json();
+        setAddError(j.error || '追加に失敗しました');
+        return;
+      }
+      const yomi = newYomi.trim();
+      setStudents(prev => [...prev, { name: trimmed, yomi }].sort((a, b) => {
+        const ya = a.yomi || a.name;
+        const yb = b.yomi || b.name;
+        return ya.localeCompare(yb, 'ja');
+      }));
+      setNewName('');
+      setNewYomi('');
+      setNewDisplayName('');
+    } catch {
+      setAddError('追加に失敗しました');
+    } finally {
+      setAdding(false);
+    }
   };
 
   const submitDeletionRequest = async () => {
@@ -78,7 +122,7 @@ export default function StudentsClient({
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldName, newName, yomi: newYomi }),
+        body: JSON.stringify({ oldName, newName, yomi: newYomi, displayName: editDisplayName.trim() }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -87,7 +131,7 @@ export default function StudentsClient({
       }
       setStudents(prev => {
         const updated = prev.map(s =>
-          s.name === oldName ? { name: newName, yomi: newYomi } : s
+          s.name === oldName ? { name: newName, yomi: newYomi, displayName: editDisplayName.trim() } : s
         );
         return [...updated].sort((a, b) => {
           const ya = a.yomi || a.name;
@@ -150,6 +194,47 @@ export default function StudentsClient({
           </div>
         </div>
         <div className="max-w-2xl mx-auto px-4 pb-3">
+          <p className="text-xs font-semibold text-text-dark mb-2">受講生追加</p>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <div>
+              <p className="text-[10px] text-text-muted mb-1">氏名</p>
+              <input
+                value={newName}
+                onChange={e => { setNewName(e.target.value); setAddError(null); }}
+                placeholder="例：佐藤妙"
+                className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder:text-text-light focus:outline-none focus:border-primary/40"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted mb-1">ふりがな</p>
+              <input
+                value={newYomi}
+                onChange={e => setNewYomi(e.target.value)}
+                placeholder="例：さとうたえ"
+                className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder:text-text-light focus:outline-none focus:border-primary/40"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted mb-1">専用ページのお名前</p>
+              <input
+                value={newDisplayName}
+                onChange={e => setNewDisplayName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddStudent()}
+                placeholder="例：妙さん"
+                className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm text-text-dark placeholder:text-text-light focus:outline-none focus:border-primary/40"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleAddStudent}
+            disabled={adding || !newName.trim()}
+            className="px-4 py-2 bg-primary text-text-dark rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40"
+          >
+            {adding ? '追加中…' : '追加'}
+          </button>
+          {addError && <p className="text-xs text-error mt-1">{addError}</p>}
+        </div>
+        <div className="max-w-2xl mx-auto px-4 pb-3 border-t border-border pt-3">
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -186,6 +271,13 @@ export default function StudentsClient({
                         onChange={e => setEditYomi(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') saveEdit(name); if (e.key === 'Escape') cancelEdit(); }}
                         placeholder="ふりがな（例: さとうゆい）"
+                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark focus:outline-none"
+                      />
+                      <input
+                        value={editDisplayName}
+                        onChange={e => setEditDisplayName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(name); if (e.key === 'Escape') cancelEdit(); }}
+                        placeholder="専用ページのお名前（例: 妙さん）"
                         className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark focus:outline-none"
                       />
                     </div>

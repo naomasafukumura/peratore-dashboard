@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const PLACEHOLDER_LESSON_MEMO =
   'レッスンで話したこと・使った表現・日本語メモなど、自由に書いてください。\n例：週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。';
@@ -23,10 +23,28 @@ type ExtractedPattern = {
   similarPatterns?: SimilarPattern[];
 };
 
+function matchScore(query: string, target: string): number {
+  if (!query || !target) return 0;
+  if (target.includes(query)) return 1;
+  let matched = 0;
+  for (const ch of query) {
+    if (target.includes(ch)) matched++;
+  }
+  return matched / query.length;
+}
+
+function studentMatches(query: string, s: { name: string; yomi: string }): boolean {
+  if (!query) return true;
+  return matchScore(query, s.name) >= 0.7 || matchScore(query, s.yomi) >= 0.7;
+}
+
 export default function LessonFormClient() {
   const pathname = usePathname() || '/';
-  const [students, setStudents] = useState<string[]>([]);
+  const [students, setStudents] = useState<{ name: string; yomi: string }[]>([]);
   const [studentName, setStudentName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const studentInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [lessonMemo, setLessonMemo] = useState('');
 
   const resolvedStudentName = studentName.trim();
@@ -59,7 +77,7 @@ export default function LessonFormClient() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch('/api/students', { credentials: 'include' });
+      const res = await fetch('/api/students?withYomi=1', { credentials: 'include' });
       const data = await res.json();
       if (!cancelled && Array.isArray(data.students)) setStudents(data.students);
     })();
@@ -178,17 +196,50 @@ export default function LessonFormClient() {
           <>
             <section className="bg-bg-card rounded-[var(--radius-card)] border border-border p-4 mb-4 shadow-[var(--shadow-card)]">
               <h2 className="text-xs font-semibold text-text-dark mb-2">受講生</h2>
-              <p className="text-[11px] text-text-muted mb-2">苗字を入力すると候補が出ます。リストにない場合はそのまま入力してください。</p>
-              <input
-                list="student-list"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                placeholder="例: 佐藤（候補から選ぶか直接入力）"
-                className="w-full px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm"
-              />
-              <datalist id="student-list">
-                {students.map((s) => <option key={s} value={s} />)}
-              </datalist>
+              <div className="relative">
+                <div className="flex">
+                  <input
+                    ref={studentInputRef}
+                    value={studentName}
+                    onChange={(e) => { setStudentName(e.target.value); setShowSuggestions(true); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={(e) => { if (!suggestionsRef.current?.contains(e.relatedTarget as Node)) setShowSuggestions(false); }}
+                    placeholder="名前を入力 or リストから選んでください"
+                    className="flex-1 px-3 py-2 bg-bg-page border border-border rounded-l-[var(--radius-button)] text-sm focus:outline-none focus:border-primary/40"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowSuggestions(v => !v); studentInputRef.current?.focus(); }}
+                    className="px-2 bg-bg-page border border-l-0 border-border rounded-r-[var(--radius-button)] text-text-muted hover:text-text-dark"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                </div>
+                {showSuggestions && (() => {
+                  const q = studentName.trim();
+                  const hits = q
+                    ? students.filter(s => studentMatches(q, s))
+                    : students;
+                  if (!hits.length) return null;
+                  return (
+                    <div
+                      ref={suggestionsRef}
+                      className="absolute z-50 top-full left-0 right-0 mt-1 bg-bg-card border border-border rounded-xl shadow-lg max-h-52 overflow-y-auto"
+                    >
+                      {hits.map(s => (
+                        <button
+                          key={s.name}
+                          type="button"
+                          onMouseDown={() => { setStudentName(s.name); setShowSuggestions(false); }}
+                          className="w-full text-left px-3 py-2 text-sm text-text-dark hover:bg-primary/10"
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
               {studentName.trim() && (
                 <p className="text-[11px] text-text-muted mt-1">
                   選択中: <span className="font-medium text-text-dark">{studentName.trim()}</span>

@@ -16,15 +16,16 @@ const PRESET_STUDENTS = [
   'ロバス由貴',
 ];
 
-export type StudentEntry = { name: string; yomi: string };
+export type StudentEntry = { name: string; yomi: string; displayName: string };
 
 export default async function StudentsPage() {
 
-  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '' }));
+  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '', displayName: '' }));
 
   if (hasDatabaseUrl()) {
     let assignNames: string[] = [];
     let yomiMap = new Map<string, string>();
+    let displayNameMap = new Map<string, string>();
 
     try {
       const rows = await sql`SELECT DISTINCT TRIM(student_name) AS name FROM assignments WHERE student_name IS NOT NULL AND TRIM(student_name) <> ''`;
@@ -32,12 +33,19 @@ export default async function StudentsPage() {
     } catch {}
 
     try {
-      const rows = await sql`SELECT name, yomi FROM student_meta`;
-      yomiMap = new Map((rows as { name: string; yomi: string }[]).map(r => [r.name, r.yomi]));
+      const rows = await sql`SELECT name, yomi, display_name FROM student_meta`;
+      yomiMap = new Map((rows as { name: string; yomi: string; display_name: string }[]).map(r => [r.name, r.yomi]))
+      displayNameMap = new Map((rows as { name: string; yomi: string; display_name: string }[]).map(r => [r.name, r.display_name ?? '']));
     } catch {}
 
-    const allNames = Array.from(new Set([...PRESET_STUDENTS, ...assignNames]));
-    entries = allNames.map(name => ({ name, yomi: yomiMap.get(name) ?? '' }));
+    let registeredNames: string[] = [];
+    try {
+      const rows = await sql`SELECT name FROM registered_students WHERE name IS NOT NULL AND TRIM(name) <> ''`;
+      registeredNames = (rows as { name: string }[]).map(r => r.name);
+    } catch {}
+
+    const allNames = Array.from(new Set([...PRESET_STUDENTS, ...assignNames, ...registeredNames]));
+    entries = allNames.map(name => ({ name, yomi: yomiMap.get(name) ?? '', displayName: displayNameMap.get(name) ?? '' }));
     entries.sort((a, b) => {
       const ya = a.yomi || a.name;
       const yb = b.yomi || b.name;

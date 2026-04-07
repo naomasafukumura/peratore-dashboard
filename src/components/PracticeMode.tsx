@@ -28,6 +28,7 @@ interface Props {
   patterns: Pattern[];
   chunkTitle: string;
   chunkTitleJp: string;
+  backHref?: string;
 }
 
 type Phase =
@@ -151,7 +152,7 @@ function showReactionPopup(text: string) {
 }
 
 // ===== Main Component =====
-export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Props) {
+export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref }: Props) {
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
   const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
@@ -585,7 +586,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Pro
       goToFullReplay();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasTurn2]);
+  }, [hasTurn2, startTurn2, goToFullReplay]);
 
   // ---- Review Re-record (Turn 1) ----
   const handleReviewRerecord = useCallback(() => {
@@ -834,7 +835,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Pro
             <div className="complete-stat-label">Retry</div>
           </div>
         </div>
-        <Link href="/practice" className="complete-btn" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
+        <Link href={backHref ?? '/practice'} className="complete-btn" style={{ textDecoration: 'none', display: 'block', textAlign: 'center' }}>
           Back to Menu
         </Link>
       </div>
@@ -857,7 +858,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp }: Pro
       <div className="prac">
         {/* Header */}
         <div className="p-hd">
-          <Link href="/practice" className="p-ib" style={{ textDecoration: 'none' }}>
+          <Link href={backHref ?? '/practice'} className="p-ib" style={{ textDecoration: 'none' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </Link>
           <div className="p-hd-info">

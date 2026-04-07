@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 
 type SummaryItem = {
   patternId: number;
@@ -146,6 +147,12 @@ export function LessonReviewSection({ summary, categoryLabel }: Props) {
                               <span className="font-medium">{row.trigger}</span>
                               <span className="text-text-muted"> → </span>
                               <span>{row.spp}</span>
+                              <Link
+                                href={`/practice/pattern/${row.patternId}`}
+                                className="ml-2 inline-block text-xs font-semibold text-green-700 border border-green-300 rounded-lg px-2 py-0.5 hover:bg-green-50"
+                              >
+                                練習する
+                              </Link>
                             </li>
                           );
                         })}
