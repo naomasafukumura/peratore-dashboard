@@ -74,7 +74,7 @@ export default function StudentsClient({
         return;
       }
       const yomi = newYomi.trim();
-      setStudents(prev => [...prev, { name: trimmed, yomi }].sort((a, b) => {
+      setStudents(prev => [...prev, { name: trimmed, yomi, displayName: newDisplayName.trim() }].sort((a, b) => {
         const ya = a.yomi || a.name;
         const yb = b.yomi || b.name;
         return ya.localeCompare(yb, 'ja');
