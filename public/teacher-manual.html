@@ -188,7 +188,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
         <li><a href="#sec4">保存完了 → 受講生にリンクを送る</a></li>
         <li><a href="#sec5">受講生リンク一覧</a></li>
         <li><a href="#sec6">受講生の例文を修正する</a></li>
-        <li><a href="#sec7">新規教材を手動で作成する</a></li>
         <li><a href="#sec8">受講生の専用ページを確認する</a></li>
         <li><a href="#sec9">よくある質問</a></li>
         <li><a href="#sec10">注意事項</a></li>
@@ -404,38 +403,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     <div class="m-divider"></div>
 
     <!-- ============================================================ -->
-    <!-- Section 7: 新規教材作成 -->
-    <!-- ============================================================ -->
-    <div class="m-sec" id="sec7">
-      <div class="m-sec-num">7</div>
-      <h2 class="m-sec-title">新規教材を手動で作成する</h2>
-
-      <div class="m-card">
-        <p>レッスンメモからのAI自動生成ではなく、<strong>1つずつ手動で教材を作成したい場合</strong>はこのページを使います。通常はレッスンフォーム（Section 2）を使えば十分です。</p>
-      </div>
-
-      <a href="https://peratore-dashboard.vercel.app/teacher/dashboard" target="_blank" class="m-link-box">
-        <div class="m-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
-        <div class="m-link-body">
-          <div class="m-link-name">新規教材管理ページ</div>
-          <div class="m-link-url">https://peratore-dashboard.vercel.app/teacher/dashboard</div>
-        </div>
-      </a>
-
-      <img src="images/manual/teacher/08-dashboard.png" alt="新規教材管理フォーム" class="m-screenshot">
-
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>カテゴリ</strong> — リストから選ぶか、新しいカテゴリ名を直接入力します。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>Situation</strong> — 場面の説明（日本語）。例:「同僚に週末の予定を聞かれた」</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>FPP（相手のセリフ）</strong> — 必須。会話のきっかけとなる相手のセリフ。例:「What are you gonna do this weekend?」</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>SPP（模範回答）</strong> — 必須。受講生が返すべき回答。例:「I'm gonna relax at home.」</div></div>
-      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>Followup Question / Answer</strong> — 任意。2往復目の会話がある場合に入力します。</div></div>
-      <div class="anno"><div class="anno-icon">6</div><div class="anno-text"><strong>受講生に割り当て</strong> — 任意。特定の受講生に紐づける場合は名前を入力します。空欄にすると全員共通の教材になります。</div></div>
-      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「保存 + 音声生成」</strong>を押すと、教材が保存され音声が自動生成されます。</div></div>
-    </div>
-
-    <div class="m-divider"></div>
-
-    <!-- ============================================================ -->
     <!-- Section 8: 受講生専用ページ確認 -->
     <!-- ============================================================ -->
     <div class="m-sec" id="sec8">
@@ -544,7 +511,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     </div>
     <div style="display:flex;gap:12px;margin-top:12px">
       <a href="teacher/students" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);border-radius:14px;font-size:14px;font-weight:600;text-decoration:none">受講生リンク一覧</a>
-      <a href="teacher/dashboard" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);border-radius:14px;font-size:14px;font-weight:600;text-decoration:none">新規教材管理</a>
     </div>
 
   </div>
