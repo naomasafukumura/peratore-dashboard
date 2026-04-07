@@ -573,21 +573,6 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setReviewFeedbackLoading(false);
   }, [pattern, reviewTurn, userAnswer1, userAnswer2]);
 
-  // ---- Review OK (Turn 1): proceed to Turn 2 or full replay ----
-  const handleReviewOk = useCallback(async () => {
-    setShowReview(false);
-    if (hasTurn2) {
-      // Start Turn 2
-      setPhase('continueFlow');
-      await new Promise(r => setTimeout(r, 400));
-      await startTurn2();
-    } else {
-      // No Turn 2, go to full replay or next
-      goToFullReplay();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasTurn2, startTurn2, goToFullReplay]);
-
   // ---- Review Re-record (Turn 1) ----
   const handleReviewRerecord = useCallback(() => {
     setShowReview(false);
@@ -741,6 +726,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     // Auto-play sequentially
     playReplaySequence(lines);
   }, [pattern]);
+
+  // ---- Review OK (Turn 1): proceed to Turn 2 or full replay ----
+  const handleReviewOk = useCallback(async () => {
+    setShowReview(false);
+    if (hasTurn2) {
+      // Start Turn 2
+      setPhase('continueFlow');
+      await new Promise(r => setTimeout(r, 400));
+      await startTurn2();
+    } else {
+      // No Turn 2, go to full replay or next
+      goToFullReplay();
+    }
+  }, [hasTurn2, startTurn2, goToFullReplay]);
 
   const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
     for (let i = 0; i < lines.length; i++) {
