@@ -1185,10 +1185,9 @@ async function loadDataFromAPI() {
   const params = new URLSearchParams(window.location.search);
   const student = params.get('student');
   const url = student ? '/api/practice-data?student=' + encodeURIComponent(student) : '/api/practice-data';
-  try {
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const apiJson = await res.json();
+  const cacheKey = 'practiceData_' + (student || '_anon');
+
+  function applyApiData(apiJson) {
     const apiData = Array.isArray(apiJson) ? apiJson : (apiJson.data || []);
     const displayName = !Array.isArray(apiJson) ? (apiJson.displayName || null) : null;
     DATA = mergePracticeData(FALLBACK_DATA, apiData);
@@ -1196,9 +1195,23 @@ async function loadDataFromAPI() {
       const el = document.getElementById('cvStudentName');
       if (el) el.textContent = displayName;
     }
+  }
+
+  // Use sessionStorage cache for instant load on return from practice
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    try { applyApiData(JSON.parse(cached)); } catch {}
+  }
+
+  try {
+    const res = await fetch(url, { credentials: 'include' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const apiJson = await res.json();
+    applyApiData(apiJson);
+    sessionStorage.setItem(cacheKey, JSON.stringify(apiJson));
   } catch(e) {
     console.log('API not available, using embedded data:', e.message);
-    DATA = FALLBACK_DATA;
+    if (!cached) DATA = FALLBACK_DATA;
   }
   try {
     const rurl = student

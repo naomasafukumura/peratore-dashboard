@@ -22,6 +22,7 @@ interface Pattern {
   has_fpp_question_audio: boolean;
   has_spp_audio: boolean;
   has_followup_audio: boolean;
+  has_natural_audio: boolean;
 }
 
 interface Props {
@@ -713,9 +714,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         speaker: 'user',
         text: pattern.followup_answer,
         ja: pattern.followup_answer_jp || '',
-        audioType: 'spp', // followup answer audio
+        audioType: 'natural',
         patternId: pattern.id,
-        hasAudio: false, // We don't have separate followup_answer audio
+        hasAudio: pattern.has_natural_audio,
       });
     }
 
