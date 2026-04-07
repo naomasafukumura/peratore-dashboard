@@ -39,11 +39,14 @@ function isHiragana(s: string): boolean {
 
 function studentMatches(query: string, s: { name: string; yomi: string; displayName: string }): boolean {
   if (!query) return true;
-  if (isHiragana(query)) {
-    if (query.length < 2) return false;
-    return matchScore(query, s.yomi) >= 0.9 || matchScore(query, s.displayName) >= 0.9;
+  const q = query.trim();
+  // 受講生リンク一覧と同じ: name / yomi / displayName のいずれかに含まれればOK
+  if (s.name.includes(q) || s.yomi.includes(q) || s.displayName.includes(q)) return true;
+  // ひらがな2文字以上: 近似マッチ（90%）
+  if (isHiragana(q) && q.length >= 2) {
+    return matchScore(q, s.yomi) >= 0.9 || matchScore(q, s.displayName) >= 0.9;
   }
-  return matchScore(query, s.name) >= 0.7;
+  return false;
 }
 
 export default function LessonFormClient() {
