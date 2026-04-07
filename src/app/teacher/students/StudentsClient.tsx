@@ -249,7 +249,7 @@ export default function StudentsClient({
           {filtered.length === 0 && (
             <li className="text-sm text-text-muted py-8 text-center">該当する受講生が見つかりません</li>
           )}
-          {filtered.map(({ name, yomi }) => (
+          {filtered.map(({ name, yomi, displayName }) => (
             <li
               key={name}
               className="bg-bg-card border border-border rounded-[var(--radius-card)] px-4 py-3 shadow-[var(--shadow-card)]"
@@ -311,7 +311,7 @@ export default function StudentsClient({
                     {yomi && <p className="text-[10px] text-text-muted">{yomi}</p>}
                   </div>
                   <button
-                    onClick={() => startEdit({ name, yomi })}
+                    onClick={() => startEdit({ name, yomi, displayName })}
                     className="shrink-0 px-2 py-1.5 text-text-muted hover:text-text-dark rounded-[var(--radius-button)] text-xs transition-colors"
                     title="名前・ふりがなを編集"
                   >
