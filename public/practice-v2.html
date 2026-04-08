@@ -639,38 +639,10 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .rv-practice-btn{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
 .rv-practice-btn:active{background:var(--green-bg)}
 
-.fb-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center}
-.fb-overlay.show{display:flex}
-.fb-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:24px 20px 32px;animation:fbSlideUp .3s var(--eo)}
-@keyframes fbSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.fb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.fb-title{font-size:16px;font-weight:600;color:var(--text);font-family:var(--fja)}
-.fb-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:22px;padding:4px}
-.fb-textarea{width:100%;min-height:120px;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;font-family:var(--fja);color:var(--text);resize:vertical;outline:none;transition:border-color .2s}
-.fb-textarea:focus{border-color:var(--accent)}
-.fb-textarea::placeholder{color:var(--text-muted)}
-.fb-submit{width:100%;margin-top:12px;padding:14px;background:var(--cta);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;font-family:var(--fja);cursor:pointer;transition:background .15s}
-.fb-submit:active{background:var(--cta-hover)}
-.fb-done{text-align:center;padding:24px 0;font-size:14px;color:var(--text-sub);font-family:var(--fja);line-height:1.7}
 
 </style>
 </head>
 <body>
-<div class="fb-overlay" id="fbOverlay">
-  <div class="fb-sheet">
-    <div class="fb-header">
-      <div class="fb-title">フィードバック</div>
-      <button class="fb-close" id="fbClose">×</button>
-    </div>
-    <div id="fbForm">
-      <textarea class="fb-textarea" id="fbText" placeholder="使いづらい点、バグ、こうしてほしい等なんでもお気軽にどうぞ!"></textarea>
-      <button class="fb-submit" id="fbSubmit">送信する</button>
-    </div>
-    <div class="fb-done" id="fbDone" style="display:none">
-      ありがとうございます!<br>いただいたフィードバックを確認いたします。
-    </div>
-  </div>
-</div>
 <div class="app" id="appContainer">
 
 <!-- ===== Cover / Category Selection ===== -->
@@ -693,11 +665,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     <button class="cv-list-btn" id="coverListBtn" aria-label="View list">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-      </svg>
-    </button>
-    <button class="cv-list-btn" id="coverFeedbackBtn" aria-label="Feedback" style="background:var(--cta);border-color:var(--cta);color:#fff">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
-        <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
       </svg>
     </button>
   </div>
@@ -3349,36 +3316,6 @@ function openSettings() {
 }
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('coverSettingsBtn').addEventListener('click', openSettings);
-document.getElementById('coverFeedbackBtn').addEventListener('click', () => {
-  document.getElementById('fbText').value = '';
-  document.getElementById('fbDone').style.display = 'none';
-  document.getElementById('fbForm').style.display = '';
-  document.getElementById('fbOverlay').classList.add('show');
-});
-document.getElementById('fbClose').addEventListener('click', () => {
-  document.getElementById('fbOverlay').classList.remove('show');
-});
-document.getElementById('fbOverlay').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) document.getElementById('fbOverlay').classList.remove('show');
-});
-document.getElementById('fbSubmit').addEventListener('click', async () => {
-  const text = document.getElementById('fbText').value.trim();
-  if (!text) return;
-  const btn = document.getElementById('fbSubmit');
-  btn.disabled = true;
-  btn.textContent = '送信中...';
-  try {
-    await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, project: 'PatternPractice', timestamp: new Date().toISOString() })
-    });
-  } catch(e) { console.log('Feedback send error:', e); }
-  document.getElementById('fbForm').style.display = 'none';
-  document.getElementById('fbDone').style.display = '';
-  btn.disabled = false;
-  btn.textContent = '送信する';
-});
 document.getElementById('settingsCloseBtn').addEventListener('click', () => {
   document.getElementById('settingsOverlay').classList.remove('show');
 });
@@ -4122,6 +4059,5 @@ function toggleRvMonth(btn) {
 }
 
 </script>
-<script src="https://feedback-widget-inky-one.vercel.app/widget.js?v=2" data-project="PatternPractice"></script>
 </body>
 </html>
