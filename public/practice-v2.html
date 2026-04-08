@@ -599,9 +599,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .edit-saving{color:var(--text-muted);font-size:11px;font-style:italic;margin-top:2px}
 .edit-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 24px;background:var(--accent);color:#fff;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:500;animation:slideUp .3s var(--eo);pointer-events:none}
 /* ===== Review Search Panel ===== */
-.rv-search-btn{display:none;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;font-family:var(--fja);cursor:pointer;align-items:center;gap:5px;white-space:nowrap}
+.rv-search-btn{display:none}
 .rv-search-btn.show{display:flex}
-.rv-search-btn svg{width:15px;height:15px;flex-shrink:0}
 .rv-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--bg);flex-direction:column;overflow:hidden}
 .rv-panel.show{display:flex}
 .rv-panel-hd{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);gap:12px;flex-shrink:0}
@@ -639,8 +638,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .rv-practice-btn{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
 .rv-practice-btn:active{background:var(--green-bg)}
 /* ===== Homework ===== */
-.hw-select-btn{font-size:11px;font-weight:700;font-family:var(--fja);padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-sub);cursor:pointer;transition:all .15s;white-space:nowrap}
-.hw-select-btn.active{background:var(--cta);border-color:var(--cta);color:#fff}
+.hw-select-btn.active{background:var(--cta) !important;border-color:var(--cta) !important;color:#fff !important}
 .hw-save-bar{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:var(--cta);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;font-family:var(--fja);cursor:pointer;box-shadow:0 4px 20px rgba(233,133,45,.4);white-space:nowrap}
 .hw-save-bar.show{display:block}
 body.hw-mode .cv-sub{padding-left:36px;position:relative}
@@ -661,15 +659,18 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <div class="cv-mark">PP</div>
     <div class="cv-brand">Pattern Practice</div>
     <div class="cv-top-spacer"></div>
-    <button class="rv-search-btn" id="rvSearchBtn" aria-label="復習集検索">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      復習集検索
+    <button class="cv-list-btn rv-search-btn" id="rvSearchBtn" aria-label="復習集検索" title="復習集検索">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
     <button class="cv-list-btn" id="editModeBtn" aria-label="Edit mode" style="background:var(--accent-soft);border-color:var(--accent);color:var(--accent)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
     </button>
-    <a id="hwLink" href="homework.html" class="cv-list-btn" aria-label="宿題" style="text-decoration:none;font-size:10px;font-weight:700;font-family:var(--fja);width:auto;padding:0 8px">宿題</a>
-    <button class="hw-select-btn" id="hwSelectBtn">宿題選択</button>
+    <a id="hwLink" href="homework.html" class="cv-list-btn" aria-label="宿題ページ" style="text-decoration:none" title="宿題">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </a>
+    <button class="cv-list-btn hw-select-btn" id="hwSelectBtn" aria-label="宿題選択" title="宿題選択">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><line x1="13" y1="8" x2="21" y2="8"/><line x1="13" y1="20" x2="21" y2="20"/><line x1="13" y1="14" x2="21" y2="14"/></svg>
+    </button>
     <a href="manual.html" class="cv-list-btn" aria-label="Manual" style="text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></a>
     <button class="cv-list-btn" id="coverSettingsBtn" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1550,6 +1551,11 @@ $backBtn.addEventListener('click', () => {
 
 document.getElementById('completeBtn').addEventListener('click', () => {
   $complete.classList.remove('show');
+  if (new URLSearchParams(window.location.search).get('homework') === '1') {
+    const s = new URLSearchParams(window.location.search).get('student');
+    window.location.href = 'homework.html' + (s ? '?student=' + encodeURIComponent(s) : '');
+    return;
+  }
   if (lvFromListView) {
     lvFromListView = false;
     openListView();
@@ -4010,6 +4016,11 @@ loadDataFromAPI().then(() => {
     const editBtn = document.getElementById('editModeBtn');
     if (editBtn) editBtn.style.display = 'none';
     initReviewSearch(studentName);
+  }
+  // Homework mode tweaks
+  if (params.get('homework') === '1') {
+    const btn = document.getElementById('completeBtn');
+    if (btn) btn.textContent = '宿題終了';
   }
   // Homework autostart
   if (params.get('homework') === '1') {
