@@ -100,7 +100,7 @@
   const seen = new Set();
   const displayCards = [];
   cards.forEach(c => {
-    const sec = c.section || (c.states && c.states[0] && c.states[0].label) || '';
+    const sec = c._hwSection || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
     if (!seen.has(sec)) { seen.add(sec); displayCards.push(c); }
   });
 
