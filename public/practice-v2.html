@@ -3379,11 +3379,10 @@ function openSettings() {
       const secName = sub.dataset.section;
       const cat = DATA[catIdx];
       if (!cat) return;
-      cat.cards.forEach(c => {
-        if ((c.section || (c.states && c.states[0] && c.states[0].label)) === secName) {
-          allCards.push(c);
-        }
-      });
+      const first = cat.cards.find(c =>
+        (c.section || (c.states && c.states[0] && c.states[0].label)) === secName
+      );
+      if (first) allCards.push(first);
     });
     if (!allCards.length) return;
 
