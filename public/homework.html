@@ -96,20 +96,21 @@
     return;
   }
 
-  // セクションごとに1行にまとめる（表示用）
-  const seen = new Set();
-  const displayCards = [];
+  // セクションごとに件数を集計して1行にまとめる（表示用）
+  const secMap = new Map(); // secKey -> { card, count }
   cards.forEach(c => {
     const sec = c._hwSection || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
-    if (!seen.has(sec)) { seen.add(sec); displayCards.push(c); }
+    if (!secMap.has(sec)) { secMap.set(sec, { card: c, count: 0 }); }
+    secMap.get(sec).count++;
   });
+  const displayItems = Array.from(secMap.values());
 
   // Render list
-  let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + displayCards.length + '件</span></div>';
+  let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + displayItems.length + '件</span></div>';
   html += '<div class="hw-list">';
-  displayCards.forEach(c => {
+  displayItems.forEach(({ card: c, count }) => {
     html += '<div class="hw-item">';
-    if (c._hwCategory) html += '<div class="hw-item-category">' + escHtml(c._hwCategory) + '</div>';
+    if (c._hwCategory) html += '<div class="hw-item-category">' + escHtml(c._hwCategory) + ' <span class="hw-badge">' + count + '</span></div>';
     html += '<div class="hw-item-trigger">' + escHtml(c.trigger || '') + '</div>';
     if (c.states && c.states[0] && c.states[0].conclusion) {
       html += '<div class="hw-item-spp">' + escHtml(c.states[0].conclusion) + '</div>';

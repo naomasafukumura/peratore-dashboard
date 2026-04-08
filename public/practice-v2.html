@@ -28,9 +28,9 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .app{max-width:520px;margin:0 auto;min-height:100dvh;position:relative}
 
 /* ===== Cover Screen ===== */
-.cover{min-height:100dvh;display:flex;flex-direction:column}
+.cover{height:100dvh;height:calc(var(--vh,1dvh)*100);overflow-y:auto;display:flex;flex-direction:column}
 .cover.hide{display:none}
-.cv-top{padding:16px 24px;display:flex;align-items:center;gap:10px;animation:fu .4s var(--eo) both}
+.cv-top{padding:16px 24px;display:flex;align-items:center;gap:10px;animation:fu .4s var(--eo) both;position:sticky;top:0;z-index:10;background:var(--bg)}
 .cv-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--fen);font-size:12px;font-weight:700;flex-shrink:0}
 .cv-brand{font-family:var(--fen);font-size:13px;font-weight:600;color:var(--text-muted)}
 .cv-top-spacer{flex:1}
@@ -358,11 +358,11 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 /* Home list view */
 .list-view{display:none;flex-direction:column;min-height:100dvh;background:var(--bg)}
 .list-view.show{display:flex}
-.lv-hd{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-lt);background:var(--surface);justify-content:space-between}
+.lv-hd{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border-lt);background:var(--surface);justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:10}
 .lv-hd-left{display:flex;align-items:center;gap:12px}
 .lv-hd-t{font-size:15px;font-weight:700}
 .lv-hd-c{font-size:12px;color:var(--text-muted)}
-.lv-body{padding:14px 16px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.lv-body{padding:14px 16px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;flex:1;margin-top:64px}
 .lv-top-btn{position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(47,111,117,.35);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease);transform:translateY(8px)}
 .lv-top-btn.show{opacity:1;pointer-events:auto;transform:translateY(0)}
 .lv-top-btn:active{transform:scale(.9)}
