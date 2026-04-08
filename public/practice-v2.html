@@ -638,11 +638,21 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .rv-item-spp{font-size:13px;color:var(--text-sub);margin-top:1px}
 .rv-practice-btn{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
 .rv-practice-btn:active{background:var(--green-bg)}
+/* ===== Homework ===== */
+.hw-select-btn{font-size:11px;font-weight:700;font-family:var(--fja);padding:5px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-sub);cursor:pointer;transition:all .15s;white-space:nowrap}
+.hw-select-btn.active{background:var(--cta);border-color:var(--cta);color:#fff}
+.hw-save-bar{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;background:var(--cta);color:#fff;border:none;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:700;font-family:var(--fja);cursor:pointer;box-shadow:0 4px 20px rgba(233,133,45,.4);white-space:nowrap}
+.hw-save-bar.show{display:block}
+body.hw-mode .cv-sub{padding-left:36px;position:relative}
+body.hw-mode .cv-sub::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:18px;height:18px;border:2px solid var(--border);border-radius:4px;background:var(--surface);transition:all .15s}
+body.hw-mode .cv-sub.hw-on::before{background:var(--cta);border-color:var(--cta)}
+body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#fff;font-size:12px;font-weight:900;line-height:1}
 
 
 </style>
 </head>
 <body>
+<button class="hw-save-bar" id="hwSaveBar">宿題保存 (0件)</button>
 <div class="app" id="appContainer">
 
 <!-- ===== Cover / Category Selection ===== -->
@@ -658,6 +668,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
     <button class="cv-list-btn" id="editModeBtn" aria-label="Edit mode" style="background:var(--accent-soft);border-color:var(--accent);color:var(--accent)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
     </button>
+    <a id="hwLink" href="homework.html" class="cv-list-btn" aria-label="宿題" style="text-decoration:none;font-size:10px;font-weight:700;font-family:var(--fja);width:auto;padding:0 8px">宿題</a>
+    <button class="hw-select-btn" id="hwSelectBtn">宿題選択</button>
     <a href="manual.html" class="cv-list-btn" aria-label="Manual" style="text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></a>
     <button class="cv-list-btn" id="coverSettingsBtn" aria-label="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1365,6 +1377,9 @@ function initCover() {
       sub.className = 'cv-sub';
       sub.dataset.catIdx = i;
       sub.dataset.section = sec.name;
+      const secCards = cat.cards.filter(c => (c.section || c.states[0].label) === sec.name);
+      const pids = secCards.map(c => { const id = c.id; return (typeof id === 'string' && id.startsWith('db-')) ? parseInt(id.slice(3)) : null; }).filter(n => n !== null);
+      sub.dataset.patternIds = JSON.stringify(pids);
       const hasExplain = CHUNK_EXPLAINS[sec.name];
       sub.innerHTML = `
         <div class="cv-sub-nm">${REVIEWED_SECTIONS.has(sec.name) ? '✅ ' : ''}${sec.name}</div>
@@ -3314,6 +3329,78 @@ function openSettings() {
   document.getElementById('fontSizeVal').textContent = fontSize + 'px';
   document.getElementById('settingsOverlay').classList.add('show');
 }
+// ===== Homework Selection Mode =====
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const studentParam = params.get('student');
+
+  // Update 宿題 link to carry student param
+  const hwLink = document.getElementById('hwLink');
+  if (hwLink && studentParam) hwLink.href = 'homework.html?student=' + encodeURIComponent(studentParam);
+
+  const hwSelectBtn = document.getElementById('hwSelectBtn');
+  const hwSaveBar = document.getElementById('hwSaveBar');
+
+  function countChecked() {
+    return document.querySelectorAll('.cv-sub.hw-on').length;
+  }
+  function updateSaveBar() {
+    const n = countChecked();
+    hwSaveBar.textContent = '宿題保存 (' + n + '件)';
+    hwSaveBar.classList.toggle('show', n > 0);
+  }
+
+  hwSelectBtn.addEventListener('click', () => {
+    const active = document.body.classList.toggle('hw-mode');
+    hwSelectBtn.classList.toggle('active', active);
+    if (!active) {
+      document.querySelectorAll('.cv-sub.hw-on').forEach(el => el.classList.remove('hw-on'));
+      hwSaveBar.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!document.body.classList.contains('hw-mode')) return;
+    const sub = e.target.closest('.cv-sub');
+    if (!sub) return;
+    e.stopPropagation();
+    sub.classList.toggle('hw-on');
+    updateSaveBar();
+  }, true);
+
+  hwSaveBar.addEventListener('click', async () => {
+    const checkedSubs = document.querySelectorAll('.cv-sub.hw-on');
+    const allIds = [];
+    checkedSubs.forEach(sub => {
+      try { allIds.push(...JSON.parse(sub.dataset.patternIds || '[]')); } catch {}
+    });
+    if (!allIds.length) return;
+
+    const sName = studentParam || '';
+    if (!sName) { alert('受講生URLパラメータ（?student=）が必要です'); return; }
+
+    hwSaveBar.textContent = '保存中...';
+    try {
+      const res = await fetch('/api/homework', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentName: sName, patternIds: allIds })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      hwSaveBar.textContent = '✅ 保存しました';
+      setTimeout(() => {
+        document.body.classList.remove('hw-mode');
+        hwSelectBtn.classList.remove('active');
+        document.querySelectorAll('.cv-sub.hw-on').forEach(el => el.classList.remove('hw-on'));
+        hwSaveBar.classList.remove('show');
+      }, 1500);
+    } catch (e) {
+      hwSaveBar.textContent = '❌ 保存失敗';
+      setTimeout(updateSaveBar, 2000);
+    }
+  });
+})();
+
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('coverSettingsBtn').addEventListener('click', openSettings);
 document.getElementById('settingsCloseBtn').addEventListener('click', () => {
@@ -3910,17 +3997,37 @@ document.getElementById('editAssignBtn').addEventListener('click', async () => {
 // ===== Init =====
 loadDataFromAPI().then(() => {
   initCover();
-  // If student mode, show student name in header
   const params = new URLSearchParams(window.location.search);
   const studentName = params.get('student');
   if (studentName) {
     const desc = document.querySelector('.cv-desc');
     if (desc) desc.textContent = studentName + ' さんの練習セット';
-    // Hide edit button for students
     const editBtn = document.getElementById('editModeBtn');
     if (editBtn) editBtn.style.display = 'none';
-    // Show review search button & init
     initReviewSearch(studentName);
+  }
+  // Homework autostart
+  if (params.get('homework') === '1') {
+    const hwRaw = sessionStorage.getItem('hwCards');
+    if (hwRaw) {
+      try {
+        const hwCards = JSON.parse(hwRaw);
+        sessionStorage.removeItem('hwCards');
+        if (hwCards && hwCards.length) {
+          const hwCat = { category: '宿題', icon: 'message', cards: hwCards };
+          DATA = [hwCat, ...DATA.filter(c => c.category !== '宿題')];
+          initCover();
+          // Select homework category (index 0) and start
+          const catIdx = 0;
+          selectedCats.add(catIdx);
+          const subSet = new Set(hwCards.map(c => c.section || (c.states && c.states[0] ? c.states[0].label : '')));
+          selectedSubs.set(catIdx, subSet);
+          const startBtn = document.getElementById('startBtn');
+          startBtn.disabled = false;
+          setTimeout(() => startBtn.click(), 100);
+        }
+      } catch(e) { console.error('hw autostart:', e); }
+    }
   }
 });
 
@@ -4057,6 +4164,7 @@ function toggleRvYear(btn) {
 function toggleRvMonth(btn) {
   btn.closest('.rv-month').classList.toggle('collapsed');
 }
+
 
 </script>
 </body>

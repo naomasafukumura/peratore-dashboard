@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>宿題 | Pattern Practice</title>
+<style>
+  :root{
+    --bg:#f4f6f5;--surface:#fff;--surface-alt:#f0f4f3;--border:#e0e8e5;--border-lt:#edf2f0;
+    --accent:#2f5d62;--accent-soft:rgba(47,93,98,.08);--text:#1a2e2b;--text-sub:#4a6b66;
+    --text-muted:#7a9b96;--text-faint:#aac4be;--green:#2a9d6a;--green-bg:rgba(42,157,106,.08);
+    --green-bd:rgba(42,157,106,.3);--cta:#E9852D;--cta-hover:#D4751F;--cta-glow:rgba(233,133,45,.25);
+    --sh-m:0 2px 12px rgba(0,0,0,.08);--r:16px;--ease:cubic-bezier(.4,0,.2,1);
+    --fja:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+    --fen:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:100vh}
+
+  /* Header */
+  .hw-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+  .hw-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text);text-decoration:none;flex-shrink:0}
+  .hw-back svg{width:18px;height:18px}
+  .hw-brand{display:flex;align-items:center;gap:8px}
+  .hw-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;font-family:var(--fen);letter-spacing:-.5px}
+  .hw-title{font-size:14px;font-weight:700;color:var(--text)}
+  .hw-student{font-size:13px;color:var(--text-sub);margin-left:auto}
+
+  /* Content */
+  .hw-body{padding:20px 16px;max-width:520px;margin:0 auto}
+  .hw-sec-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+  .hw-empty{text-align:center;padding:60px 0;color:var(--text-muted);font-size:14px;line-height:1.8}
+
+  /* Card list */
+  .hw-list{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
+  .hw-item{background:var(--surface);border:1px solid var(--border-lt);border-radius:12px;padding:12px 16px}
+  .hw-item-trigger{font-family:var(--fen);font-size:15px;font-weight:500;color:var(--text)}
+  .hw-item-spp{font-size:13px;color:var(--text-sub);margin-top:4px}
+
+  /* Start button */
+  .hw-start{width:100%;padding:16px;background:var(--cta);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;font-family:var(--fja);cursor:pointer;box-shadow:0 4px 20px var(--cta-glow);transition:all .2s var(--ease)}
+  .hw-start:active{transform:scale(.98)}
+  .hw-start:disabled{opacity:.5;cursor:default}
+
+  /* Badge */
+  .hw-badge{display:inline-block;background:var(--cta);color:#fff;font-size:11px;font-weight:700;font-family:var(--fen);padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<div class="hw-header">
+  <a id="backBtn" href="practice-v2.html" class="hw-back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+  </a>
+  <div class="hw-brand">
+    <div class="hw-mark">PP</div>
+    <div class="hw-title">宿題</div>
+  </div>
+  <div class="hw-student" id="studentLabel"></div>
+</div>
+
+<div class="hw-body">
+  <div id="hwContent">
+    <div class="hw-empty">読み込み中...</div>
+  </div>
+</div>
+
+<script>
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const student = params.get('student');
+
+  // Back link
+  const backBtn = document.getElementById('backBtn');
+  if (student) backBtn.href = 'practice-v2.html?student=' + encodeURIComponent(student);
+
+  // Student label
+  if (student) document.getElementById('studentLabel').textContent = student + ' さん';
+
+  // Fetch homework
+  const url = student ? '/api/homework?student=' + encodeURIComponent(student) : '/api/homework';
+  let cards = [];
+  try {
+    const res = await fetch(url, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      cards = data.cards || [];
+    }
+  } catch (e) { console.error(e); }
+
+  const content = document.getElementById('hwContent');
+
+  if (!cards.length) {
+    content.innerHTML = '<div class="hw-empty">宿題はまだ設定されていません。<br>先生がレッスン後に設定します。</div>';
+    return;
+  }
+
+  // Render list
+  let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + cards.length + '件</span></div>';
+  html += '<div class="hw-list">';
+  cards.forEach(c => {
+    html += '<div class="hw-item">';
+    html += '<div class="hw-item-trigger">' + escHtml(c.trigger || '') + '</div>';
+    if (c.states && c.states[0] && c.states[0].conclusion) {
+      html += '<div class="hw-item-spp">' + escHtml(c.states[0].conclusion) + '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Start button
+  const practiceUrl = 'practice-v2.html?homework=1' + (student ? '&student=' + encodeURIComponent(student) : '');
+  html += '<button class="hw-start" id="startBtn">練習を始める →</button>';
+
+  content.innerHTML = html;
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    // Store homework cards in sessionStorage for practice-v2.html to pick up
+    sessionStorage.setItem('hwCards', JSON.stringify(cards));
+    window.location.href = practiceUrl;
+  });
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
+</body>
+</html>
