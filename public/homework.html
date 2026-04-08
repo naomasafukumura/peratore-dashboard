@@ -95,10 +95,18 @@
     return;
   }
 
-  // Render list
-  let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + cards.length + '件</span></div>';
-  html += '<div class="hw-list">';
+  // セクションごとに1行にまとめる（表示用）
+  const seen = new Set();
+  const displayCards = [];
   cards.forEach(c => {
+    const sec = c.section || (c.states && c.states[0] && c.states[0].label) || '';
+    if (!seen.has(sec)) { seen.add(sec); displayCards.push(c); }
+  });
+
+  // Render list
+  let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + displayCards.length + '件</span></div>';
+  html += '<div class="hw-list">';
+  displayCards.forEach(c => {
     html += '<div class="hw-item">';
     html += '<div class="hw-item-trigger">' + escHtml(c.trigger || '') + '</div>';
     if (c.states && c.states[0] && c.states[0].conclusion) {
