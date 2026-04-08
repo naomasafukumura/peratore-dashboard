@@ -1377,9 +1377,6 @@ function initCover() {
       sub.className = 'cv-sub';
       sub.dataset.catIdx = i;
       sub.dataset.section = sec.name;
-      const secCards = cat.cards.filter(c => (c.section || c.states[0].label) === sec.name);
-      const pids = secCards.map(c => { const id = c.id; return (typeof id === 'string' && id.startsWith('db-')) ? parseInt(id.slice(3)) : null; }).filter(n => n !== null);
-      sub.dataset.patternIds = JSON.stringify(pids);
       const hasExplain = CHUNK_EXPLAINS[sec.name];
       sub.innerHTML = `
         <div class="cv-sub-nm">${REVIEWED_SECTIONS.has(sec.name) ? '✅ ' : ''}${sec.name}</div>
@@ -3370,11 +3367,19 @@ function openSettings() {
 
   hwSaveBar.addEventListener('click', async () => {
     const checkedSubs = document.querySelectorAll('.cv-sub.hw-on');
-    const allIds = [];
+    const allCards = [];
     checkedSubs.forEach(sub => {
-      try { allIds.push(...JSON.parse(sub.dataset.patternIds || '[]')); } catch {}
+      const catIdx = parseInt(sub.dataset.catIdx);
+      const secName = sub.dataset.section;
+      const cat = DATA[catIdx];
+      if (!cat) return;
+      cat.cards.forEach(c => {
+        if ((c.section || (c.states && c.states[0] && c.states[0].label)) === secName) {
+          allCards.push(c);
+        }
+      });
     });
-    if (!allIds.length) return;
+    if (!allCards.length) return;
 
     const sName = studentParam || '';
     if (!sName) { alert('受講生URLパラメータ（?student=）が必要です'); return; }
@@ -3384,7 +3389,7 @@ function openSettings() {
       const res = await fetch('/api/homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentName: sName, patternIds: allIds })
+        body: JSON.stringify({ studentName: sName, cards: allCards })
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       hwSaveBar.textContent = '✅ 保存しました';
