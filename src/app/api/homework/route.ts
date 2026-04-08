@@ -12,6 +12,8 @@ async function ensureTable() {
       assigned_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // migrate: add cards_json if old schema had only pattern_ids
+  await sql`ALTER TABLE homework ADD COLUMN IF NOT EXISTS cards_json JSONB`;
 }
 
 async function resolveStudent(req: NextRequest): Promise<string | null> {
