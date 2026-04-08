@@ -1020,7 +1020,7 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
 <div class="post-replay-bar" id="postReplayBar">
   <button class="post-replay-btn replay" id="postReplayAgainBtn">再度再生</button>
   <button class="post-replay-btn retry" id="postReplayRetryBtn">もう一回</button>
-  <button class="post-replay-btn next" id="postReplayNextBtn">実践へ</button>
+  <button class="post-replay-btn next" id="postReplayNextBtn">次へ</button>
 </div>
 
 <!-- Review Overlay -->
@@ -3243,10 +3243,19 @@ function showPracticeResult(card, userAnswer, onDone) {
   };
 
   // Next button
-  document.getElementById('practiceResultNextBtn').onclick = () => {
+  const isHomework = new URLSearchParams(window.location.search).get('homework') === '1';
+  const isLastCard = currentIdx + 1 >= cards.length;
+  const nextBtn = document.getElementById('practiceResultNextBtn');
+  nextBtn.textContent = (isHomework && isLastCard) ? '宿題おわり' : '次へ';
+  nextBtn.onclick = () => {
     practiceRetryCount = 0;
     bar.classList.remove('show');
     $chatThread.style.paddingBottom = '';
+    if (isHomework && isLastCard) {
+      const s = new URLSearchParams(window.location.search).get('student');
+      window.location.href = 'homework.html' + (s ? '?student=' + encodeURIComponent(s) : '');
+      return;
+    }
     endPracticeMode();
   };
 }
