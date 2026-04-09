@@ -89,6 +89,9 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
 .m-divider{height:1px;background:var(--border);margin:8px 0 28px}
 
+.m-sub-step{font-size:15px;font-weight:600;margin:24px 0 12px;padding-left:12px;border-left:3px solid var(--cta);color:var(--text)}
+.m-screenshot.narrow{max-width:400px}
+
 /* 練習の流れ - ステップ表示 */
 .m-flow{margin:16px 0}
 .m-flow-step{position:relative;padding:16px 18px 16px 50px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s);margin-bottom:10px}
@@ -447,6 +450,49 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
         <div class="m-important-title">大事なのは「何回やったか」</div>
         <p>1回を完璧にするより、たくさん繰り返す方がはるかに効果があります。<strong>気楽に、何度も。</strong>それが一番の近道です。</p>
       </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 6: 宿題機能 -->
+    <div class="m-sec" id="sec-hw">
+      <div class="m-sec-num">6</div>
+      <h2 class="m-sec-title">宿題機能の使い方</h2>
+
+      <div class="m-card">
+        <p>レッスン中に例文を選んで宿題として保存できます。受講生はレッスン後に宿題ページを開いて、選ばれた例文だけを練習できます。</p>
+      </div>
+
+      <div class="m-sub-step">STEP 1: 宿題選択モードをオンにする</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">受講生の専用ページ上部の帯にある<strong>チェックボックスアイコン</strong>を押します。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">すべての例文の左に<strong>チェックボックス</strong>が表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step1.png" alt="宿題選択モード" class="m-screenshot narrow">
+
+      <div class="m-sub-step">STEP 2: 宿題にしたい例文を選ぶ</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">宿題にしたいセクションの<strong>チェックボックスを押す</strong>と、そのセクションの全例文が選択されます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">複数のセクションを選択できます。選択数は画面下部のボタンに表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step2.png" alt="例文選択後" class="m-screenshot narrow">
+
+      <div class="m-sub-step">STEP 3: 宿題を保存する</div>
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">画面下部に表示される<strong>「宿題保存（N件）」ボタン</strong>を押すと、選択した例文がその受講生の宿題としてサーバーに保存されます。</div></div>
+
+      <div class="m-highlight">
+        宿題の保存は<strong>上書き方式</strong>です。毎回新たに選び直して保存してください。前回の宿題は自動で上書きされます。
+      </div>
+
+      <div class="m-sub-step">受講生側: 宿題を練習する</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">受講生が専用ページの上部の帯に<strong>「宿題」アイコン</strong>を押してください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">宿題ページが開き、選ばれた例文の一覧（ジャンル・件数付き）が表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step3.png" alt="宿題ページ" class="m-screenshot narrow">
+
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「練習を始める」ボタン</strong>を押すと、宿題の例文だけのPattern Practiceが始まります。最後の例文が終わると「宿題おわり」を押すと宿題のトップページに戻ります。</div></div>
     </div>
 
     <!-- CTA -->
