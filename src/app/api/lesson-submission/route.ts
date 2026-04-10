@@ -156,19 +156,19 @@ async function analyzeDirectText(rawText: string, categoryNames: string[]): Prom
       ? `次の一覧から意味が最も近い1つを suggested_category に選んでください：\n${categoryNames.join('、')}`
       : `suggested_category には「数字. 大項目：細目」形式で付けてください。`;
 
-  const userPrompt = `以下のテキストには英会話の例文・会話例が書かれています。パターンプラクティス教材の形式に整えてください。テキストの内容をできるだけそのまま使い、創作・解釈は最小限にしてください。
+  const userPrompt = `以下のテキストには英会話の例文・会話例が書かれています。**複数のチャンクに分割して**パターンプラクティス教材の形式に整えてください。テキストの内容をできるだけそのまま使い、創作・解釈は最小限にしてください。
 
-## 前提：2名の会話として読む
-テキストは**話者A（講師・相手側）と話者B（受講生）の2名によるやり取り**です。
-文脈・内容・流れから「今この文はAが言っているか、Bが言っているか」を判断してください。
-話者が変わるまでの連続する発言（複数文）はひとまとめに1つのターンとして扱ってください。
+## 話者の識別
+テキストは**話者A（講師・相手側）と話者B（受講生）の2名**によるやり取りです。
+文脈・内容・流れから各文がAの発言かBの発言かを判断してください。
 
-## チャンクの構造
-1つのチャンク = AのFPP → BのSPP → AのFQ → BのFA の4ターン構造です。
-- FPP（fpp_question）… Aの最初の発言ターン。複数文ならすべて含める
-- SPP（spp）… Bの最初の返答ターン。複数文ならすべて含める
-- FQ（followup_question）… Aのフォローアップ発言ターン。テキストになければAIが補完
-- FA（followup_answer）… Bの最後の返答ターン。複数文ならすべて含める。テキストになければAIが補完
+## チャンクの分割ルール
+- **話題・場面が変わるタイミングで新しいチャンクを開始してください**（例：映画の選択 → 待ち合わせ → 食事 はそれぞれ別チャンク）
+- 1チャンク = A→B→A→B の4ターン構造。**各ターンは原則1文**
+  - FPP（fpp_question）… Aの質問（1文）
+  - SPP（spp）… Bの最初の返答（1文）
+  - FQ（followup_question）… Aのフォロー質問（1文。テキストになければ自然に補完）
+  - FA（followup_answer）… Bの返答（1文。テキストになければ自然に補完）
 
 【テキスト】
 ${rawText}
@@ -177,14 +177,14 @@ ${rawText}
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
 - 各チャンクのキー（すべて必須・空文字不可）:
   - situation_ja … そのQ&Aが発生する場面（日本語・簡潔に）
-  - fpp_question … AのFPPターン
-  - spp … BのSPPターン
-  - followup_question … AのFQターン
-  - followup_answer … BのFAターン
+  - fpp_question … AのFPP（1文）
+  - spp … BのSPP（1文）
+  - followup_question … AのFQ（1文）
+  - followup_answer … BのFA（1文）
   - character … "友人" または "夫"（文脈から判断）
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
-JSON例: {"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
+JSON例（話題が3つあれば3要素）: {"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -198,7 +198,7 @@ JSON例: {"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","fo
         {
           role: 'system',
           content:
-            'You are an English teaching material specialist. Read the text as a 2-person dialogue (Speaker A and Speaker B), identify each speaker\'s turns (which may span multiple sentences), and group them accordingly into FPP/SPP/FQ/FA chunks. Reply with a single valid JSON object only, no markdown fences.',
+            'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B), each turn is one sentence. Reply with a single valid JSON object only, no markdown fences.',
         },
         { role: 'user', content: userPrompt },
       ],
