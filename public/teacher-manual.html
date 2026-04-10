@@ -255,13 +255,20 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       </div>
 
       <!-- STEP 3 -->
-      <div class="m-sub-step">STEP 3: 「解析して確認」ボタンを押す</div>
+      <div class="m-sub-step">STEP 3: ボタンを押して登録する</div>
 
       <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text"><strong>「解析して確認」ボタン</strong>を押すと、AIがメモを解析してプレビュー画面を表示します。20文字以上の入力が必要です。</div></div>
 
       <div class="m-highlight">
         ボタンを押した後、AIの解析には<strong>数秒〜10秒ほど</strong>かかります。そのまま待ってください。
       </div>
+
+      <div class="m-sub-step">別の方法: 「そのまま登録」ボタン</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">例文テキスト（FPP・SPP・FQ・FAが揃った形）を貼り付けた場合は、<strong>「そのまま登録」ボタン</strong>を使います。AIがテキストをそのままチャンクに分割し、プレビューへ移動します。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>「解析して確認」</strong> と <strong>「そのまま登録」</strong> の違い:<br>
+        ・解析して確認 = 講師メモ（自由文）を自然な会話に整形してチャンク生成<br>
+        ・そのまま登録 = 整形済みテキストをそのままの形でチャンクに分割して登録</div></div>
     </div>
 
     <div class="m-divider"></div>
@@ -344,6 +351,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>T / S / FQ / FA ボタン</strong>を押すと、そのフィールドの音声を個別に再生して確認できます。</div></div>
       <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">修正したら必ず<strong>「保存 + 音声再生成」ボタン</strong>を押してください。テキストと音声が一緒に更新されます。</div></div>
       <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「削除」ボタン</strong>で、その例文を完全に削除できます。削除すると受講生の専用ページからも消えます。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text">例文カードはデフォルトで<strong>折り畳まれた状態</strong>で表示されます。カードをクリック（または右端の <strong>▶</strong>）すると展開して編集フォームが表示されます。再度クリックで折り畳みます。</div></div>
 
       <div class="m-highlight">
         例文を修正すると<strong>音声も自動で再生成</strong>されます。修正したら「保存 + 音声再生成」を押すのを忘れずに!
@@ -390,7 +398,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text">例文は<strong>追加日（年・月）</strong>ごとにグループ分けされています。最近追加したものが上に表示されます。</div></div>
       <div class="anno"><div class="anno-icon">2</div><div class="anno-text">上部の<strong>検索バー</strong>にキーワードを入力すると、例文の内容で絞り込みができます。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">各例文の<strong>「練習する」ボタン</strong>を押すと、その例文だけのPattern Practiceが始まります。練習が終わると自動で復習集検索の画面に戻ります。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">各例文は<strong>折り畳まれた状態</strong>で表示されます。右端の <strong>▶</strong> を押すと展開し、FPP / SPP / FQ / FA の全文と状況説明が表示されます。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text">展開した状態から<strong>「練習する」ボタン</strong>を押すと、その例文だけのPattern Practiceが始まります。練習が終わると自動で復習集検索の画面に戻ります。</div></div>
 
       <div class="m-highlight">
         復習集検索は<strong>受講生の専用ページ</strong>（practice-v2.html?student=〇〇）から使えます。先生も同じURLで動作を確認できます。
