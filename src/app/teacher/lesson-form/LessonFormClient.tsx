@@ -310,12 +310,11 @@ export default function LessonFormClient() {
                 >
                   {analyzing ? 'AI解析中…' : '解析して確認'}
                 </button>
-                <span className="text-[11px] text-text-muted">20文字以上・要 OPENAI_API_KEY</span>
                 <button
                   type="button"
                   onClick={registerDirect}
                   disabled={directSaving || analyzing || !resolvedStudentName || lessonMemo.trim().length < 20}
-                  className="px-4 py-2.5 border-2 border-gray-800 text-gray-800 rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-gray-100"
+                  className="px-4 py-2.5 bg-[#E9852D] text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-[#D4751F]"
                 >
                   {directSaving ? 'AI分割・登録中…' : 'そのまま登録'}
                 </button>
