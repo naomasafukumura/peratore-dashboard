@@ -5,6 +5,9 @@ export type RecentLessonSummaryItem = {
   patternId: number;
   trigger: string;
   spp: string;
+  followupQuestion: string;
+  followupAnswer: string;
+  situationJa: string;
   section: string;
   categoryName: string;
   createdAt: string | null;
@@ -73,6 +76,9 @@ export async function fetchRecentLessonForStudent(
     patternId: r.id,
     trigger: r.fpp_question || '',
     spp: r.spp || '',
+    followupQuestion: r.followup_question || '',
+    followupAnswer: r.followup_answer || '',
+    situationJa: r.situation_ja || '',
     section: r.chunk_title_en || '',
     categoryName: r.category_name || '',
     createdAt: r.created_at ? String(r.created_at) : null,

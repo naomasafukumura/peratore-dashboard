@@ -17,11 +17,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // BYTEAはhex文字列で返るのでBufferに変換
   const buffer = Buffer.from(audio.audio_data, 'hex');
 
+  // ETag for conditional caching — audio content changes when re-generated after edits
+  const etag = `"${buffer.length}-${audio.duration_ms ?? 0}"`;
+  const ifNoneMatch = request.headers.get('if-none-match');
+  if (ifNoneMatch === etag) {
+    return new NextResponse(null, { status: 304 });
+  }
+
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'audio/mpeg',
       'Content-Length': buffer.length.toString(),
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'no-cache',
+      'ETag': etag,
     },
   });
 }

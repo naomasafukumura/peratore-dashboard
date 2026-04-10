@@ -17,7 +17,7 @@ type ExtractedPattern = {
 };
 
 type Body = {
-  intent?: 'analyze-memo' | 'submit-preview';
+  intent?: 'analyze-memo' | 'analyze-direct' | 'submit-preview' | 'analyze-and-save';
   studentName?: string;
   rawLessonMemo?: string;
   patterns?: ExtractedPattern[];
@@ -67,25 +67,37 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Prom
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
-**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）
+## 前提：2名の会話として読む
+メモに含まれる英語の会話は、**話者A（講師・相手側）と話者B（受講生）の2名によるやり取り**です。
+文脈・内容・流れから「今この文はAが言っているか、Bが言っているか」を判断してください。
+話者が変わるまでの連続する発言（複数文）はひとまとめに1つのターンとして扱ってください。
+
+## チャンクの構造
+1つのチャンク = 「AがBに問いかけ → Bが返す → Aがフォローアップ → Bが返す」の4ターン構造です。
+- FPP（fpp_question）… Aの最初の発言ターン。複数文になることもある
+- SPP（spp）… Bの最初の返答ターン。複数文になることもある
+- FQ（followup_question）… Aのフォローアップ発言ターン。複数文になることもある
+- FA（followup_answer）… Bの最後の返答ターン。複数文になることもある
+
+**重複チャンクは除外**：FPPで使われる主動詞・構造が同じパターンは1つだけ残してください。
 
 【先生メモ】
 ${rawMemo}
 
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
-- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
-- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフはいずれも自然な口語の英語に整えること:
+- 英語のセリフはすべて自然な口語に整えること。
+- 各チャンクのキー（すべて必須・空文字不可）:
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
-  - fpp_question … 相手（講師側）の質問
-  - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
-  - followup_question … そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）
-  - followup_answer … followup_question への受講生の返答（**1文のみ・短く簡潔に**）
-  - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
+  - fpp_question … AのFPPターン（複数文ならそのまま連結）
+  - spp … BのSPPターン（複数文ならそのまま連結）
+  - followup_question … AのFQターン（メモから取るか、自然な補完）
+  - followup_answer … BのFAターン（複数文ならそのまま連結）
+  - character … 「夫」または「友人」（文脈から判断）
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
-JSON の例（Q→Aが4つある場合は4要素）:
-{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
+JSON例:
+{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -99,7 +111,7 @@ JSON の例（Q→Aが4つある場合は4要素）:
         {
           role: 'system',
           content:
-            'You extract structured English teaching material from teacher notes. Reply with a single valid JSON object only, no markdown fences.',
+            'You are an English teaching material specialist. Read the conversation as a 2-person dialogue (Speaker A and Speaker B), identify each speaker\'s turns, and group multi-sentence turns together. Reply with a single valid JSON object only, no markdown fences.',
         },
         { role: 'user', content: userPrompt },
       ],
@@ -144,9 +156,109 @@ JSON の例（Q→Aが4つある場合は4要素）:
   return { ok: true, patterns };
 }
 
+/** 例文テキストをそのままチャンク分割（解釈より分割優先） */
+async function analyzeDirectText(rawText: string, categoryNames: string[]): Promise<AnalyzeResult> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
+  }
+
+  const catBlock =
+    categoryNames.length > 0
+      ? `次の一覧から意味が最も近い1つを suggested_category に選んでください：\n${categoryNames.join('、')}`
+      : `suggested_category には「数字. 大項目：細目」形式で付けてください。`;
+
+  const userPrompt = `以下のテキストには英会話の例文・会話例が書かれています。パターンプラクティス教材の形式に整えてください。テキストの内容をできるだけそのまま使い、創作・解釈は最小限にしてください。
+
+## 前提：2名の会話として読む
+テキストは**話者A（講師・相手側）と話者B（受講生）の2名によるやり取り**です。
+文脈・内容・流れから「今この文はAが言っているか、Bが言っているか」を判断してください。
+話者が変わるまでの連続する発言（複数文）はひとまとめに1つのターンとして扱ってください。
+
+## チャンクの構造
+1つのチャンク = AのFPP → BのSPP → AのFQ → BのFA の4ターン構造です。
+- FPP（fpp_question）… Aの最初の発言ターン。複数文ならすべて含める
+- SPP（spp）… Bの最初の返答ターン。複数文ならすべて含める
+- FQ（followup_question）… Aのフォローアップ発言ターン。テキストになければAIが補完
+- FA（followup_answer）… Bの最後の返答ターン。複数文ならすべて含める。テキストになければAIが補完
+
+【テキスト】
+${rawText}
+
+【出力ルール】
+- 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
+- 各チャンクのキー（すべて必須・空文字不可）:
+  - situation_ja … そのQ&Aが発生する場面（日本語・簡潔に）
+  - fpp_question … AのFPPターン
+  - spp … BのSPPターン
+  - followup_question … AのFQターン
+  - followup_answer … BのFAターン
+  - character … "友人" または "夫"（文脈から判断）
+  - suggested_category … ${catBlock.replace(/\n/g, ' ')}
+
+JSON例: {"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an English teaching material specialist. Read the text as a 2-person dialogue (Speaker A and Speaker B), identify each speaker\'s turns (which may span multiple sentences), and group them accordingly into FPP/SPP/FQ/FA chunks. Reply with a single valid JSON object only, no markdown fences.',
+        },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2,
+      max_tokens: 4000,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error('OpenAI analyze-direct:', response.status, errText);
+    return { ok: false, error: `OpenAI エラー: ${response.status}`, status: 502 };
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content || typeof content !== 'string') {
+    return { ok: false, error: 'AI からの応答が空です', status: 502 };
+  }
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(content) as Record<string, unknown>;
+  } catch {
+    return { ok: false, error: 'AI の JSON が解析できませんでした', status: 502 };
+  }
+
+  const rawPatterns = Array.isArray(parsed.patterns) ? parsed.patterns : [parsed];
+  const patterns = (rawPatterns as Record<string, unknown>[])
+    .map(normalizePattern)
+    .filter(p => p.fpp_question && p.spp);
+
+  if (patterns.length === 0) {
+    return {
+      ok: false,
+      error: 'テキストから会話チャンクを抽出できませんでした。Q&Aの形式で書かれているか確認してください。',
+      status: 422,
+    };
+  }
+
+  return { ok: true, patterns };
+}
+
 /**
  * POST /api/lesson-submission
  * - intent: analyze-memo … メモを AI で複数パターンに分解（DB 保存なし）
+ * - intent: analyze-direct … 例文テキストをそのままチャンク分割（DB 保存なし）
  * - intent: submit-preview … パターン配列を DB 保存・音声生成
  */
 export async function POST(req: NextRequest) {
@@ -191,6 +303,96 @@ export async function POST(req: NextRequest) {
       ok: true,
       patterns: patternsWithSimilar,
       message: `${result.patterns.length}パターンを解析しました。`,
+    });
+  }
+
+  if (intent === 'analyze-direct') {
+    const raw = body.rawLessonMemo?.trim() ?? '';
+    if (raw.length < 20) {
+      return NextResponse.json(
+        { error: 'テキストは20文字以上で入力してください' },
+        { status: 400 }
+      );
+    }
+
+    const categoryNames = await fetchCategoryNamesForPrompt();
+    const result = await analyzeDirectText(raw, categoryNames);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+
+    const patternsWithSimilar = await Promise.all(
+      result.patterns.map(async (p) => ({
+        ...p,
+        similarPatterns: hasDatabaseUrl() ? await findSimilarPatterns(p.fpp_question) : [],
+      }))
+    );
+
+    return NextResponse.json({
+      ok: true,
+      patterns: patternsWithSimilar,
+      message: `${result.patterns.length}チャンクに分割しました。`,
+    });
+  }
+
+  if (intent === 'analyze-and-save') {
+    const raw = body.rawLessonMemo?.trim() ?? '';
+    if (raw.length < 20) {
+      return NextResponse.json(
+        { error: 'レッスンメモは20文字以上で入力してください' },
+        { status: 400 }
+      );
+    }
+
+    const categoryNames = await fetchCategoryNamesForPrompt();
+    const result = await analyzeLessonMemo(raw, categoryNames);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+
+    if (!hasDatabaseUrl()) {
+      return NextResponse.json({
+        ok: true,
+        message: `DATABASE_URL 未設定のためプレビューのみ（${result.patterns.length}チャンク解析済み）。`,
+        savedCount: 0,
+      });
+    }
+
+    const saveResults: Array<{ ok: boolean; trigger: string; error?: string; similarPatterns?: SimilarPattern[] }> = [];
+    for (const p of result.patterns) {
+      const trigger = p.fpp_question?.trim();
+      const spp = p.spp?.trim();
+      if (!trigger || !spp) continue;
+      try {
+        const saved = await persistTeacherLesson({
+          studentName,
+          situation: p.situation_ja ?? '',
+          suggestedCategory: p.suggested_category ?? '',
+          character: p.character ?? '友人',
+          trigger,
+          spp,
+          followupQuestion: p.followup_question?.trim() ?? '',
+          followupAnswer: p.followup_answer?.trim() ?? '',
+          rawMemo: raw,
+        });
+        saveResults.push({ ok: true, trigger, similarPatterns: saved.similarPatterns });
+      } catch (e) {
+        saveResults.push({ ok: false, trigger, error: (e as Error).message });
+      }
+    }
+
+    const savedCount = saveResults.filter(r => r.ok).length;
+    const failedCount = saveResults.filter(r => !r.ok).length;
+    const allSimilar = saveResults.flatMap(r => r.similarPatterns ?? []);
+    const message = failedCount > 0
+      ? `${savedCount}チャンク保存・音声生成完了（${failedCount}件失敗）`
+      : `${savedCount}チャンク保存・音声生成完了 ✓`;
+
+    return NextResponse.json({
+      ok: true,
+      message,
+      savedCount,
+      saved: { similarPatterns: allSimilar },
     });
   }
 

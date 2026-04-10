@@ -9,6 +9,9 @@ type SummaryItem = {
   section: string;
   trigger: string;
   spp: string;
+  followupQuestion: string;
+  followupAnswer: string;
+  situationJa: string;
   createdAt: string | null;
 };
 
@@ -20,6 +23,7 @@ type Props = {
 export function LessonReviewSection({ summary, categoryLabel }: Props) {
   const [query, setQuery] = useState('');
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(new Set());
+  const [openItemIds, setOpenItemIds] = useState<Set<number>>(new Set());
 
   // 検索フィルタ
   const filtered = useMemo(() => {
@@ -128,35 +132,75 @@ export function LessonReviewSection({ summary, categoryLabel }: Props) {
                     </button>
 
                     {!mCollapsed && (
-                      <ol className="space-y-2 text-sm text-text-dark list-decimal list-inside">
+                      <div className="space-y-2">
                         {items.map((row) => {
                           const d = row.createdAt ? new Date(row.createdAt) : null;
                           const dateLabel =
                             d && !isNaN(d.getTime())
                               ? `${d.getMonth() + 1}/${d.getDate()}`
                               : null;
+                          const itemOpen = openItemIds.has(row.patternId);
                           return (
-                            <li key={row.patternId} className="pl-0">
-                              <span className="text-text-muted text-xs">
-                                [{row.categoryName}] {row.section}
-                                {dateLabel && (
-                                  <span className="ml-1 text-text-faint">({dateLabel})</span>
-                                )}
-                              </span>
-                              <br />
-                              <span className="font-medium">{row.trigger}</span>
-                              <span className="text-text-muted"> → </span>
-                              <span>{row.spp}</span>
-                              <Link
-                                href={`/practice/pattern/${row.patternId}`}
-                                className="ml-2 inline-block text-xs font-semibold text-green-700 border border-green-300 rounded-lg px-2 py-0.5 hover:bg-green-50"
+                            <div key={row.patternId} className="rounded-xl border border-border bg-bg-page overflow-hidden">
+                              {/* 折り畳みヘッダー */}
+                              <button
+                                type="button"
+                                onClick={() => setOpenItemIds(prev => {
+                                  const next = new Set(prev);
+                                  next.has(row.patternId) ? next.delete(row.patternId) : next.add(row.patternId);
+                                  return next;
+                                })}
+                                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-primary/5"
                               >
-                                練習する
-                              </Link>
-                            </li>
+                                <div className="min-w-0">
+                                  <span className="text-[10px] text-text-muted">
+                                    [{row.categoryName}]
+                                    {dateLabel && <span className="ml-1">({dateLabel})</span>}
+                                  </span>
+                                  <p className="text-sm font-medium text-text-dark truncate mt-0.5">{row.trigger}</p>
+                                </div>
+                                <span className="text-text-muted text-xs shrink-0">{itemOpen ? '▼' : '▶'}</span>
+                              </button>
+                              {/* 展開コンテンツ */}
+                              {itemOpen && (
+                                <div className="px-3 pb-3 border-t border-border space-y-1.5 pt-2">
+                                  {row.situationJa && (
+                                    <p className="text-[11px] text-text-muted italic mb-1">{row.situationJa}</p>
+                                  )}
+                                  <div className="flex gap-2">
+                                    <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FPP</span>
+                                    <span className="text-sm text-text-dark">{row.trigger}</span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">SPP</span>
+                                    <span className="text-sm text-text-dark">{row.spp}</span>
+                                  </div>
+                                  {row.followupQuestion && (
+                                    <div className="flex gap-2">
+                                      <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FQ</span>
+                                      <span className="text-sm text-text-dark">{row.followupQuestion}</span>
+                                    </div>
+                                  )}
+                                  {row.followupAnswer && (
+                                    <div className="flex gap-2">
+                                      <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FA</span>
+                                      <span className="text-sm text-text-dark">{row.followupAnswer}</span>
+                                    </div>
+                                  )}
+                                  <div className="pt-1">
+                                    <Link
+                                      href={`/practice/pattern/${row.patternId}`}
+                                      className="inline-block text-xs font-semibold text-green-700 border border-green-300 rounded-lg px-3 py-1 hover:bg-green-50"
+                                    >
+                                      練習する
+                                    </Link>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
-                      </ol>
+                      </div>
                     )}
                   </div>
                 );

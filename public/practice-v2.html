@@ -59,9 +59,11 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .cv-cat.expanded .cv-cat-arrow{transform:rotate(180deg)}
 .cv-subs{display:none;flex-direction:column;gap:4px;padding:4px 0 4px 20px}
 .cv-subs.show{display:flex}
-.cv-sub{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-alt);border:1.5px solid var(--border-lt);border-radius:10px;cursor:pointer;transition:all .2s var(--ease);-webkit-tap-highlight-color:transparent}
-.cv-sub:active{transform:scale(.98)}
-.cv-sub.on{border-color:var(--accent);background:var(--accent-soft)}
+.cv-sub{background:var(--surface-alt);border:1.5px solid var(--border-lt);border-radius:10px;transition:border-color .2s var(--ease);-webkit-tap-highlight-color:transparent;overflow:hidden}
+.cv-sub-main{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.cv-sub-main:active{background:var(--border-lt)}
+.cv-sub.on{border-color:var(--accent)}
+.cv-sub.on .cv-sub-main{background:var(--accent-soft)}
 .cv-sub-nm{flex:1;font-family:var(--fen);font-size:13px;font-weight:600;color:var(--text-sub)}
 .cv-sub.on .cv-sub-nm{color:var(--accent)}
 .cv-sub-ct{font-size:10px;color:var(--text-faint);font-weight:500}
@@ -69,6 +71,13 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .cv-sub.on .cv-sub-chk{border-color:var(--accent);background:var(--accent)}
 .cv-sub-chk svg{width:10px;height:10px;color:#fff;opacity:0;transition:opacity .15s}
 .cv-sub.on .cv-sub-chk svg{opacity:1}
+.cv-sub-expand{background:none;border:none;cursor:pointer;font-size:9px;color:var(--text-muted);padding:2px 4px;flex-shrink:0;line-height:1}
+.cv-sub-detail{display:none;padding:8px 14px 10px;border-top:1px solid var(--border-lt);font-size:12px}
+.cv-sub.detail-open .cv-sub-detail{display:block}
+.cv-sub-detail-ja{font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:6px}
+.cv-sub-detail-row{display:flex;gap:8px;margin-top:3px;line-height:1.5}
+.cv-sub-detail-lbl{font-size:10px;font-weight:700;color:var(--text-faint);width:24px;flex-shrink:0;padding-top:1px}
+.cv-sub-detail-spp{color:var(--accent);font-weight:500;font-family:var(--fen)}
 .cv-sub-hint{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--accent);transition:all .15s var(--ease);-webkit-tap-highlight-color:transparent}
 .cv-sub-hint svg{width:14px;height:14px}
 .cv-sub-hint:active{transform:scale(.9);background:var(--accent-soft)}
@@ -630,12 +639,22 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .rv-month.collapsed .rv-month-arrow{transform:rotate(-90deg)}
 .rv-month.collapsed .rv-month-body{display:none}
 .rv-month-body{padding:4px 0}
-.rv-item{padding:8px 12px;border-bottom:1px solid var(--border-lt)}
+.rv-item{border-bottom:1px solid var(--border-lt)}
+.rv-item-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:none;border:none;cursor:pointer;text-align:left}
+.rv-item-btn:active{background:var(--surface-alt)}
+.rv-item-hd{flex:1;min-width:0}
 .rv-item-meta{font-size:11px;color:var(--text-muted)}
 .rv-item-date{color:var(--text-faint);margin-left:4px}
-.rv-item-trigger{font-size:14px;font-weight:500;font-family:var(--fen);color:var(--text);margin-top:2px}
-.rv-item-spp{font-size:13px;color:var(--text-sub);margin-top:1px}
-.rv-practice-btn{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
+.rv-item-trigger{font-size:14px;font-weight:500;font-family:var(--fen);color:var(--text);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-item-arrow{font-size:10px;color:var(--text-muted);transition:transform .2s;flex-shrink:0}
+.rv-item.open .rv-item-arrow{transform:rotate(90deg)}
+.rv-item-body{display:none;padding:0 12px 10px}
+.rv-item.open .rv-item-body{display:block}
+.rv-item-row{display:flex;gap:8px;margin-top:4px}
+.rv-item-label{font-size:10px;font-weight:600;color:var(--text-muted);width:24px;flex-shrink:0;padding-top:2px}
+.rv-item-val{font-size:13px;font-family:var(--fen);color:var(--text)}
+.rv-item-val.spp{color:var(--accent);font-weight:500}
+.rv-practice-btn{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--green-bd);color:var(--green);font-size:11px;font-weight:700;font-family:var(--fja);text-decoration:none;cursor:pointer;transition:background .15s}
 .rv-practice-btn:active{background:var(--green-bg)}
 /* ===== Homework ===== */
 .hw-select-btn.active{background:var(--cta) !important;border-color:var(--cta) !important;color:#fff !important}
@@ -1337,7 +1356,7 @@ function getSections(cat) {
       seen.add(sec);
       const d = card.createdAt ? new Date(card.createdAt) : null;
       const dateLabel = (d && !isNaN(d.getTime())) ? d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate() : '';
-      sections.push({ name: sec, count: 0, dateLabel });
+      sections.push({ name: sec, count: 0, dateLabel, firstCard: card });
     }
     sections.find(s => s.name === sec).count++;
   }
@@ -1379,16 +1398,41 @@ function initCover() {
       sub.dataset.catIdx = i;
       sub.dataset.section = sec.name;
       const hasExplain = CHUNK_EXPLAINS[sec.name];
+      const hasDetail = !!(sec.firstCard);
+      const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      const card = sec.firstCard;
+      const st = card && card.states && card.states[0];
+      let detailHtml = '';
+      if (hasDetail && st) {
+        detailHtml = `<div class="cv-sub-detail">`;
+        if (card.triggerJa) detailHtml += `<div class="cv-sub-detail-ja">${esc(card.triggerJa)}</div>`;
+        detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FPP</span><span>${esc(card.trigger)}</span></div>`;
+        if (st.conclusion) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">SPP</span><span class="cv-sub-detail-spp">${esc(st.conclusion)}</span></div>`;
+        if (st.followup) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FQ</span><span>${esc(st.followup)}</span></div>`;
+        if (st.conclusion2Examples && st.conclusion2Examples[0]) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FA</span><span>${esc(st.conclusion2Examples[0])}</span></div>`;
+        detailHtml += `</div>`;
+      }
       sub.innerHTML = `
-        <div class="cv-sub-nm">${REVIEWED_SECTIONS.has(sec.name) ? '✅ ' : ''}${sec.name}</div>
-        <div class="cv-sub-ct">${sec.dateLabel || sec.count}</div>
-        ${hasExplain ? '<div class="cv-sub-hint" data-chunk="' + sec.name.replace(/"/g, '&quot;') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>' : ''}
-        <div class="cv-sub-chk">${chkSvg}</div>
+        <div class="cv-sub-main">
+          <div class="cv-sub-nm">${REVIEWED_SECTIONS.has(sec.name) ? '✅ ' : ''}${sec.name}</div>
+          <div class="cv-sub-ct">${sec.dateLabel || sec.count}</div>
+          ${hasExplain ? '<div class="cv-sub-hint" data-chunk="' + sec.name.replace(/"/g, '&quot;') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>' : ''}
+          <div class="cv-sub-chk">${chkSvg}</div>
+          ${hasDetail ? '<button class="cv-sub-expand" aria-label="詳細">▶</button>' : ''}
+        </div>
+        ${detailHtml}
       `;
       sub.addEventListener('click', (e) => {
         if (e.target.closest('.cv-sub-hint')) {
           e.stopPropagation();
           showChunkExplain(sec.name);
+          return;
+        }
+        if (e.target.closest('.cv-sub-expand')) {
+          e.stopPropagation();
+          sub.classList.toggle('detail-open');
+          const btn = sub.querySelector('.cv-sub-expand');
+          if (btn) btn.textContent = sub.classList.contains('detail-open') ? '▼' : '▶';
           return;
         }
         e.stopPropagation();
@@ -4165,15 +4209,29 @@ function renderReviewList(items) {
       for (const item of mItems) {
         const d = item._date;
         const dl = d && !isNaN(d.getTime()) ? (d.getMonth() + 1) + '/' + d.getDate() : '';
+        const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         html += '<div class="rv-item">';
-        html += '<div class="rv-item-meta">[' + (item.categoryName || '') + '] ' + (item.section || '') + (dl ? '<span class="rv-item-date">(' + dl + ')</span>' : '') + '</div>';
-        html += '<div class="rv-item-trigger">' + (item.trigger || '') + '</div>';
-        html += '<div class="rv-item-spp">' + (item.spp || '') + '</div>';
+        // 折りたたみヘッダー
+        html += '<button class="rv-item-btn" onclick="toggleRvItem(this)">';
+        html += '<div class="rv-item-hd">';
+        html += '<div class="rv-item-meta">[' + esc(item.categoryName) + '] ' + esc(item.section) + (dl ? '<span class="rv-item-date">(' + dl + ')</span>' : '') + '</div>';
+        html += '<div class="rv-item-trigger">' + esc(item.trigger) + '</div>';
+        html += '</div>';
+        html += '<span class="rv-item-arrow">▶</span>';
+        html += '</button>';
+        // 展開コンテンツ
+        html += '<div class="rv-item-body">';
+        if (item.situationJa) html += '<div style="font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:4px">' + esc(item.situationJa) + '</div>';
+        html += '<div class="rv-item-row"><span class="rv-item-label">FPP</span><span class="rv-item-val">' + esc(item.trigger) + '</span></div>';
+        html += '<div class="rv-item-row"><span class="rv-item-label">SPP</span><span class="rv-item-val spp">' + esc(item.spp) + '</span></div>';
+        if (item.followupQuestion) html += '<div class="rv-item-row"><span class="rv-item-label">FQ</span><span class="rv-item-val">' + esc(item.followupQuestion) + '</span></div>';
+        if (item.followupAnswer) html += '<div class="rv-item-row"><span class="rv-item-label">FA</span><span class="rv-item-val">' + esc(item.followupAnswer) + '</span></div>';
         if (item.patternId) {
           const studentParam = new URLSearchParams(location.search).get('student') || '';
           const practiceUrl = '/practice/pattern/' + item.patternId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
           html += '<a class="rv-practice-btn" href="' + practiceUrl + '">練習する</a>';
         }
+        html += '</div>';
         html += '</div>';
       }
       html += '</div></div>';
@@ -4188,6 +4246,9 @@ function toggleRvYear(btn) {
 }
 function toggleRvMonth(btn) {
   btn.closest('.rv-month').classList.toggle('collapsed');
+}
+function toggleRvItem(btn) {
+  btn.closest('.rv-item').classList.toggle('open');
 }
 
 

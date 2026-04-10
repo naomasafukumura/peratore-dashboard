@@ -34,6 +34,12 @@ export default function StudentPatternsClient({
   const [saveMsg, setSaveMsg] = useState<Record<number, string>>({});
   const [deleting, setDeleting] = useState<number | null>(null);
   const [memoOpen, setMemoOpen] = useState<Record<number, boolean>>({});
+  const [openCards, setOpenCards] = useState<Set<number>>(new Set());
+  const toggleCard = (id: number) => setOpenCards(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const updateEdit = (id: number, field: keyof Edits, value: string) => {
     setEdits(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
@@ -163,11 +169,29 @@ export default function StudentPatternsClient({
             <div key={cat} className="mb-8">
               <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 px-1">{cat}</h2>
               <div className="space-y-3">
-                {pats.map(p => (
+                {pats.map(p => {
+                  const isOpen = openCards.has(p.id);
+                  return (
                   <div
                     key={p.id}
-                    className="bg-bg-card border border-border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)]"
+                    className="bg-bg-card border border-border rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden"
                   >
+                    {/* 折りたたみヘッダー */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCard(p.id)}
+                      className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-primary/5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-dark truncate">{p.fpp_question}</p>
+                        <p className="text-xs text-primary truncate mt-0.5">{p.spp}</p>
+                      </div>
+                      <span className="text-text-muted text-xs shrink-0">{isOpen ? '▼' : '▶'}</span>
+                    </button>
+
+                    {/* 展開コンテンツ */}
+                    {isOpen && (
+                    <div className="px-4 pb-4 border-t border-border pt-3">
                     {p.raw_memo && (
                       <div className="mb-3">
                         <button
@@ -259,8 +283,11 @@ export default function StudentPatternsClient({
                         </button>
                       </div>
                     </div>
+                    </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))

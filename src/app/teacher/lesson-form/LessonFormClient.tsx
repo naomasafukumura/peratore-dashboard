@@ -58,6 +58,8 @@ export default function LessonFormClient() {
   const [stage, setStage] = useState<'form' | 'preview' | 'saved'>('form');
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [directSaving, setDirectSaving] = useState(false);
+  const [directMode, setDirectMode] = useState(false);
   const [previewPatterns, setPreviewPatterns] = useState<ExtractedPattern[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
@@ -96,6 +98,7 @@ export default function LessonFormClient() {
     setPreviewPatterns([]);
     setStage('form');
     setSuccessStudentName(null);
+    setDirectMode(false);
   };
 
   /** ステップ1: AI解析してプレビュー表示 */
@@ -104,6 +107,7 @@ export default function LessonFormClient() {
     if (!resolvedStudentName) { setMessage('受講生名を入力してください'); return; }
     if (lessonMemo.trim().length < 20) { setMessage('レッスンメモは20文字以上で入力してください'); return; }
 
+    setDirectMode(false);
     setAnalyzing(true);
     try {
       const res = await fetch('/api/lesson-submission', {
@@ -131,6 +135,40 @@ export default function LessonFormClient() {
     }
   };
 
+  /** そのまま登録: 例文テキストをAIで会話チャンクに分割→プレビュー表示（まとめ表示） */
+  const registerDirect = async () => {
+    setMessage(null);
+    if (!resolvedStudentName) { setMessage('受講生名を入力してください'); return; }
+    if (lessonMemo.trim().length < 20) { setMessage('レッスンメモは20文字以上で入力してください'); return; }
+
+    setDirectMode(true);
+    setDirectSaving(true);
+    try {
+      const res = await fetch('/api/lesson-submission', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intent: 'analyze-direct', studentName: resolvedStudentName, rawLessonMemo: lessonMemo.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error || '解析に失敗しました');
+        return;
+      }
+      if (!Array.isArray(data.patterns) || data.patterns.length === 0) {
+        setMessage('解析結果がありません');
+        return;
+      }
+      setPreviewPatterns(data.patterns);
+      setSelectedIndexes(new Set(data.patterns.map((_: ExtractedPattern, i: number) => i)));
+      setStage('preview');
+    } catch (e) {
+      setMessage((e as Error).message);
+    } finally {
+      setDirectSaving(false);
+    }
+  };
+
   /** ステップ2: 確認後に保存 */
   const save = async () => {
     setMessage(null);
@@ -144,7 +182,9 @@ export default function LessonFormClient() {
           intent: 'submit-preview',
           studentName: resolvedStudentName,
           rawLessonMemo: lessonMemo.trim(),
-          patterns: previewPatterns.filter((_, i) => selectedIndexes.has(i)),
+          patterns: directMode
+            ? previewPatterns
+            : previewPatterns.filter((_, i) => selectedIndexes.has(i)),
         }),
       });
       const data = await res.json();
@@ -265,12 +305,20 @@ export default function LessonFormClient() {
                 <button
                   type="button"
                   onClick={analyze}
-                  disabled={analyzing || !resolvedStudentName || lessonMemo.trim().length < 20}
+                  disabled={analyzing || directSaving || !resolvedStudentName || lessonMemo.trim().length < 20}
                   className="px-4 py-2.5 bg-primary text-text-dark rounded-xl text-sm font-semibold disabled:opacity-40"
                 >
                   {analyzing ? 'AI解析中…' : '解析して確認'}
                 </button>
                 <span className="text-[11px] text-text-muted">20文字以上・要 OPENAI_API_KEY</span>
+                <button
+                  type="button"
+                  onClick={registerDirect}
+                  disabled={directSaving || analyzing || !resolvedStudentName || lessonMemo.trim().length < 20}
+                  className="px-4 py-2.5 border-2 border-gray-800 text-gray-800 rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-gray-100"
+                >
+                  {directSaving ? 'AI分割・登録中…' : 'そのまま登録'}
+                </button>
               </div>
             </section>
 
@@ -294,71 +342,120 @@ export default function LessonFormClient() {
               　内容を確認して「保存 + 音声生成」を押してください。
             </p>
 
-            <div className="space-y-3 mb-4">
-              {previewPatterns.map((p, i) => {
-                const checked = selectedIndexes.has(i);
-                return (
-                  <div
-                    key={i}
-                    onClick={() => setSelectedIndexes(prev => {
-                      const next = new Set(prev);
-                      next.has(i) ? next.delete(i) : next.add(i);
-                      return next;
-                    })}
-                    className={`bg-bg-card border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] cursor-pointer transition-colors ${checked ? 'border-primary/50' : 'border-border opacity-50'}`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {}}
-                          className="w-4 h-4 accent-primary"
-                          onClick={e => e.stopPropagation()}
-                        />
-                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">チャンク {i + 1}</span>
-                      </label>
-                      <span className="text-[10px] text-text-muted">{p.suggested_category}</span>
+            {/* そのまま登録モード: 全チャンクを1枚にまとめて表示 */}
+            {directMode ? (
+              <div className="bg-bg-card border border-primary/50 rounded-[var(--radius-card)] shadow-[var(--shadow-card)] mb-4 overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">全{previewPatterns.length}チャンク</span>
+                </div>
+                <div className="divide-y divide-border">
+                  {previewPatterns.map((p, i) => (
+                    <div key={i} className="flex gap-3 px-4 py-3">
+                      {/* 左: 会話 */}
+                      <div className="flex-1 space-y-1 min-w-0">
+                        <div className="flex gap-2">
+                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
+                          <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">SPP</span>
+                          <span className="text-sm text-text-dark">{p.spp}</span>
+                        </div>
+                        {p.followup_question && (
+                          <div className="flex gap-2">
+                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FQ</span>
+                            <span className="text-sm text-text-dark">{p.followup_question}</span>
+                          </div>
+                        )}
+                        {p.followup_answer && (
+                          <div className="flex gap-2">
+                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FA</span>
+                            <span className="text-sm text-text-dark">{p.followup_answer}</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* 右: メタ情報 */}
+                      <div className="w-28 shrink-0 text-right">
+                        <p className="text-[10px] font-semibold text-text-muted leading-snug">{p.suggested_category}</p>
+                        {p.situation_ja && (
+                          <p className="text-[10px] text-text-light mt-0.5 leading-snug">{p.situation_ja}</p>
+                        )}
+                        {p.similarPatterns && p.similarPatterns.length > 0 && (
+                          <p className="text-[10px] text-amber mt-1">⚠️ 類似あり</p>
+                        )}
+                      </div>
                     </div>
-                    {p.similarPatterns && p.similarPatterns.length > 0 && (
-                      <div className="mb-2 p-2 bg-amber-bg border border-amber-bd rounded-lg">
-                        <p className="text-[10px] font-semibold text-amber mb-1">⚠️ 似たチャンクがすでにあります</p>
-                        {p.similarPatterns.map((s) => (
-                          <p key={s.trigger} className="text-[10px] text-text-muted">
-                            「{s.trigger}」<span className="text-amber font-medium ml-1">({s.similarityPct}%)</span>
-                          </p>
-                        ))}
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* 解析して確認モード: 個別チャンクカード */
+              <div className="space-y-3 mb-4">
+                {previewPatterns.map((p, i) => {
+                  const checked = selectedIndexes.has(i);
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => setSelectedIndexes(prev => {
+                        const next = new Set(prev);
+                        next.has(i) ? next.delete(i) : next.add(i);
+                        return next;
+                      })}
+                      className={`bg-bg-card border rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-card)] cursor-pointer transition-colors ${checked ? 'border-primary/50' : 'border-border opacity-50'}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {}}
+                            className="w-4 h-4 accent-primary"
+                            onClick={e => e.stopPropagation()}
+                          />
+                          <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">チャンク {i + 1}</span>
+                        </label>
+                        <span className="text-[10px] text-text-muted">{p.suggested_category}</span>
                       </div>
-                    )}
-                    {p.situation_ja && (
-                      <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>
-                    )}
-                    <div className="space-y-1.5">
-                      <div>
-                        <span className="text-[10px] font-semibold text-text-muted">FPP　</span>
-                        <span className="text-sm text-text-dark">{p.fpp_question}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-semibold text-text-muted">SPP　</span>
-                        <span className="text-sm text-text-dark">{p.spp}</span>
-                      </div>
-                      {p.followup_question && (
-                        <div>
-                          <span className="text-[10px] font-semibold text-text-muted">FQ　　</span>
-                          <span className="text-sm text-text-dark">{p.followup_question}</span>
+                      {p.similarPatterns && p.similarPatterns.length > 0 && (
+                        <div className="mb-2 p-2 bg-amber-bg border border-amber-bd rounded-lg">
+                          <p className="text-[10px] font-semibold text-amber mb-1">⚠️ 似たチャンクがすでにあります</p>
+                          {p.similarPatterns.map((s) => (
+                            <p key={s.trigger} className="text-[10px] text-text-muted">
+                              「{s.trigger}」<span className="text-amber font-medium ml-1">({s.similarityPct}%)</span>
+                            </p>
+                          ))}
                         </div>
                       )}
-                      {p.followup_answer && (
-                        <div>
-                          <span className="text-[10px] font-semibold text-text-muted">FA　　</span>
-                          <span className="text-sm text-text-dark">{p.followup_answer}</span>
-                        </div>
+                      {p.situation_ja && (
+                        <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>
                       )}
+                      <div className="space-y-1.5">
+                        <div>
+                          <span className="text-[10px] font-semibold text-text-muted">FPP　</span>
+                          <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-semibold text-text-muted">SPP　</span>
+                          <span className="text-sm text-text-dark">{p.spp}</span>
+                        </div>
+                        {p.followup_question && (
+                          <div>
+                            <span className="text-[10px] font-semibold text-text-muted">FQ　　</span>
+                            <span className="text-sm text-text-dark">{p.followup_question}</span>
+                          </div>
+                        )}
+                        {p.followup_answer && (
+                          <div>
+                            <span className="text-[10px] font-semibold text-text-muted">FA　　</span>
+                            <span className="text-sm text-text-dark">{p.followup_answer}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -371,10 +468,15 @@ export default function LessonFormClient() {
               <button
                 type="button"
                 onClick={save}
-                disabled={saving || selectedIndexes.size === 0}
+                disabled={saving || (!directMode && selectedIndexes.size === 0)}
                 className="flex-1 py-2.5 bg-orange-400 text-black rounded-[var(--radius-button)] text-sm font-semibold disabled:opacity-40"
               >
-                {saving ? '保存・音声生成中…' : `${selectedIndexes.size}チャンクを保存 + 音声生成`}
+                {saving
+                  ? '保存・音声生成中…'
+                  : directMode
+                    ? '保存 + 音声生成'
+                    : `${selectedIndexes.size}チャンクを保存 + 音声生成`
+                }
               </button>
             </div>
 
