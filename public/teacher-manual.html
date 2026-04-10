@@ -234,16 +234,22 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <!-- STEP 1 -->
       <div class="m-sub-step">STEP 1: 受講生を選ぶ</div>
 
-      <img src="images/manual/teacher/03-lesson-form-empty.png" alt="レッスン後フォーム（空の状態）" class="m-screenshot">
+      <img src="images/manual/teacher/03-lesson-form-empty.png" alt="レッスン後フォーム（空の状態）" class="m-screenshot narrow">
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>受講生名</strong>の欄をクリックして、氏名を入力すると候補が表示されます。該当する受講生を選んでください。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">リストに受講生の名前が出ない場合は運営に連絡をしてください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">漢字・ひらがなどちらで入力しても候補が表示されます。</div></div>
 
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">
+        <img src="images/manual/teacher/04-student-kanji.png" alt="漢字で入力" class="m-screenshot narrow" style="flex:1;min-width:200px;margin:0">
+        <img src="images/manual/teacher/04-student-kana.png" alt="ひらがなで入力" class="m-screenshot narrow" style="flex:1;min-width:200px;margin:0">
+      </div>
+
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">リストに受講生の名前が出ない場合は運営に連絡をしてください。</div></div>
 
       <!-- STEP 2 -->
       <div class="m-sub-step">STEP 2: レッスンメモを入力する</div>
 
-      <img src="images/manual/teacher/05-lesson-form-memo-filled.png" alt="受講生選択＋メモ入力済み" class="m-screenshot">
+      <img src="images/manual/teacher/05-lesson-form-memo-filled.png" alt="受講生選択＋メモ入力済み" class="m-screenshot narrow">
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>レッスンメモ</strong>に、レッスンで話した内容を自由に書きます。日本語でも英語でもOKです。</div></div>
       <div class="anno"><div class="anno-icon">2</div><div class="anno-text">長い内容を入力した場合は、AIが自動で<strong>複数のチャンク（会話のかたまり）</strong>に分割してくれます。</div></div>
@@ -266,6 +272,17 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <div class="m-sub-step">別の方法: 「そのまま登録」ボタン</div>
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text">会話テキストをそのまま貼り付けて登録したい場合は<strong>「そのまま登録」</strong>を使います。ボタンの左に <strong>「1文」「会話」</strong> の切り替えがあります。</div></div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">
+        <div style="flex:1;min-width:200px">
+          <p style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:6px;text-align:center">1文モード</p>
+          <img src="images/manual/teacher/05-form-direct-1sentence.png" alt="1文モードでそのまま登録" class="m-screenshot narrow" style="margin:0">
+        </div>
+        <div style="flex:1;min-width:200px">
+          <p style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:6px;text-align:center">会話モード</p>
+          <img src="images/manual/teacher/05-form-direct-conversation.png" alt="会話モードでそのまま登録" class="m-screenshot narrow" style="margin:0">
+        </div>
+      </div>
 
       <div class="m-highlight">
         <strong>1文モード</strong>（デフォルト）… FPP・SPP・FQ・FAをそれぞれ1文に絞ってチャンク生成。シンプルな練習教材向け。<br><br>
@@ -290,7 +307,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
         <p>AIがレッスンメモを解析すると、<strong>チャンク（会話のかたまり）</strong>ごとに分割された結果が表示されます。各チャンクの内容を確認して、保存するものを選びましょう。</p>
       </div>
 
-      <img src="images/manual/teacher/11-preview-chunks.png" alt="AI解析結果（3チャンク、似たチャンク警告付き）" class="m-screenshot">
+      <img src="images/manual/teacher/11-preview-chunks.png" alt="AI解析結果（3チャンク）" class="m-screenshot narrow">
 
       <div class="anno"><div class="anno-icon">1</div><div class="anno-text">各チャンクには以下の情報が自動生成されています:<br>
         <strong>FPP</strong> = First Pair Part（相手のセリフ。会話のきっかけとなる一言）<br>
@@ -303,8 +320,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <div class="m-highlight">
         <strong>確認ポイント:</strong> SPP（模範回答）が自然かどうかをチェックしてください。不自然に感じたら、<strong>保存後に修正できます</strong>（Section 6参照）。
       </div>
-
-      <img src="images/manual/teacher/12-preview-save-button.png" alt="保存ボタン部分" class="m-screenshot">
 
       <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">チャンクを選択したら、下にある<strong>「保存 + 音声生成」ボタン</strong>を押します。音声が自動生成され、受講生の専用ページに即反映されます。</div></div>
     </div>
