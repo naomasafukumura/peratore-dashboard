@@ -21,6 +21,7 @@ type Body = {
   studentName?: string;
   rawLessonMemo?: string;
   patterns?: ExtractedPattern[];
+  directStyle?: '1sentence' | 'multi';
 };
 
 /** practice-v2 埋め込み DATA の区分 ＋ DB の categories（重複除去）。カテゴリ分けの候補。 */
@@ -145,7 +146,7 @@ JSON の例（Q→Aが4つある場合は4要素）:
 }
 
 /** 例文テキストをそのままチャンク分割（解釈より分割優先） */
-async function analyzeDirectText(rawText: string, categoryNames: string[]): Promise<AnalyzeResult> {
+async function analyzeDirectText(rawText: string, categoryNames: string[], style: '1sentence' | 'multi' = '1sentence'): Promise<AnalyzeResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
@@ -156,6 +157,24 @@ async function analyzeDirectText(rawText: string, categoryNames: string[]): Prom
       ? `次の一覧から意味が最も近い1つを suggested_category に選んでください：\n${categoryNames.join('、')}`
       : `suggested_category には「数字. 大項目：細目」形式で付けてください。`;
 
+  const turnRule = style === '1sentence'
+    ? '**各ターンは原則1文**（短く簡潔に）'
+    : '**各ターンは複数文でもよい**（会話の流れをそのまま保つ）';
+
+  const turnDesc = style === '1sentence'
+    ? `  - FPP（fpp_question）… Aの質問（1文）
+  - SPP（spp）… Bの最初の返答（1文）
+  - FQ（followup_question）… Aのフォロー質問（1文。テキストになければ補完）
+  - FA（followup_answer）… Bの返答（1文。テキストになければ補完）`
+    : `  - FPP（fpp_question）… Aの発言ターン全体（複数文ならそのまま連結）
+  - SPP（spp）… Bの最初の返答ターン全体（複数文ならそのまま連結）
+  - FQ（followup_question）… Aのフォローアップ発言ターン全体（テキストになければ補完）
+  - FA（followup_answer）… Bの最後の返答ターン全体（複数文ならそのまま連結。テキストになければ補完）`;
+
+  const systemMsg = style === '1sentence'
+    ? 'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B), each turn is one sentence. Reply with a single valid JSON object only, no markdown fences.'
+    : 'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B). Each turn may contain multiple sentences — keep them together. Reply with a single valid JSON object only, no markdown fences.';
+
   const userPrompt = `以下のテキストには英会話の例文・会話例が書かれています。**複数のチャンクに分割して**パターンプラクティス教材の形式に整えてください。テキストの内容をできるだけそのまま使い、創作・解釈は最小限にしてください。
 
 ## 話者の識別
@@ -164,11 +183,8 @@ async function analyzeDirectText(rawText: string, categoryNames: string[]): Prom
 
 ## チャンクの分割ルール
 - **話題・場面が変わるタイミングで新しいチャンクを開始してください**（例：映画の選択 → 待ち合わせ → 食事 はそれぞれ別チャンク）
-- 1チャンク = A→B→A→B の4ターン構造。**各ターンは原則1文**
-  - FPP（fpp_question）… Aの質問（1文）
-  - SPP（spp）… Bの最初の返答（1文）
-  - FQ（followup_question）… Aのフォロー質問（1文。テキストになければ自然に補完）
-  - FA（followup_answer）… Bの返答（1文。テキストになければ自然に補完）
+- 1チャンク = A→B→A→B の4ターン構造。${turnRule}
+${turnDesc}
 
 【テキスト】
 ${rawText}
@@ -177,10 +193,10 @@ ${rawText}
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
 - 各チャンクのキー（すべて必須・空文字不可）:
   - situation_ja … そのQ&Aが発生する場面（日本語・簡潔に）
-  - fpp_question … AのFPP（1文）
-  - spp … BのSPP（1文）
-  - followup_question … AのFQ（1文）
-  - followup_answer … BのFA（1文）
+  - fpp_question … AのFPP
+  - spp … BのSPP
+  - followup_question … AのFQ
+  - followup_answer … BのFA
   - character … "友人" または "夫"（文脈から判断）
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
@@ -197,8 +213,7 @@ JSON例（話題が3つあれば3要素）: {"patterns":[{"situation_ja":"...","
       messages: [
         {
           role: 'system',
-          content:
-            'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B), each turn is one sentence. Reply with a single valid JSON object only, no markdown fences.',
+          content: systemMsg,
         },
         { role: 'user', content: userPrompt },
       ],
@@ -304,7 +319,7 @@ export async function POST(req: NextRequest) {
     }
 
     const categoryNames = await fetchCategoryNamesForPrompt();
-    const result = await analyzeDirectText(raw, categoryNames);
+    const result = await analyzeDirectText(raw, categoryNames, body.directStyle ?? '1sentence');
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }

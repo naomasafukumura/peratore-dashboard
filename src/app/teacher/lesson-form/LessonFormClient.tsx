@@ -60,6 +60,7 @@ export default function LessonFormClient() {
   const [saving, setSaving] = useState(false);
   const [directSaving, setDirectSaving] = useState(false);
   const [directMode, setDirectMode] = useState(false);
+  const [directStyle, setDirectStyle] = useState<'1sentence' | 'multi'>('1sentence');
   const [previewPatterns, setPreviewPatterns] = useState<ExtractedPattern[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
@@ -148,7 +149,7 @@ export default function LessonFormClient() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent: 'analyze-direct', studentName: resolvedStudentName, rawLessonMemo: lessonMemo.trim() }),
+        body: JSON.stringify({ intent: 'analyze-direct', studentName: resolvedStudentName, rawLessonMemo: lessonMemo.trim(), directStyle }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -310,14 +311,30 @@ export default function LessonFormClient() {
                 >
                   {analyzing ? 'AI解析中…' : '解析して確認'}
                 </button>
-                <button
-                  type="button"
-                  onClick={registerDirect}
-                  disabled={directSaving || analyzing || !resolvedStudentName || lessonMemo.trim().length < 20}
-                  className="px-4 py-2.5 bg-[#E9852D] text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-[#D4751F]"
-                >
-                  {directSaving ? 'AI分割・登録中…' : 'そのまま登録'}
-                </button>
+                <div className="flex items-center gap-1 bg-surface border border-border rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setDirectStyle('1sentence')}
+                    className={`px-3 py-2 text-xs font-semibold transition-colors ${directStyle === '1sentence' ? 'bg-[#E9852D] text-white' : 'text-text-muted hover:bg-[#E9852D]/10'}`}
+                  >
+                    1文
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDirectStyle('multi')}
+                    className={`px-3 py-2 text-xs font-semibold transition-colors ${directStyle === 'multi' ? 'bg-[#E9852D] text-white' : 'text-text-muted hover:bg-[#E9852D]/10'}`}
+                  >
+                    会話
+                  </button>
+                  <button
+                    type="button"
+                    onClick={registerDirect}
+                    disabled={directSaving || analyzing || !resolvedStudentName || lessonMemo.trim().length < 20}
+                    className="px-4 py-2 bg-[#E9852D] text-white text-sm font-semibold disabled:opacity-40 hover:bg-[#D4751F] transition-colors"
+                  >
+                    {directSaving ? 'AI分割中…' : 'そのまま登録'}
+                  </button>
+                </div>
               </div>
             </section>
 
