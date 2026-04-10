@@ -67,37 +67,25 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Prom
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
-## 前提：2名の会話として読む
-メモに含まれる英語の会話は、**話者A（講師・相手側）と話者B（受講生）の2名によるやり取り**です。
-文脈・内容・流れから「今この文はAが言っているか、Bが言っているか」を判断してください。
-話者が変わるまでの連続する発言（複数文）はひとまとめに1つのターンとして扱ってください。
-
-## チャンクの構造
-1つのチャンク = 「AがBに問いかけ → Bが返す → Aがフォローアップ → Bが返す」の4ターン構造です。
-- FPP（fpp_question）… Aの最初の発言ターン。複数文になることもある
-- SPP（spp）… Bの最初の返答ターン。複数文になることもある
-- FQ（followup_question）… Aのフォローアップ発言ターン。複数文になることもある
-- FA（followup_answer）… Bの最後の返答ターン。複数文になることもある
-
-**重複チャンクは除外**：FPPで使われる主動詞・構造が同じパターンは1つだけ残してください。
+**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）
 
 【先生メモ】
 ${rawMemo}
 
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
-- 英語のセリフはすべて自然な口語に整えること。
-- 各チャンクのキー（すべて必須・空文字不可）:
+- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
+- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフはいずれも自然な口語の英語に整えること:
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
-  - fpp_question … AのFPPターン（複数文ならそのまま連結）
-  - spp … BのSPPターン（複数文ならそのまま連結）
-  - followup_question … AのFQターン（メモから取るか、自然な補完）
-  - followup_answer … BのFAターン（複数文ならそのまま連結）
-  - character … 「夫」または「友人」（文脈から判断）
+  - fpp_question … 相手（講師側）の質問
+  - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
+  - followup_question … そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）
+  - followup_answer … followup_question への受講生の返答（**1文のみ・短く簡潔に**）
+  - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
-JSON例:
-{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
+JSON の例（Q→Aが4つある場合は4要素）:
+{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -111,7 +99,7 @@ JSON例:
         {
           role: 'system',
           content:
-            'You are an English teaching material specialist. Read the conversation as a 2-person dialogue (Speaker A and Speaker B), identify each speaker\'s turns, and group multi-sentence turns together. Reply with a single valid JSON object only, no markdown fences.',
+            'You extract structured English teaching material from teacher notes. Reply with a single valid JSON object only, no markdown fences.',
         },
         { role: 'user', content: userPrompt },
       ],
