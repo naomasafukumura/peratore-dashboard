@@ -159,21 +159,21 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
 
   const turnRule = style === '1sentence'
     ? '**各ターンは原則1文**（短く簡潔に）'
-    : '**各ターンは複数文でもよい**（会話の流れをそのまま保つ）';
+    : '**FPP・FAはA・B複数ターンの会話を含んでよい**';
 
   const turnDesc = style === '1sentence'
     ? `  - FPP（fpp_question）… Aの質問（1文）
   - SPP（spp）… Bの最初の返答（1文）
   - FQ（followup_question）… Aのフォロー質問（1文。テキストになければ補完）
   - FA（followup_answer）… Bの返答（1文。テキストになければ補完）`
-    : `  - FPP（fpp_question）… Aの発言ターン全体（複数文ならそのまま連結）
-  - SPP（spp）… Bの最初の返答ターン全体（複数文ならそのまま連結）
-  - FQ（followup_question）… Aのフォローアップ発言ターン全体（テキストになければ補完）
-  - FA（followup_answer）… Bの最後の返答ターン全体（複数文ならそのまま連結。テキストになければ補完）`;
+    : `  - FPP（fpp_question）… Aの最初の問いかけ＋Bの途中応答＋Aの追加問いかけを含むセットアップ会話全体。**Bが最初に実質的な情報を答えた文の直前まで**をFPPに含める。AとBのやり取りが複数あってもよい
+  - SPP（spp）… **Bが最初に実質的な情報を答えた文**（練習の核心。1文が理想）
+  - FQ（followup_question）… SPPの後にAが発する次の質問（1文）
+  - FA（followup_answer）… FQへのBの返答＋その後のA・Bのやり取り全体。話題が変わる直前まで含める`;
 
   const systemMsg = style === '1sentence'
     ? 'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B), each turn is one sentence. Reply with a single valid JSON object only, no markdown fences.'
-    : 'You are an English teaching material specialist. Split the conversation into multiple chunks by topic. Each chunk = FPP(A)/SPP(B)/FQ(A)/FA(B). Each turn may contain multiple sentences — keep them together. Reply with a single valid JSON object only, no markdown fences.';
+    : 'You are an English teaching material specialist. Split the conversation into topic-based chunks. FPP = the entire setup conversation (may include A/B back-and-forth) up to but not including B\'s first substantive answer. SPP = B\'s first substantive answer (the core practice sentence). FQ = A\'s next question after SPP. FA = everything after FQ until the next topic. Reply with a single valid JSON object only, no markdown fences.';
 
   const userPrompt = `以下のテキストには英会話の例文・会話例が書かれています。**複数のチャンクに分割して**パターンプラクティス教材の形式に整えてください。テキストの内容をできるだけそのまま使い、創作・解釈は最小限にしてください。
 
