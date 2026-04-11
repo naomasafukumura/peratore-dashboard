@@ -300,13 +300,79 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
       <h2 class="m-sec-title">ヘッダーのボタン</h2>
 
       <div class="m-card">
-        <p>画面右上に4つのアイコンが並んでいます。それぞれの機能を説明します。</p>
+        <p>画面右上に並んでいるアイコンの機能をまとめます。</p>
       </div>
 
-      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>ペンアイコン（編集モード）</strong> -- 先生が教材を編集するためのモードです。受講生の皆さんは使いません。</div></div>
-      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>本アイコン（カードビュー）</strong> -- 2枚のカードを並べて表示する見開きモードです。</div></div>
-      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>歯車アイコン（設定）</strong> -- 入力モードや録音時間、フォントサイズなどを変更できます。下で詳しく説明します。</div></div>
-      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>リストアイコン（一覧）</strong> -- 全カードを一覧で確認・音声再生できます。</div></div>
+      <!-- ボタン一覧 -->
+      <div style="background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh-s);margin-bottom:16px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">復習集<br>検索</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">宿題<br>ページ</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">マニュアル</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">設定</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">一覧</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 各ボタン説明 -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">復習集検索</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">先生が追加してくれた例文を一覧で確認できます。キーワード検索・各例文の展開・その場で練習開始も可能です。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">宿題ページ</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">先生が宿題として選んだ例文の一覧ページを開きます。宿題の練習はここからスタートします。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">マニュアル</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">今見ているこの使い方ガイドを開きます。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">設定</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">入力モード（Voice / Text）・録音時間・フォントサイズなどを変更できます。下の「設定画面」で詳しく説明します。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">一覧表示</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">全カードの内容と音声をまとめて確認できます。練習前の予習や復習に使えます。</div>
+          </div>
+        </div>
+
+      </div>
 
       <!-- 設定画面 -->
       <h3 class="m-flow-h3">設定画面</h3>
