@@ -105,7 +105,6 @@ export default function AdminClient() {
           </div>
           <div className="flex items-center gap-3 text-xs">
             <a href="/teacher" className="text-primary font-medium">ダッシュボード</a>
-            <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-primary font-medium">マニュアル</a>
             <a href="/api/admin-auth/logout" className="text-text-muted hover:text-text-dark">ログアウト</a>
           </div>
         </div>
