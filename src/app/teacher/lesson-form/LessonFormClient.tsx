@@ -60,7 +60,7 @@ export default function LessonFormClient() {
   const [saving, setSaving] = useState(false);
   const [directSaving, setDirectSaving] = useState(false);
   const [directMode, setDirectMode] = useState(false);
-  const [directStyle, setDirectStyle] = useState<'1sentence' | 'multi'>('1sentence');
+  const [directStyle, setDirectStyle] = useState<'1sentence' | 'multi' | 'pairs'>('pairs');
   const [previewPatterns, setPreviewPatterns] = useState<ExtractedPattern[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<Set<number>>(new Set());
   const [message, setMessage] = useState<string | null>(null);
@@ -314,8 +314,8 @@ export default function LessonFormClient() {
                 <div className="flex items-center gap-1 bg-surface border border-border rounded-xl overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => setDirectStyle('1sentence')}
-                    className={`px-3 py-2 text-xs font-semibold transition-colors ${directStyle === '1sentence' ? 'bg-[#E9852D] text-white' : 'text-text-muted hover:bg-[#E9852D]/10'}`}
+                    onClick={() => setDirectStyle('pairs')}
+                    className={`px-3 py-2 text-xs font-semibold transition-colors ${directStyle === 'pairs' ? 'bg-[#E9852D] text-white' : 'text-text-muted hover:bg-[#E9852D]/10'}`}
                   >
                     1文
                   </button>
@@ -363,44 +363,60 @@ export default function LessonFormClient() {
               <div className="bg-bg-card border border-primary/50 rounded-[var(--radius-card)] shadow-[var(--shadow-card)] mb-4 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">全{previewPatterns.length}チャンク</span>
+                  {directStyle === 'pairs' && previewPatterns[0]?.suggested_category && (
+                    <span className="text-[10px] font-semibold text-text-muted">{previewPatterns[0].suggested_category}</span>
+                  )}
                 </div>
-                <div className="divide-y divide-border">
+                <div className={directStyle === 'pairs' ? 'px-4 py-3 space-y-2' : 'divide-y divide-border'}>
                   {previewPatterns.map((p, i) => (
-                    <div key={i} className="flex gap-3 px-4 py-3">
-                      {/* 左: 会話 */}
-                      <div className="flex-1 space-y-1 min-w-0">
+                    directStyle === 'pairs' ? (
+                      <div key={i} className="space-y-0.5">
                         <div className="flex gap-2">
                           <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
                           <span className="text-sm text-text-dark">{p.fpp_question}</span>
                         </div>
                         <div className="flex gap-2">
-                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">SPP</span>
+                          <span className="text-[10px] font-semibold text-primary shrink-0 w-7">SPP</span>
                           <span className="text-sm text-text-dark">{p.spp}</span>
                         </div>
-                        {p.followup_question && (
-                          <div className="flex gap-2">
-                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FQ</span>
-                            <span className="text-sm text-text-dark">{p.followup_question}</span>
-                          </div>
-                        )}
-                        {p.followup_answer && (
-                          <div className="flex gap-2">
-                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FA</span>
-                            <span className="text-sm text-text-dark">{p.followup_answer}</span>
-                          </div>
-                        )}
                       </div>
-                      {/* 右: メタ情報 */}
-                      <div className="w-28 shrink-0 text-right">
-                        <p className="text-[10px] font-semibold text-text-muted leading-snug">{p.suggested_category}</p>
-                        {p.situation_ja && (
-                          <p className="text-[10px] text-text-light mt-0.5 leading-snug">{p.situation_ja}</p>
-                        )}
-                        {p.similarPatterns && p.similarPatterns.length > 0 && (
-                          <p className="text-[10px] text-amber mt-1">⚠️ 類似あり</p>
-                        )}
+                    ) : (
+                      <div key={i} className="flex gap-3 px-4 py-3">
+                        {/* 左: 会話 */}
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <div className="flex gap-2">
+                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
+                            <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">SPP</span>
+                            <span className="text-sm text-text-dark">{p.spp}</span>
+                          </div>
+                          {p.followup_question && (
+                            <div className="flex gap-2">
+                              <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FQ</span>
+                              <span className="text-sm text-text-dark">{p.followup_question}</span>
+                            </div>
+                          )}
+                          {p.followup_answer && (
+                            <div className="flex gap-2">
+                              <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FA</span>
+                              <span className="text-sm text-text-dark">{p.followup_answer}</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* 右: メタ情報 */}
+                        <div className="w-28 shrink-0 text-right">
+                          <p className="text-[10px] font-semibold text-text-muted leading-snug">{p.suggested_category}</p>
+                          {p.situation_ja && (
+                            <p className="text-[10px] text-text-light mt-0.5 leading-snug">{p.situation_ja}</p>
+                          )}
+                          {p.similarPatterns && p.similarPatterns.length > 0 && (
+                            <p className="text-[10px] text-amber mt-1">⚠️ 類似あり</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )
                   ))}
                 </div>
               </div>

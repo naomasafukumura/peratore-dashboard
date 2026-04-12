@@ -21,7 +21,7 @@ type Body = {
   studentName?: string;
   rawLessonMemo?: string;
   patterns?: ExtractedPattern[];
-  directStyle?: '1sentence' | 'multi';
+  directStyle?: '1sentence' | 'multi' | 'pairs';
 };
 
 /** practice-v2 埋め込み DATA の区分 ＋ DB の categories（重複除去）。カテゴリ分けの候補。 */
@@ -146,7 +146,7 @@ JSON の例（Q→Aが4つある場合は4要素）:
 }
 
 /** 例文テキストをそのままチャンク分割（解釈より分割優先） */
-async function analyzeDirectText(rawText: string, categoryNames: string[], style: '1sentence' | 'multi' = '1sentence'): Promise<AnalyzeResult> {
+async function analyzeDirectText(rawText: string, categoryNames: string[], style: '1sentence' | 'multi' | 'pairs' = '1sentence'): Promise<AnalyzeResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
@@ -156,6 +156,80 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
     categoryNames.length > 0
       ? `次の一覧から意味が最も近い1つを suggested_category に選んでください：\n${categoryNames.join('、')}`
       : `suggested_category には「数字. 大項目：細目」形式で付けてください。`;
+
+  // pairs モード: A→B の1交換を1チャンクに。FQ/FAは空。
+  if (style === 'pairs') {
+    const systemMsg = 'You are an English teaching material specialist. Convert the conversation into FPP/SPP pairs. Each consecutive A-line → B-line exchange becomes one chunk. fpp_question = A\'s utterance, spp = B\'s utterance. followup_question and followup_answer must always be empty strings. Exchanges in the same conversation topic share the same situation_ja and suggested_category. Reply with a single valid JSON object only, no markdown fences.';
+
+    const userPrompt = `以下のテキストは英会話の例文です。**A（話者A）とB（話者B）の1往復を1チャンク**として分割してください。
+
+## ルール
+- FPP（fpp_question）… Aの発言をそのまま（1文）
+- SPP（spp）… Bの返答をそのまま（1文）
+- followup_question … 必ず空文字列 ""
+- followup_answer … 必ず空文字列 ""
+- situation_ja … 同じ会話トピックのチャンクは全て同じ値にする（日本語・簡潔に）
+- suggested_category … ${catBlock.replace(/\n/g, ' ')}
+- character … "友人" または "夫"（文脈から判断）
+
+## 話者の識別
+テキストに話者名（例: Mikiko:, Patient:）が記載されている場合はそれに従う。
+記載がない場合は文脈から判断する。最初に発言している側をAとする。
+
+【テキスト】
+${rawText}
+
+【出力ルール】
+- 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
+- Aの発言がN個あれば、チャンクもN個になる。
+
+JSON例（3往復なら3要素）: {"patterns":[{"situation_ja":"診察：症状確認","fpp_question":"What symptoms do you have?","spp":"I have a pain.","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"診察：症状確認","fpp_question":"Do you have bleeding?","spp":"Yes.","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userPrompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('OpenAI analyze-direct pairs:', response.status, errText);
+      return { ok: false, error: `OpenAI エラー: ${response.status}`, status: 502 };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') {
+      return { ok: false, error: 'AI からの応答が空です', status: 502 };
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      return { ok: false, error: 'AI の JSON が解析できませんでした', status: 502 };
+    }
+
+    const rawPatterns = Array.isArray(parsed.patterns) ? parsed.patterns : [parsed];
+    const patterns = (rawPatterns as Record<string, unknown>[])
+      .map(normalizePattern)
+      .filter(p => p.fpp_question && p.spp);
+
+    if (patterns.length === 0) {
+      return { ok: false, error: 'テキストからQ&Aペアを抽出できませんでした。', status: 422 };
+    }
+
+    return { ok: true, patterns };
+  }
 
   const turnRule = style === '1sentence'
     ? '**各ターンは原則1文**（短く簡潔に）'
