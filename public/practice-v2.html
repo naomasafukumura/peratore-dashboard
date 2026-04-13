@@ -3539,7 +3539,9 @@ function openSettings() {
       const cat = DATA[catIdx];
       if (!cat) return;
       cat.cards.forEach(c => {
-        if ((c.section || (c.states && c.states[0] && c.states[0].label)) === secName) {
+        const cardSection = c.section || (c.states && c.states[0] && c.states[0].label);
+        // 通常カードはsection名、会話チャンクはchunkIdがセクションキーになる
+        if (cardSection === secName || c.chunkId === secName) {
           allCards.push({ ...c, _hwSection: secName, _hwCategory: cat.category });
         }
       });
