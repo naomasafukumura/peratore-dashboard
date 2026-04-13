@@ -7,6 +7,7 @@ export function practiceCardFromPattern(
 ): Record<string, unknown> {
   return {
     id: `db-${p.id}`,
+    chunkId: `db-chunk-${p.chunk_id}`,
     section: sectionTitleEn,
     createdAt: p.created_at ? (p.created_at instanceof Date ? p.created_at.toISOString() : String(p.created_at)) : null,
     trigger: p.fpp_question,
