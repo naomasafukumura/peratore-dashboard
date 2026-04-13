@@ -1758,6 +1758,57 @@ function openListView() {
     hdr.className = 'lv-cat-hdr';
     hdr.innerHTML = `<span class="lv-cat-hdr-text">${escapeHtml(cat.category)}</span>`;
     body.appendChild(hdr);
+    if (isLessonReviewCategory(cat)) {
+      // 会話チャンク: chunkId でグループ化し1ブロックで表示
+      const chunkMap = new Map();
+      for (const card of cat.cards) {
+        const key = card.chunkId || String(card.id);
+        if (!chunkMap.has(key)) chunkMap.set(key, []);
+        chunkMap.get(key).push(card);
+      }
+      for (const [, chunkCards] of chunkMap) {
+        const sorted = [...chunkCards].sort((a, b) => {
+          const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+          const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+          return aId - bId;
+        });
+        const firstCard = sorted[0];
+        const numericId = String(firstCard.id).replace('db-', '');
+        const studentParam = new URLSearchParams(location.search).get('student') || '';
+        const practiceUrl = '/practice/pattern/' + numericId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
+        const cardDate = firstCard.createdAt ? (() => { const d = new Date(firstCard.createdAt); return isNaN(d.getTime()) ? '' : (d.getMonth()+1) + '/' + d.getDate(); })() : '';
+        total++;
+        const displayId = '1-' + total;
+        allCards.push({ card: firstCard, displayId });
+        const el = document.createElement('div');
+        el.className = 'lv-phrase';
+        el.setAttribute('data-lv-card-id', firstCard.id);
+        let pairsHtml = '';
+        for (const card of sorted) {
+          const st = card.states[0];
+          pairsHtml += `
+            <div class="lv-bub">
+              <div class="lv-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <div class="lv-bubble">${escapeHtml(card.trigger)}</div>
+              ${card.triggerAudio ? `<button class="lv-play" data-audio="${escapeHtml(card.triggerAudio)}" data-text="${escapeHtml(card.trigger)}">${playSvg}</button>` : ''}
+            </div>
+            <div class="lv-bub right">
+              <div class="lv-bubble">${escapeHtml(st.conclusion)}</div>
+              ${st.conclusionAudio ? `<button class="lv-play" data-audio="${escapeHtml(st.conclusionAudio)}" data-text="${escapeHtml(st.conclusion)}">${playSvg}</button>` : ''}
+              <div class="lv-av me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            </div>`;
+        }
+        el.innerHTML = `
+          <div class="lv-phrase-hdr">
+            <span class="lv-phrase-id">${displayId}</span>
+            <span class="lv-phrase-sec">${escapeHtml(firstCard.section)}${cardDate ? ' <span style="font-size:9px;color:var(--text-faint);font-weight:400">('+cardDate+')</span>' : ''}</span>
+            <a class="lv-practice-btn" href="${escapeHtml(practiceUrl)}">練習する</a>
+          </div>
+          ${pairsHtml}
+        `;
+        body.appendChild(el);
+      }
+    } else {
     cat.cards.forEach((card) => {
       const st = card.states[0];
       total++;
@@ -1804,6 +1855,7 @@ function openListView() {
       `;
       body.appendChild(el);
     });
+    } // end else (non-lesson-review)
   });
 
   // Build flat card array

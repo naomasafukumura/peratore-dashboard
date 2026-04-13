@@ -984,9 +984,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                 })}
               </div>
             ) : (
-              /* Full replay view */
+              /* Full replay view: 音声に合わせて1行ずつ表示 */
               <div className="chat-thread" ref={chatThreadRef}>
-                {replayLines.map((line, li) => {
+                {replayLines.slice(0, showPostReplayBar ? replayLines.length : replayPlayingIdx + 1).map((line, li) => {
                   if (line.speaker === 'opponent') {
                     return (
                       <div key={li}>
