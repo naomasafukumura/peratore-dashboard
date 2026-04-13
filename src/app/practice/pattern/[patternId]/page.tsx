@@ -9,13 +9,16 @@ export default async function PracticePatternPage({
   searchParams,
 }: {
   params: Promise<{ patternId: string }>;
-  searchParams: Promise<{ student?: string }>;
+  searchParams: Promise<{ student?: string; homework?: string }>;
 }) {
   const { patternId } = await params;
-  const { student } = await searchParams;
-  const backHref = student
-    ? `/practice-v2.html?student=${encodeURIComponent(student)}&rv=1`
-    : '/practice-v2.html?rv=1';
+  const { student, homework } = await searchParams;
+  const isHomework = homework === '1';
+  const backHref = isHomework
+    ? `/practice-v2.html?hwresume=1${student ? '&student=' + encodeURIComponent(student) : ''}`
+    : student
+      ? `/practice-v2.html?student=${encodeURIComponent(student)}&rv=1`
+      : '/practice-v2.html?rv=1';
 
   // まず指定パターンのchunk_idを取得し、同チャンクの全パターンをsort_order順で取得
   const targetRows = await sql`
