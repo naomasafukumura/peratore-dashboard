@@ -72,6 +72,7 @@ export default async function PracticePatternPage({
       chunkTitle={firstPattern.chunk_title_en || ''}
       chunkTitleJp={firstPattern.chunk_title_jp || ''}
       backHref={backHref}
+      isHomework={isHomework}
     />
   );
 }

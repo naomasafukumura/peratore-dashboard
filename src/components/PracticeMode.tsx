@@ -30,6 +30,7 @@ interface Props {
   chunkTitle: string;
   chunkTitleJp: string;
   backHref?: string;
+  isHomework?: boolean;
 }
 
 type Phase =
@@ -153,7 +154,7 @@ function showReactionPopup(text: string) {
 }
 
 // ===== Main Component =====
-export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref }: Props) {
+export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework }: Props) {
   // 会話モードは patterns[1] を練習ターゲットにするため index=1 で開始
   const [index, setIndex] = useState(patterns.length > 1 ? 1 : 0);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -203,6 +204,11 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // Stats
   const [stats, setStats] = useState<Stats>({ perfect: 0, great: 0, good: 0, almost: 0, retry: 0 });
+  const statsRef = useRef(stats);
+  statsRef.current = stats;
+
+  // 宿題モード: 最終結果画面用の累積stats
+  const [finalStats, setFinalStats] = useState<Stats | null>(null);
 
   // Audio
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -841,24 +847,55 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     };
   }, [stopAudio, clearSpeakTimers]);
 
+  // ===== 宿題モード: 完了時に次チャンクへ or 最終結果表示 =====
+  useEffect(() => {
+    if (phase !== 'complete' || !isHomework) return;
+    const currentStats = statsRef.current;
+    const prevRaw = sessionStorage.getItem('hwAccStats');
+    const prev: Stats = prevRaw ? JSON.parse(prevRaw) : { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
+    const acc: Stats = {
+      perfect: prev.perfect + currentStats.perfect,
+      great: prev.great + currentStats.great,
+      good: prev.good + currentStats.good,
+      almost: prev.almost + currentStats.almost,
+      retry: prev.retry + currentStats.retry,
+    };
+    const queueRaw = sessionStorage.getItem('hwChunkQueue');
+    const queue = queueRaw ? JSON.parse(queueRaw) : null;
+    const hasMore = queue && Array.isArray(queue.ids) && queue.ids.length > 0;
+    if (hasMore) {
+      sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
+      if (backHref) window.location.href = backHref;
+    } else {
+      sessionStorage.removeItem('hwChunkQueue');
+      sessionStorage.removeItem('hwAccStats');
+      setFinalStats(acc);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // ===== Completion Screen =====
   if (phase === 'complete') {
+    // 宿題モード: finalStats が確定するまで待機（useEffectが処理中）
+    if (isHomework && !finalStats) return null;
+    const displayStats = finalStats ?? stats;
+    const totalDone = displayStats.perfect + displayStats.great + displayStats.good + displayStats.almost + displayStats.retry;
     return (
       <div className="complete show">
         <div className="complete-icon">&#127881;</div>
         <div className="complete-title">Well Done!</div>
-        <div className="complete-subtitle">{total} patterns completed</div>
+        <div className="complete-subtitle">{totalDone} patterns completed</div>
         <div className="complete-stats">
           <div className="complete-stat">
-            <div className="complete-stat-num g">{stats.perfect + stats.great}</div>
+            <div className="complete-stat-num g">{displayStats.perfect + displayStats.great}</div>
             <div className="complete-stat-label">Perfect/Great</div>
           </div>
           <div className="complete-stat">
-            <div className="complete-stat-num a">{stats.good + stats.almost}</div>
+            <div className="complete-stat-num a">{displayStats.good + displayStats.almost}</div>
             <div className="complete-stat-label">Good/Almost</div>
           </div>
           <div className="complete-stat">
-            <div className="complete-stat-num r">{stats.retry}</div>
+            <div className="complete-stat-num r">{displayStats.retry}</div>
             <div className="complete-stat-label">Retry</div>
           </div>
         </div>
