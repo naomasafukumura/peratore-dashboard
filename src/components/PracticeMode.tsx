@@ -675,7 +675,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     } else {
       goToFullReplay();
     }
-  }, [index, total, goToFullReplay]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, total]);
 
   const handleT2Replay = useCallback(() => {
     // Play the followup answer audio in the review
@@ -734,7 +735,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     // Auto-play sequentially
     playReplaySequence(lines);
-  }, [patterns, playReplaySequence]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patterns]);
 
   // ---- Review OK (Turn 1): proceed to Turn 2 or next pattern / full replay ----
   const handleReviewOk = useCallback(async () => {
