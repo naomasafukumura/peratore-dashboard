@@ -1363,7 +1363,13 @@ function getSections(cat) {
     }
     const sections = [];
     for (const [key, cards] of chunkMap) {
-      const firstCard = cards[0];
+      // id ASC でソートし、最初に作成されたパターン（チャンクの先頭）をタイトルに使う
+      const sortedCards = [...cards].sort((a, b) => {
+        const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+        const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+        return aId - bId;
+      });
+      const firstCard = sortedCards[0];
       const d = firstCard.createdAt ? new Date(firstCard.createdAt) : null;
       const dateLabel = d && !isNaN(d.getTime())
         ? d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()
