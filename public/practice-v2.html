@@ -4137,7 +4137,7 @@ async function initReviewSearch(studentName) {
 
   // Load review data (sessionStorage cache for fast return from practice)
   try {
-    const cacheKey = 'rvData_' + studentName;
+    const cacheKey = 'rvData_v2_' + studentName;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       _rvData = JSON.parse(cached).map(item => ({

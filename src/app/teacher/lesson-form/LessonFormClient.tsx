@@ -186,7 +186,7 @@ export default function LessonFormClient() {
           patterns: directMode
             ? previewPatterns
             : previewPatterns.filter((_, i) => selectedIndexes.has(i)),
-          ...(directMode ? { directStyle } : {}),
+          directStyle: directMode ? directStyle : undefined,
         }),
       });
       const data = await res.json();
@@ -197,6 +197,8 @@ export default function LessonFormClient() {
       setMessage(data.message || '登録フローを受け付けました');
       setSuccessStudentName(resolvedStudentName);
       if (Array.isArray(data.saved?.similarPatterns)) setSimilarPatterns(data.saved.similarPatterns);
+      // 復習集キャッシュをクリア（次回オープン時に最新データを取得させる）
+      try { sessionStorage.removeItem('rvData_v2_' + resolvedStudentName); } catch {}
       setStage('saved');
     } catch (e) {
       setMessage((e as Error).message);
