@@ -1611,19 +1611,30 @@ $startBtn.addEventListener('click', () => {
   cards = getSelectedCards();
   if (!cards.length) return;
 
-  // 会話チャンク（chunkId あり）は practice/pattern/{id} ページへ遷移
-  const convCard = cards.find(c => c.chunkId);
-  if (convCard) {
-    const chunkCards = cards.filter(c => c.chunkId === convCard.chunkId);
-    const sorted = [...chunkCards].sort((a, b) => {
+  const isHomework = new URLSearchParams(location.search).get('homework') === '1';
+
+  // 会話チャンク（chunkId あり）の処理
+  if (cards.some(c => c.chunkId)) {
+    if (!isHomework) {
+      // ホーム画面：最初の1チャンクを practice/pattern/{id} ページへ遷移
+      const convCard = cards.find(c => c.chunkId);
+      const chunkCards = cards.filter(c => c.chunkId === convCard.chunkId);
+      const sorted = [...chunkCards].sort((a, b) => {
+        const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+        const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+        return aId - bId;
+      });
+      const numericId = String(sorted[0].id).replace('db-', '');
+      const studentParam = new URLSearchParams(location.search).get('student') || '';
+      window.location.href = '/practice/pattern/' + numericId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
+      return;
+    }
+    // 宿題モード：全チャンクをid ASCでソートしてインライン練習
+    cards = [...cards].sort((a, b) => {
       const aId = parseInt(String(a.id).replace('db-', '')) || 0;
       const bId = parseInt(String(b.id).replace('db-', '')) || 0;
       return aId - bId;
     });
-    const numericId = String(sorted[0].id).replace('db-', '');
-    const studentParam = new URLSearchParams(location.search).get('student') || '';
-    window.location.href = '/practice/pattern/' + numericId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
-    return;
   }
 
   currentIdx = 0;
@@ -4201,7 +4212,9 @@ loadDataFromAPI().then(() => {
           selectedSubs.set(catIdx, subSet);
           const startBtn = document.getElementById('startBtn');
           startBtn.disabled = false;
-          setTimeout(() => startBtn.click(), 100);
+          // カバー画面を即時非表示にしてラグ解消
+          $cover.classList.add('hide');
+          setTimeout(() => startBtn.click(), 50);
         }
       } catch(e) { console.error('hw autostart:', e); }
     }
