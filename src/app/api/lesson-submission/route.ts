@@ -391,7 +391,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       patterns: patternsWithSimilar,
-      message: `${result.patterns.length}チャンクに分割しました。`,
+      message: body.directStyle === 'multi'
+        ? `${result.patterns.length}ペアを解析しました。1チャンクとして保存されます。`
+        : `${result.patterns.length}チャンクに分割しました。`,
     });
   }
 

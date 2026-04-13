@@ -365,61 +365,27 @@ export default function LessonFormClient() {
             {directMode ? (
               <div className="bg-bg-card border border-primary/50 rounded-[var(--radius-card)] shadow-[var(--shadow-card)] mb-4 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">全{previewPatterns.length}チャンク</span>
+                  <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">
+                    {directStyle === 'multi'
+                      ? `1チャンク（${previewPatterns.length}ペア）`
+                      : `全${previewPatterns.length}チャンク`}
+                  </span>
                   {directStyle === 'pairs' && previewPatterns[0]?.suggested_category && (
                     <span className="text-[10px] font-semibold text-text-muted">{previewPatterns[0].suggested_category}</span>
                   )}
                 </div>
-                <div className={directStyle === 'pairs' ? 'px-4 py-3 space-y-2' : 'divide-y divide-border'}>
+                <div className="px-4 py-3 space-y-0.5">
                   {previewPatterns.map((p, i) => (
-                    directStyle === 'pairs' ? (
-                      <div key={i} className="space-y-0.5">
-                        <div className="flex gap-2">
-                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
-                          <span className="text-sm text-text-dark">{p.fpp_question}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-[10px] font-semibold text-primary shrink-0 w-7">SPP</span>
-                          <span className="text-sm text-text-dark">{p.spp}</span>
-                        </div>
+                    <div key={i} className="space-y-0.5">
+                      <div className="flex gap-2">
+                        <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
+                        <span className="text-sm text-text-dark">{p.fpp_question}</span>
                       </div>
-                    ) : (
-                      <div key={i} className="flex gap-3 px-4 py-3">
-                        {/* 左: 会話 */}
-                        <div className="flex-1 space-y-1 min-w-0">
-                          <div className="flex gap-2">
-                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
-                            <span className="text-sm text-text-dark">{p.fpp_question}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">SPP</span>
-                            <span className="text-sm text-text-dark">{p.spp}</span>
-                          </div>
-                          {p.followup_question && (
-                            <div className="flex gap-2">
-                              <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FQ</span>
-                              <span className="text-sm text-text-dark">{p.followup_question}</span>
-                            </div>
-                          )}
-                          {p.followup_answer && (
-                            <div className="flex gap-2">
-                              <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FA</span>
-                              <span className="text-sm text-text-dark">{p.followup_answer}</span>
-                            </div>
-                          )}
-                        </div>
-                        {/* 右: メタ情報 */}
-                        <div className="w-28 shrink-0 text-right">
-                          <p className="text-[10px] font-semibold text-text-muted leading-snug">{p.suggested_category}</p>
-                          {p.situation_ja && (
-                            <p className="text-[10px] text-text-light mt-0.5 leading-snug">{p.situation_ja}</p>
-                          )}
-                          {p.similarPatterns && p.similarPatterns.length > 0 && (
-                            <p className="text-[10px] text-amber mt-1">⚠️ 類似あり</p>
-                          )}
-                        </div>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] font-semibold text-primary shrink-0 w-7">SPP</span>
+                        <span className="text-sm text-text-dark">{p.spp}</span>
                       </div>
-                    )
+                    </div>
                   ))}
                 </div>
               </div>
