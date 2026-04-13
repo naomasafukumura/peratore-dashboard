@@ -865,7 +865,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     const hasMore = queue && Array.isArray(queue.ids) && queue.ids.length > 0;
     if (hasMore) {
       sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
-      if (backHref) window.location.href = backHref;
+      const nextId = queue.ids.shift();
+      sessionStorage.setItem('hwChunkQueue', JSON.stringify(queue));
+      const studentParam = queue.student ? `&student=${encodeURIComponent(queue.student)}` : '';
+      window.location.href = `/practice/pattern/${nextId}?homework=1${studentParam}`;
     } else {
       sessionStorage.removeItem('hwChunkQueue');
       sessionStorage.removeItem('hwAccStats');
