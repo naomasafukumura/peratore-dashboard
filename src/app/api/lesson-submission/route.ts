@@ -157,6 +157,37 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
       ? `次の一覧から意味が最も近い1つを suggested_category に選んでください：\n${categoryNames.join('、')}`
       : `suggested_category には「数字. 大項目：細目」形式で付けてください。`;
 
+  // multi モード: 会話テキストを行単位で直接パース。AI補正なし。FQ/FAは空。
+  if (style === 'multi') {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const patterns: ExtractedPattern[] = [];
+
+    // 話者プレフィックス（"A:", "B:", "Name:" など）を除去する
+    const stripSpeaker = (line: string) => line.replace(/^[A-Za-z0-9\u3040-\u9FFF\u30A0-\u30FF\uFF00-\uFFEF]+\s*:\s*/, '').trim();
+
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+      const fpp = stripSpeaker(lines[i]);
+      const spp = stripSpeaker(lines[i + 1]);
+      if (fpp && spp) {
+        patterns.push({
+          situation_ja: '',
+          fpp_question: fpp,
+          spp,
+          followup_question: '',
+          followup_answer: '',
+          character: '友人',
+          suggested_category: '',
+        });
+      }
+    }
+
+    if (patterns.length === 0) {
+      return { ok: false, error: '会話テキストをパースできませんでした。', status: 422 };
+    }
+
+    return { ok: true, patterns };
+  }
+
   // pairs モード: A→B の1交換を1チャンクに。FQ/FAは空。
   if (style === 'pairs') {
     const systemMsg = 'You are an English teaching material specialist. Convert the conversation into FPP/SPP pairs. Each consecutive A-line → B-line exchange becomes one chunk. fpp_question = A\'s utterance, spp = B\'s utterance. followup_question and followup_answer must always be empty strings. Exchanges in the same conversation topic share the same situation_ja and suggested_category. Reply with a single valid JSON object only, no markdown fences.';
