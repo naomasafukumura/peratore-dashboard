@@ -17,6 +17,24 @@ export default async function PracticePatternPage({
     ? `/practice-v2.html?student=${encodeURIComponent(student)}&rv=1`
     : '/practice-v2.html?rv=1';
 
+  // まず指定パターンのchunk_idを取得し、同チャンクの全パターンをsort_order順で取得
+  const targetRows = await sql`
+    SELECT p.chunk_id FROM patterns p WHERE p.id = ${patternId}
+  `;
+
+  if (!targetRows[0]) {
+    return (
+      <div className="min-h-screen bg-bg-page flex flex-col items-center justify-center gap-4">
+        <p className="text-text-muted">例文が見つかりません</p>
+        <Link href="/student" className="text-sm text-primary underline">
+          マイページに戻る
+        </Link>
+      </div>
+    );
+  }
+
+  const chunkId = targetRows[0].chunk_id;
+
   const rows = await sql`
     SELECT p.*,
       ch.title_en AS chunk_title_en,
@@ -28,12 +46,13 @@ export default async function PracticePatternPage({
       EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'natural') as has_natural_audio
     FROM patterns p
     JOIN chunks ch ON ch.id = p.chunk_id
-    WHERE p.id = ${patternId}
+    WHERE p.chunk_id = ${chunkId}
+    ORDER BY p.sort_order ASC, p.id ASC
   `;
 
-  const pattern = rows[0];
+  const firstPattern = rows[0];
 
-  if (!pattern) {
+  if (!firstPattern) {
     return (
       <div className="min-h-screen bg-bg-page flex flex-col items-center justify-center gap-4">
         <p className="text-text-muted">例文が見つかりません</p>
@@ -46,9 +65,9 @@ export default async function PracticePatternPage({
 
   return (
     <PracticeMode
-      patterns={[pattern] as any}
-      chunkTitle={pattern.chunk_title_en || ''}
-      chunkTitleJp={pattern.chunk_title_jp || ''}
+      patterns={rows as any}
+      chunkTitle={firstPattern.chunk_title_en || ''}
+      chunkTitleJp={firstPattern.chunk_title_jp || ''}
       backHref={backHref}
     />
   );

@@ -665,9 +665,17 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // ---- Turn 2 self-eval buttons ----
   const handleT2Eval = useCallback((eval_: 'good' | 'couldnt') => {
     setShowReview(false);
-    goToFullReplay();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (index < total - 1) {
+      setIndex(index + 1);
+      setPhase('idle');
+      setBubbles([]);
+      setUserAnswer1('');
+      setUserAnswer2('');
+      setReplayLines([]);
+    } else {
+      goToFullReplay();
+    }
+  }, [index, total, goToFullReplay]);
 
   const handleT2Replay = useCallback(() => {
     // Play the followup answer audio in the review
@@ -676,48 +684,48 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     }
   }, [pattern, playAudio]);
 
-  // ===== Full Replay =====
+  // ===== Full Replay (全パターン) =====
   const goToFullReplay = useCallback(() => {
-    if (!pattern) return;
     setShowReview(false);
     setPhase('fullReplay');
 
-    const lines: ReplayLine[] = [
-      {
+    // 全パターンの FPP/SPP/FQ/FA を順番に並べてリプレイ
+    const lines: ReplayLine[] = [];
+    for (const p of patterns) {
+      lines.push({
         speaker: 'opponent',
-        text: pattern.fpp_question,
-        ja: pattern.situation || '',
+        text: p.fpp_question,
+        ja: p.situation || '',
         audioType: 'fpp_question',
-        patternId: pattern.id,
-        hasAudio: pattern.has_fpp_question_audio,
-      },
-      {
+        patternId: p.id,
+        hasAudio: p.has_fpp_question_audio,
+      });
+      lines.push({
         speaker: 'user',
-        text: pattern.spp,
-        ja: pattern.spp_jp || '',
+        text: p.spp,
+        ja: p.spp_jp || '',
         audioType: 'spp',
-        patternId: pattern.id,
-        hasAudio: pattern.has_spp_audio,
-      },
-    ];
-
-    if (pattern.followup_question && pattern.followup_answer) {
-      lines.push({
-        speaker: 'opponent',
-        text: pattern.followup_question,
-        ja: '',
-        audioType: 'followup_question',
-        patternId: pattern.id,
-        hasAudio: pattern.has_followup_audio,
+        patternId: p.id,
+        hasAudio: p.has_spp_audio,
       });
-      lines.push({
-        speaker: 'user',
-        text: pattern.followup_answer,
-        ja: pattern.followup_answer_jp || '',
-        audioType: 'natural',
-        patternId: pattern.id,
-        hasAudio: pattern.has_natural_audio,
-      });
+      if (p.followup_question && p.followup_answer) {
+        lines.push({
+          speaker: 'opponent',
+          text: p.followup_question,
+          ja: '',
+          audioType: 'followup_question',
+          patternId: p.id,
+          hasAudio: p.has_followup_audio,
+        });
+        lines.push({
+          speaker: 'user',
+          text: p.followup_answer,
+          ja: p.followup_answer_jp || '',
+          audioType: 'natural',
+          patternId: p.id,
+          hasAudio: p.has_natural_audio,
+        });
+      }
     }
 
     setReplayLines(lines);
@@ -726,9 +734,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     // Auto-play sequentially
     playReplaySequence(lines);
-  }, [pattern]);
+  }, [patterns, playReplaySequence]);
 
-  // ---- Review OK (Turn 1): proceed to Turn 2 or full replay ----
+  // ---- Review OK (Turn 1): proceed to Turn 2 or next pattern / full replay ----
   const handleReviewOk = useCallback(async () => {
     setShowReview(false);
     if (hasTurn2) {
@@ -736,11 +744,19 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       setPhase('continueFlow');
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
+    } else if (index < total - 1) {
+      // 次のペアへ直接進む（最後以外はリプレイ不要）
+      setIndex(index + 1);
+      setPhase('idle');
+      setBubbles([]);
+      setUserAnswer1('');
+      setUserAnswer2('');
+      setReplayLines([]);
     } else {
-      // No Turn 2, go to full replay or next
+      // 最後のパターン完了 → 全体リプレイ
       goToFullReplay();
     }
-  }, [hasTurn2, startTurn2, goToFullReplay]);
+  }, [hasTurn2, startTurn2, goToFullReplay, index, total]);
 
   const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
     for (let i = 0; i < lines.length; i++) {
