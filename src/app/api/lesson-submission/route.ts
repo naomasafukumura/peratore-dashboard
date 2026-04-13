@@ -474,8 +474,8 @@ export async function POST(req: NextRequest) {
 
   const raw = body.rawLessonMemo?.trim() ?? '';
 
-  // 会話モード（multi）: 全ペアを1チャンクにまとめて保存
-  if (body.directStyle === 'multi') {
+  // そのまま登録モード（multi / pairs）: 全ペアを1チャンクにまとめて保存
+  if (body.directStyle === 'multi' || body.directStyle === 'pairs') {
     const pairs = patterns
       .map(p => ({ trigger: p.fpp_question?.trim() ?? '', spp: p.spp?.trim() ?? '' }))
       .filter(p => p.trigger && p.spp);

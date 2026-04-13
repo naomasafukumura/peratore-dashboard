@@ -366,7 +366,7 @@ export default function LessonFormClient() {
               <div className="bg-bg-card border border-primary/50 rounded-[var(--radius-card)] shadow-[var(--shadow-card)] mb-4 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wide">
-                    {directStyle === 'multi'
+                    {(directStyle === 'multi' || directStyle === 'pairs')
                       ? `1チャンク（${previewPatterns.length}ペア）`
                       : `全${previewPatterns.length}チャンク`}
                   </span>
