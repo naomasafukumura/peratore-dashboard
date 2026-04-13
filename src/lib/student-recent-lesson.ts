@@ -1,8 +1,14 @@
 import { sql } from '@/lib/db';
 import { practiceCardFromPattern } from '@/lib/practice-v2-card';
 
+export type RecentLessonPair = {
+  trigger: string;
+  spp: string;
+};
+
 export type RecentLessonSummaryItem = {
   patternId: number;
+  chunkId: number;
   trigger: string;
   spp: string;
   followupQuestion: string;
@@ -11,6 +17,8 @@ export type RecentLessonSummaryItem = {
   section: string;
   categoryName: string;
   createdAt: string | null;
+  /** 会話モードで複数ペアが1チャンクの場合に設定。pairs.length > 1 のときだけ利用。 */
+  pairs: RecentLessonPair[] | null;
 };
 
 /** patterns.created_at カラムが存在しない場合に追加（冪等） */
@@ -72,17 +80,43 @@ export async function fetchRecentLessonForStudent(
 
   const categoryLabel = formatCategoryLabel(rows[0].created_at);
 
-  const summary: RecentLessonSummaryItem[] = rows.map((r: Record<string, any>) => ({
-    patternId: r.id,
-    trigger: r.fpp_question || '',
-    spp: r.spp || '',
-    followupQuestion: r.followup_question || '',
-    followupAnswer: r.followup_answer || '',
-    situationJa: r.situation_ja || '',
-    section: r.chunk_title_en || '',
-    categoryName: r.category_name || '',
-    createdAt: r.created_at ? String(r.created_at) : null,
-  }));
+  // チャンクIDでグループ化（同一チャンク内の複数パターンを1アイテムに）
+  const chunkMap = new Map<number, Record<string, any>[]>();
+  for (const r of rows as Record<string, any>[]) {
+    const cid = r.chunk_id as number;
+    if (!chunkMap.has(cid)) chunkMap.set(cid, []);
+    chunkMap.get(cid)!.push(r);
+  }
+
+  const summary: RecentLessonSummaryItem[] = [];
+  for (const group of chunkMap.values()) {
+    // グループ内は sort_order ASC（DBクエリは id DESC なので逆順になっている場合があるため並び替え）
+    group.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const first = group[0];
+    const pairs: RecentLessonPair[] = group.map(r => ({
+      trigger: r.fpp_question || '',
+      spp: r.spp || '',
+    }));
+    summary.push({
+      patternId: first.id,
+      chunkId: first.chunk_id,
+      trigger: first.fpp_question || '',
+      spp: first.spp || '',
+      followupQuestion: first.followup_question || '',
+      followupAnswer: first.followup_answer || '',
+      situationJa: first.situation || '',
+      section: first.chunk_title_en || '',
+      categoryName: first.category_name || '',
+      createdAt: first.created_at ? String(first.created_at) : null,
+      pairs: pairs.length > 1 ? pairs : null,
+    });
+  }
+  // 新しいチャンクが先頭に来るよう作成日降順にソート
+  summary.sort((a, b) => {
+    const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const db2 = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return db2 - da;
+  });
 
   const cards = rows.map((r: Record<string, any>) =>
     practiceCardFromPattern(r, r.chunk_title_en || '')

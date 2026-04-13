@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hasDatabaseUrl, sql } from '@/lib/db';
-import { persistTeacherLesson, findSimilarPatterns, SimilarPattern } from '@/lib/lesson-persist';
+import { persistTeacherLesson, persistConversationLesson, findSimilarPatterns, SimilarPattern } from '@/lib/lesson-persist';
 import { PRACTICE_V2_EMBEDDED_CATEGORY_NAMES } from '@/lib/practice-v2-embedded-categories';
 
 export const dynamic = 'force-dynamic';
@@ -188,77 +188,29 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
     return { ok: true, patterns };
   }
 
-  // pairs モード: A→B の1交換を1チャンクに。FQ/FAは空。
+  // pairs モード: A→B の1交換を1チャンクに。AIなし直接パース。FQ/FAは空。
   if (style === 'pairs') {
-    const systemMsg = 'You are an English teaching material specialist. Convert the conversation into FPP/SPP pairs. Each consecutive A-line → B-line exchange becomes one chunk. fpp_question = A\'s utterance, spp = B\'s utterance. followup_question and followup_answer must always be empty strings. Exchanges in the same conversation topic share the same situation_ja and suggested_category. Reply with a single valid JSON object only, no markdown fences.';
-
-    const userPrompt = `以下のテキストは英会話の例文です。**A（話者A）とB（話者B）の1往復を1チャンク**として分割してください。
-
-## ルール
-- FPP（fpp_question）… Aの発言をそのまま（1文）
-- SPP（spp）… Bの返答をそのまま（1文）
-- followup_question … 必ず空文字列 ""
-- followup_answer … 必ず空文字列 ""
-- situation_ja … 同じ会話トピックのチャンクは全て同じ値にする（日本語・簡潔に）
-- suggested_category … ${catBlock.replace(/\n/g, ' ')}
-- character … "友人" または "夫"（文脈から判断）
-
-## 話者の識別
-テキストに話者名（例: Mikiko:, Patient:）が記載されている場合はそれに従う。
-記載がない場合は文脈から判断する。最初に発言している側をAとする。
-
-【テキスト】
-${rawText}
-
-【出力ルール】
-- 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
-- Aの発言がN個あれば、チャンクもN個になる。
-
-JSON例（3往復なら3要素）: {"patterns":[{"situation_ja":"診察：症状確認","fpp_question":"What symptoms do you have?","spp":"I have a pain.","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"診察：症状確認","fpp_question":"Do you have bleeding?","spp":"Yes.","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userPrompt }],
-        response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('OpenAI analyze-direct pairs:', response.status, errText);
-      return { ok: false, error: `OpenAI エラー: ${response.status}`, status: 502 };
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const patterns: ExtractedPattern[] = [];
+    const stripSpeaker = (line: string) => line.replace(/^[A-Za-z0-9\u3040-\u9FFF\u30A0-\u30FF\uFF00-\uFFEF]+\s*:\s*/, '').trim();
+    for (let i = 0; i + 1 < lines.length; i += 2) {
+      const fpp = stripSpeaker(lines[i]);
+      const spp = stripSpeaker(lines[i + 1]);
+      if (fpp && spp) {
+        patterns.push({
+          situation_ja: '',
+          fpp_question: fpp,
+          spp,
+          followup_question: '',
+          followup_answer: '',
+          character: '友人',
+          suggested_category: '',
+        });
+      }
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content || typeof content !== 'string') {
-      return { ok: false, error: 'AI からの応答が空です', status: 502 };
-    }
-
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(content) as Record<string, unknown>;
-    } catch {
-      return { ok: false, error: 'AI の JSON が解析できませんでした', status: 502 };
-    }
-
-    const rawPatterns = Array.isArray(parsed.patterns) ? parsed.patterns : [parsed];
-    const patterns = (rawPatterns as Record<string, unknown>[])
-      .map(normalizePattern)
-      .filter(p => p.fpp_question && p.spp);
-
     if (patterns.length === 0) {
       return { ok: false, error: 'テキストからQ&Aペアを抽出できませんでした。', status: 422 };
     }
-
     return { ok: true, patterns };
   }
 
@@ -518,6 +470,31 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const raw = body.rawLessonMemo?.trim() ?? '';
+
+  // 会話モード（multi）: 全ペアを1チャンクにまとめて保存
+  if (body.directStyle === 'multi') {
+    const pairs = patterns
+      .map(p => ({ trigger: p.fpp_question?.trim() ?? '', spp: p.spp?.trim() ?? '' }))
+      .filter(p => p.trigger && p.spp);
+
+    if (pairs.length === 0) {
+      return NextResponse.json({ error: 'patterns が必要です' }, { status: 400 });
+    }
+
+    try {
+      await persistConversationLesson(studentName, pairs, raw);
+      return NextResponse.json({
+        ok: true,
+        message: `${pairs.length}ペアを1チャンクとして保存・音声生成完了 ✓`,
+        saved: { similarPatterns: [] },
+      });
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
+
+  // 通常モード（1文・AI解析）: パターンごとに個別チャンク保存
   const results: Array<{ ok: boolean; trigger: string; error?: string; similarPatterns?: { trigger: string; similarityPct: number }[] }> = [];
 
   for (const p of patterns) {
@@ -535,7 +512,7 @@ export async function POST(req: NextRequest) {
         spp,
         followupQuestion: p.followup_question?.trim() ?? '',
         followupAnswer: p.followup_answer?.trim() ?? '',
-        rawMemo: body.rawLessonMemo?.trim() ?? '',
+        rawMemo: raw,
       });
       results.push({ ok: true, trigger, similarPatterns: saved.similarPatterns });
     } catch (e) {

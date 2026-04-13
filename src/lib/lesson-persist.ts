@@ -210,6 +210,56 @@ export type TeacherLessonPersistResult = {
 };
 
 /**
+ * 会話モード用: 複数の FPP/SPP ペアを1チャンクにまとめて保存する。
+ */
+export async function persistConversationLesson(
+  studentName: string,
+  pairs: Array<{ trigger: string; spp: string }>,
+  rawMemo?: string
+): Promise<{ chunkId: number; audioResults: Record<string, boolean> }> {
+  if (pairs.length === 0) throw new Error('pairsが空です');
+
+  const categoryId = await findOrCreateCategory('レッスン追加');
+  const chunk = await createChunk(categoryId, pairs[0].trigger, '', rawMemo);
+  await ensureAssignment(studentName.trim(), chunk.id);
+
+  const voicePair = getVoicePair('友人');
+  const audioResults: Record<string, boolean> = {};
+
+  for (const pair of pairs) {
+    const pattern = await createPattern(chunk.id, {
+      studentName,
+      situation: '',
+      suggestedCategory: '',
+      character: '友人',
+      trigger: pair.trigger,
+      spp: pair.spp,
+      followupQuestion: '',
+      followupAnswer: '',
+      rawMemo,
+    });
+
+    if (process.env.ELEVENLABS_API_KEY) {
+      for (const t of [
+        { type: 'fpp_question', text: pair.trigger, voiceId: voicePair.trigger },
+        { type: 'spp', text: pair.spp, voiceId: voicePair.spp },
+      ]) {
+        try {
+          const buf = await synthesizeMp3(t.text, t.voiceId);
+          await upsertPatternAudio(pattern.id, t.type, t.voiceId, buf);
+          audioResults[`${pattern.id}_${t.type}`] = true;
+        } catch (e) {
+          console.error(`conversation audio ${t.type}:`, e);
+          audioResults[`${pattern.id}_${t.type}`] = false;
+        }
+      }
+    }
+  }
+
+  return { chunkId: chunk.id, audioResults };
+}
+
+/**
  * カテゴリ・チャンク・パターン・assignments を保存し、可能なら ElevenLabs で音声を upsert。
  * 4 英語文が既存パターンと完全一致なら新規行は作らず assignments のみ（既存 DB 利用）。
  * audio_type: fpp_question, spp, followup_question, natural（practice-v2 の naturalAudio に対応）

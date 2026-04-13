@@ -186,6 +186,7 @@ export default function LessonFormClient() {
           patterns: directMode
             ? previewPatterns
             : previewPatterns.filter((_, i) => selectedIndexes.has(i)),
+          ...(directMode ? { directStyle } : {}),
         }),
       });
       const data = await res.json();
