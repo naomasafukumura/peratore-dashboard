@@ -154,7 +154,8 @@ function showReactionPopup(text: string) {
 
 // ===== Main Component =====
 export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref }: Props) {
-  const [index, setIndex] = useState(0);
+  // 会話モードは patterns[1] を練習ターゲットにするため index=1 で開始
+  const [index, setIndex] = useState(patterns.length > 1 ? 1 : 0);
   const [phase, setPhase] = useState<Phase>('idle');
   const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
   const [showSettings, setShowSettings] = useState(false);
@@ -207,8 +208,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement>(null);
 
+  // 会話モード: patterns が複数ある場合、patterns[1] だけを練習ターゲットにする
+  const isConvMode = patterns.length > 1;
   const pattern = patterns[index];
-  const total = patterns.length;
+  const total = isConvMode ? 1 : patterns.length;
   const progress = total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
 
@@ -298,6 +301,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     setPhase('listen1');
 
+    // 会話モード: patterns[0] をコンテキストとして先に表示
+    if (patterns.length > 1) {
+      const ctx = patterns[0];
+      addBubble({ type: 'typing', text: '' });
+      await new Promise(r => setTimeout(r, 400));
+      setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+      addBubble({ type: 'opponent', text: ctx.fpp_question, showEq: ctx.has_fpp_question_audio, audioType: 'fpp_question', patternId: ctx.id });
+      if (ctx.has_fpp_question_audio) await playAudio(ctx.id, 'fpp_question');
+      await new Promise(r => setTimeout(r, 300));
+      addBubble({ type: 'user', text: ctx.spp });
+      if (ctx.has_spp_audio) await playAudio(ctx.id, 'spp');
+      await new Promise(r => setTimeout(r, 400));
+    }
+
     // Show typing indicator
     addBubble({ type: 'typing', text: '' });
 
@@ -332,7 +349,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     } else {
       setPhase('micReady1');
     }
-  }, [pattern, addBubble, playAudio, inputMode]);
+  }, [pattern, patterns, addBubble, playAudio, inputMode]);
 
   // ---- Recording ----
   const clearSpeakTimers = useCallback(() => {
@@ -746,19 +763,11 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       setPhase('continueFlow');
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
-    } else if (index < total - 1) {
-      // 次のペアへ直接進む（最後以外はリプレイ不要）
-      setIndex(index + 1);
-      setPhase('idle');
-      setBubbles([]);
-      setUserAnswer1('');
-      setUserAnswer2('');
-      setReplayLines([]);
     } else {
-      // 最後のパターン完了 → 全体リプレイ
+      // 会話モードは常に全体リプレイへ。通常モードも同様（1パターンのみ）
       goToFullReplay();
     }
-  }, [hasTurn2, startTurn2, goToFullReplay, index, total]);
+  }, [hasTurn2, startTurn2, goToFullReplay]);
 
   const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
     for (let i = 0; i < lines.length; i++) {
