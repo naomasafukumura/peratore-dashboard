@@ -1610,6 +1610,22 @@ function getSelectedCards() {
 $startBtn.addEventListener('click', () => {
   cards = getSelectedCards();
   if (!cards.length) return;
+
+  // 会話チャンク（chunkId あり）は practice/pattern/{id} ページへ遷移
+  const convCard = cards.find(c => c.chunkId);
+  if (convCard) {
+    const chunkCards = cards.filter(c => c.chunkId === convCard.chunkId);
+    const sorted = [...chunkCards].sort((a, b) => {
+      const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+      const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+      return aId - bId;
+    });
+    const numericId = String(sorted[0].id).replace('db-', '');
+    const studentParam = new URLSearchParams(location.search).get('student') || '';
+    window.location.href = '/practice/pattern/' + numericId + (studentParam ? '?student=' + encodeURIComponent(studentParam) : '');
+    return;
+  }
+
   currentIdx = 0;
   stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
   responseTimes = [];
