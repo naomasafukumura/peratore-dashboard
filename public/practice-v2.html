@@ -71,7 +71,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .cv-sub.on .cv-sub-chk{border-color:var(--accent);background:var(--accent)}
 .cv-sub-chk svg{width:10px;height:10px;color:#fff;opacity:0;transition:opacity .15s}
 .cv-sub.on .cv-sub-chk svg{opacity:1}
-.cv-sub-expand{background:none;border:none;cursor:pointer;font-size:9px;color:var(--text-muted);padding:2px 4px;flex-shrink:0;line-height:1}
+.cv-sub-expand{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:14px;font-weight:400;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;line-height:1;transition:all .15s}
+.cv-sub-expand.open{background:var(--accent);color:#fff}
 .cv-sub-detail{display:none;padding:8px 14px 10px;border-top:1px solid var(--border-lt);font-size:12px}
 .cv-sub.detail-open .cv-sub-detail{display:block}
 .cv-sub-detail-ja{font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:6px}
@@ -1351,10 +1352,15 @@ const CHUNK_EXPLAINS = {
 function isLessonReviewCategory(cat) {
   return cat && cat.icon === 'message' && /復習集/.test(String(cat.category || ''));
 }
+/** DB由来カード（chunkIdが"db-chunk-"で始まる）を含むカテゴリ。宿題カテゴリは除外 */
+function isDbCategory(cat) {
+  if (!cat || cat.category === '宿題') return false;
+  return Array.isArray(cat.cards) && cat.cards.some(c => c.chunkId && String(c.chunkId).startsWith('db-chunk-'));
+}
 
 function getSections(cat) {
-  if (isLessonReviewCategory(cat) && Array.isArray(cat.cards)) {
-    // chunkId でグループ化（会話チャンクの複数カードを1セクションにまとめる）
+  if ((isLessonReviewCategory(cat) || isDbCategory(cat)) && Array.isArray(cat.cards)) {
+    // chunkId でグループ化（会話チャンク・レッスンフォーム生成チャンクを1セクションとして表示）
     const chunkMap = new Map();
     for (const card of cat.cards) {
       const key = card.chunkId || String(card.id);
@@ -1450,7 +1456,7 @@ function initCover() {
           <div class="cv-sub-ct">${sec.dateLabel || sec.count}</div>
           ${hasExplain ? '<div class="cv-sub-hint" data-chunk="' + sec.name.replace(/"/g, '&quot;') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></div>' : ''}
           <div class="cv-sub-chk">${chkSvg}</div>
-          ${hasDetail ? '<button class="cv-sub-expand" aria-label="詳細">▶</button>' : ''}
+          ${hasDetail ? '<button class="cv-sub-expand" aria-label="詳細">+</button>' : ''}
         </div>
         ${detailHtml}
       `;
@@ -1464,7 +1470,11 @@ function initCover() {
           e.stopPropagation();
           sub.classList.toggle('detail-open');
           const btn = sub.querySelector('.cv-sub-expand');
-          if (btn) btn.textContent = sub.classList.contains('detail-open') ? '▼' : '▶';
+          if (btn) {
+            const isOpen = sub.classList.contains('detail-open');
+            btn.textContent = isOpen ? '−' : '+';
+            btn.classList.toggle('open', isOpen);
+          }
           return;
         }
         e.stopPropagation();
@@ -1583,7 +1593,7 @@ document.getElementById('chunkExplainOverlay').addEventListener('click', (e) => 
 });
 
 function getSubKeyForCard(c, cat) {
-  if (isLessonReviewCategory(cat)) return c.chunkId || String(c.id);
+  if (isLessonReviewCategory(cat) || isDbCategory(cat)) return c.chunkId || String(c.id);
   return c.section || c.states[0].label;
 }
 
