@@ -3569,9 +3569,10 @@ function openSettings() {
 
   const hwSelectBtn = document.getElementById('hwSelectBtn');
   const hwSaveBar = document.getElementById('hwSaveBar');
+  let hwOrderedSubs = []; // クリック順を記録
 
   function countChecked() {
-    return document.querySelectorAll('.cv-sub.hw-on').length;
+    return hwOrderedSubs.length;
   }
   function updateSaveBar() {
     const n = countChecked();
@@ -3584,6 +3585,7 @@ function openSettings() {
     hwSelectBtn.classList.toggle('active', active);
     if (!active) {
       document.querySelectorAll('.cv-sub.hw-on').forEach(el => el.classList.remove('hw-on'));
+      hwOrderedSubs = [];
       hwSaveBar.classList.remove('show');
     }
   });
@@ -3594,9 +3596,14 @@ function openSettings() {
     if (!sub) return;
     e.stopPropagation();
     sub.classList.toggle('hw-on');
+    const isOn = sub.classList.contains('hw-on');
+    if (isOn) {
+      hwOrderedSubs.push(sub);
+    } else {
+      hwOrderedSubs = hwOrderedSubs.filter(s => s !== sub);
+    }
     updateSaveBar();
     // 選択と同時に+展開も発動（選択→開く、解除→閉じる）
-    const isOn = sub.classList.contains('hw-on');
     const detail = sub.querySelector('.cv-sub-detail');
     const btn = sub.querySelector('.cv-sub-expand');
     if (detail) {
@@ -3606,9 +3613,8 @@ function openSettings() {
   }, true);
 
   hwSaveBar.addEventListener('click', async () => {
-    const checkedSubs = document.querySelectorAll('.cv-sub.hw-on');
     const allCards = [];
-    checkedSubs.forEach(sub => {
+    hwOrderedSubs.forEach(sub => {
       const catIdx = parseInt(sub.dataset.catIdx);
       const secName = sub.dataset.section;
       const cat = DATA[catIdx];
@@ -3639,6 +3645,7 @@ function openSettings() {
         document.body.classList.remove('hw-mode');
         hwSelectBtn.classList.remove('active');
         document.querySelectorAll('.cv-sub.hw-on').forEach(el => el.classList.remove('hw-on'));
+        hwOrderedSubs = [];
         hwSaveBar.classList.remove('show');
       }, 1500);
     } catch (e) {
