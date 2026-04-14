@@ -1376,7 +1376,7 @@ function getSections(cat) {
         : '';
       const trigger = String(firstCard.trigger || '').trim();
       const displayTitle = trigger || String(firstCard.section || firstCard.states?.[0]?.label || '');
-      sections.push({ name: key, displayTitle, count: cards.length, dateLabel, firstCard });
+      sections.push({ name: key, displayTitle, count: cards.length, dateLabel, firstCard, allCards: sortedCards });
     }
     return sections;
   }
@@ -1437,11 +1437,17 @@ function initCover() {
       let detailHtml = '';
       if (hasDetail && st) {
         detailHtml = `<div class="cv-sub-detail">`;
-        if (card.triggerJa) detailHtml += `<div class="cv-sub-detail-ja">${esc(card.triggerJa)}</div>`;
-        detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FPP</span><span>${esc(card.trigger)}</span></div>`;
-        if (st.conclusion) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">SPP</span><span class="cv-sub-detail-spp">${esc(st.conclusion)}</span></div>`;
-        if (st.followup) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FQ</span><span>${esc(st.followup)}</span></div>`;
-        if (st.conclusion2Examples && st.conclusion2Examples[0]) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FA</span><span>${esc(st.conclusion2Examples[0])}</span></div>`;
+        // 複数ペア（会話チャンク）は全ペアを表示、単一は従来通り
+        const pairsToShow = sec.allCards || [card];
+        pairsToShow.forEach(c => {
+          const s = c.states && c.states[0];
+          if (!s) return;
+          if (c.triggerJa) detailHtml += `<div class="cv-sub-detail-ja">${esc(c.triggerJa)}</div>`;
+          detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FPP</span><span>${esc(c.trigger)}</span></div>`;
+          if (s.conclusion) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">SPP</span><span class="cv-sub-detail-spp">${esc(s.conclusion)}</span></div>`;
+          if (s.followup) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FQ</span><span>${esc(s.followup)}</span></div>`;
+          if (s.conclusion2Examples && s.conclusion2Examples[0]) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FA</span><span>${esc(s.conclusion2Examples[0])}</span></div>`;
+        });
         detailHtml += `</div>`;
       }
       sub.innerHTML = `
