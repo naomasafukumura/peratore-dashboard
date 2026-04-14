@@ -200,127 +200,118 @@ export default function StudentPatternsClient({
 
                       {/* パターンリスト（単体は常に表示、複数は展開時のみ） */}
                       {(!isMulti || isChunkOpen) && (
-                        <div className={isMulti ? 'divide-y divide-border/60' : ''}>
-                          {pats.map((p, pidx) => {
-                            const isOpen = openCards.has(p.id);
-                            return (
-                              <div key={p.id}>
-                                {/* パターンヘッダー */}
-                                <button
-                                  type="button"
-                                  onClick={() => toggleCard(p.id)}
-                                  className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-primary/5"
-                                >
-                                  <div className="min-w-0 flex items-center gap-2">
-                                    {isMulti && (
-                                      <span className="text-[10px] text-text-muted shrink-0">#{pidx + 1}</span>
-                                    )}
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-medium text-text-dark truncate">{p.fpp_question}</p>
-                                      <p className="text-xs text-primary truncate mt-0.5">{p.spp}</p>
-                                    </div>
-                                  </div>
-                                  <span className="text-text-muted text-xs shrink-0">{isOpen ? '▼' : '▶'}</span>
-                                </button>
+                        <div className="px-4 pb-4 pt-3">
+                          {/* 元メモ: チャンク先頭のパターンにだけ表示 */}
+                          {pats[0].raw_memo && (
+                            <div className="mb-4">
+                              <button
+                                onClick={() => setMemoOpen(prev => ({ ...prev, [pats[0].id]: !prev[pats[0].id] }))}
+                                className="text-[11px] text-text-muted hover:text-text-dark flex items-center gap-1"
+                              >
+                                <span>{memoOpen[pats[0].id] ? '▾' : '▸'}</span>
+                                元メモを{memoOpen[pats[0].id] ? '閉じる' : '見る'}
+                              </button>
+                              {memoOpen[pats[0].id] && (
+                                <p className="mt-1 px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-[11px] text-text-muted whitespace-pre-wrap">
+                                  {pats[0].raw_memo}
+                                </p>
+                              )}
+                            </div>
+                          )}
 
-                                {/* 展開コンテンツ */}
-                                {isOpen && (
-                                  <div className="px-4 pb-4 border-t border-border pt-3">
-                                    {p.raw_memo && (
-                                      <div className="mb-3">
-                                        <button
-                                          onClick={() => setMemoOpen(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-                                          className="text-[11px] text-text-muted hover:text-text-dark flex items-center gap-1"
-                                        >
-                                          <span>{memoOpen[p.id] ? '▾' : '▸'}</span>
-                                          元メモを{memoOpen[p.id] ? '閉じる' : '見る'}
-                                        </button>
-                                        {memoOpen[p.id] && (
-                                          <p className="mt-1 px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-[11px] text-text-muted whitespace-pre-wrap">
-                                            {p.raw_memo}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                    <div className="space-y-2 mb-3">
-                                      <div>
-                                        <label className="block text-[10px] text-text-muted mb-1">Situation</label>
-                                        <input
-                                          value={val(p, 'situation')}
-                                          onChange={e => updateEdit(p.id, 'situation', e.target.value)}
-                                          className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                          placeholder="（なし）"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-text-muted mb-1">Trigger（相手のセリフ）</label>
-                                        <input
-                                          value={val(p, 'fpp_question')}
-                                          onChange={e => updateEdit(p.id, 'fpp_question', e.target.value)}
-                                          className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-medium text-text-dark"
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-[10px] text-text-muted mb-1">SPP（模範回答）</label>
-                                        <input
-                                          value={val(p, 'spp')}
-                                          onChange={e => updateEdit(p.id, 'spp', e.target.value)}
-                                          className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-semibold text-primary"
-                                        />
-                                      </div>
+                          {/* 各パターンのフィールド（チャンク内は折りたたみなし） */}
+                          <div className={isMulti ? 'space-y-5' : 'space-y-2'}>
+                            {pats.map((p, pidx) => {
+                              const fqVal = val(p, 'followup_question');
+                              const faVal = val(p, 'followup_answer');
+                              const hasFq = !!(p.followup_question || fqVal.trim());
+                              const hasFa = !!(p.followup_answer || faVal.trim());
+                              return (
+                                <div key={p.id} className={isMulti ? 'pt-4 border-t border-border/50 first:border-t-0 first:pt-0' : ''}>
+                                  {isMulti && (
+                                    <p className="text-[10px] font-semibold text-text-muted mb-2">#{pidx + 1}</p>
+                                  )}
+                                  <div className="space-y-2 mb-3">
+                                    <div>
+                                      <label className="block text-[10px] text-text-muted mb-1">Situation</label>
+                                      <input
+                                        value={val(p, 'situation')}
+                                        onChange={e => updateEdit(p.id, 'situation', e.target.value)}
+                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
+                                        placeholder="（なし）"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-text-muted mb-1">Trigger（相手のセリフ）</label>
+                                      <input
+                                        value={val(p, 'fpp_question')}
+                                        onChange={e => updateEdit(p.id, 'fpp_question', e.target.value)}
+                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-medium text-text-dark"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-text-muted mb-1">SPP（模範回答）</label>
+                                      <input
+                                        value={val(p, 'spp')}
+                                        onChange={e => updateEdit(p.id, 'spp', e.target.value)}
+                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-semibold text-primary"
+                                      />
+                                    </div>
+                                    {/* FQ/FA は値がある場合のみ表示 */}
+                                    {hasFq && (
                                       <div>
                                         <label className="block text-[10px] text-text-muted mb-1">Followup Question</label>
                                         <input
-                                          value={val(p, 'followup_question')}
+                                          value={fqVal}
                                           onChange={e => updateEdit(p.id, 'followup_question', e.target.value)}
                                           className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                          placeholder="（なし）"
                                         />
                                       </div>
+                                    )}
+                                    {hasFa && (
                                       <div>
                                         <label className="block text-[10px] text-text-muted mb-1">Followup Answer</label>
                                         <input
-                                          value={val(p, 'followup_answer')}
+                                          value={faVal}
                                           onChange={e => updateEdit(p.id, 'followup_answer', e.target.value)}
                                           className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                          placeholder="（なし）"
                                         />
                                       </div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+                                    <div className="flex gap-1 text-[10px]">
+                                      <span className={`px-1.5 py-0.5 rounded-full ${p.has_trigger_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>T</span>
+                                      <span className={`px-1.5 py-0.5 rounded-full ${p.has_spp_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>S</span>
+                                      {hasFq && <span className={`px-1.5 py-0.5 rounded-full ${p.has_followup_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FQ</span>}
+                                      {hasFa && <span className={`px-1.5 py-0.5 rounded-full ${p.has_natural_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FA</span>}
                                     </div>
-                                    <div className="flex items-center gap-2 pt-2 border-t border-border/60">
-                                      <div className="flex gap-1 text-[10px]">
-                                        <span className={`px-1.5 py-0.5 rounded-full ${p.has_trigger_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>T</span>
-                                        <span className={`px-1.5 py-0.5 rounded-full ${p.has_spp_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>S</span>
-                                        <span className={`px-1.5 py-0.5 rounded-full ${p.has_followup_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FQ</span>
-                                        <span className={`px-1.5 py-0.5 rounded-full ${p.has_natural_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FA</span>
-                                      </div>
-                                      <div className="ml-auto flex items-center gap-2">
-                                        {saveMsg[p.id] && (
-                                          <span className={`text-[10px] ${saveMsg[p.id].includes('失敗') ? 'text-error' : 'text-success'}`}>
-                                            {saveMsg[p.id]}
-                                          </span>
-                                        )}
-                                        <button
-                                          onClick={() => deletePattern(p.id)}
-                                          disabled={deleting === p.id || saving === p.id}
-                                          className="px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs disabled:opacity-40 transition-colors"
-                                        >
-                                          {deleting === p.id ? '削除中…' : '削除'}
-                                        </button>
-                                        <button
-                                          onClick={() => savePattern(p)}
-                                          disabled={saving === p.id || !isDirty(p.id)}
-                                          className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40 transition-opacity"
-                                        >
-                                          {saving === p.id ? '処理中…' : '保存 + 音声生成'}
-                                        </button>
-                                      </div>
+                                    <div className="ml-auto flex items-center gap-2">
+                                      {saveMsg[p.id] && (
+                                        <span className={`text-[10px] ${saveMsg[p.id].includes('失敗') ? 'text-error' : 'text-success'}`}>
+                                          {saveMsg[p.id]}
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={() => deletePattern(p.id)}
+                                        disabled={deleting === p.id || saving === p.id}
+                                        className="px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs disabled:opacity-40 transition-colors"
+                                      >
+                                        {deleting === p.id ? '削除中…' : '削除'}
+                                      </button>
+                                      <button
+                                        onClick={() => savePattern(p)}
+                                        disabled={saving === p.id || !isDirty(p.id)}
+                                        className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40 transition-opacity"
+                                      >
+                                        {saving === p.id ? '処理中…' : '保存 + 音声生成'}
+                                      </button>
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
