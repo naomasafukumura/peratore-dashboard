@@ -218,7 +218,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const isConvMode = patterns.length > 1;
   const pattern = patterns[index];
   const total = patterns.length;
-  const progress = total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
+  // 会話モードは1チャンク=1練習として 1/1 表示
+  const displayNum = isConvMode ? 1 : index + 1;
+  const displayTotal = isConvMode ? 1 : total;
+  const progress = isConvMode
+    ? ((index - 1 + (phase === 'idle' ? 0 : 0.5)) / (total - 1)) * 100
+    : total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
 
   // UI phase mapping
@@ -929,7 +934,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
           </Link>
           <div className="p-hd-info">
             <div className="p-hd-t">Pattern Practice</div>
-            <div className="p-hd-c">{index + 1} / {total}</div>
+            <div className="p-hd-c">{displayNum} / {displayTotal}</div>
           </div>
           <button className="p-ib" onClick={() => setShowSettings(true)} aria-label="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
