@@ -1132,8 +1132,8 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
   <div class="complete-title">Complete!</div>
   <div class="complete-subtitle" id="completeSubtitle"></div>
   <div class="complete-stats" id="completeStats">
-    <div class="complete-stat"><div class="complete-stat-num g" id="statPerfect">0</div><div class="complete-stat-label">Perfect</div></div>
-    <div class="complete-stat"><div class="complete-stat-num a" id="statAlmost">0</div><div class="complete-stat-label">Almost</div></div>
+    <div class="complete-stat"><div class="complete-stat-num g" id="statPerfect">0</div><div class="complete-stat-label">Perfect/Great</div></div>
+    <div class="complete-stat"><div class="complete-stat-num a" id="statAlmost">0</div><div class="complete-stat-label">Good/Almost</div></div>
     <div class="complete-stat"><div class="complete-stat-num r" id="statRetry">0</div><div class="complete-stat-label">Retry</div></div>
     <div class="complete-stat"><div class="complete-stat-num t" id="statAvgTime">-</div><div class="complete-stat-label">Avg Time</div></div>
     <div class="complete-stat"><div class="complete-stat-num t" id="statCards">0</div><div class="complete-stat-label">Cards</div></div>
@@ -3511,9 +3511,12 @@ function showComplete() {
   $prac.classList.remove('show');
   $complete.classList.add('show');
 
-  document.getElementById('statPerfect').textContent = stats.perfect;
-  document.getElementById('statAlmost').textContent = stats.almost;
-  document.getElementById('statRetry').textContent = stats.retry;
+  // Perfect/Great と Good/Almost を合算して表示（PracticeMode.tsxと統一）
+  const _pg = (stats.perfect || 0) + (stats.great || 0);
+  const _ga = (stats.good || 0) + (stats.almost || 0);
+  document.getElementById('statPerfect').textContent = _pg;
+  document.getElementById('statAlmost').textContent = _ga;
+  document.getElementById('statRetry').textContent = stats.retry || 0;
 
   const avgTimeEl = document.getElementById('statAvgTime');
   if (responseTimes.length > 0) {
@@ -3523,7 +3526,9 @@ function showComplete() {
     avgTimeEl.textContent = '-';
   }
 
-  document.getElementById('statCards').textContent = cards.length;
+  // Cards = 全チャンクを通じて練習したパターン総数
+  const _totalCards = _pg + _ga + (stats.retry || 0);
+  document.getElementById('statCards').textContent = _totalCards || cards.length;
 
   // Turn 2 "言えた" rate
   const t2RateEl = document.getElementById('statT2Rate');
