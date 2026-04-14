@@ -128,6 +128,15 @@
     entry.allCards.push(c);
     entry.count++;
   });
+  // チャンク内のパターンをid ASCで並べる（チャンク間の順序はcards_json順を維持）
+  secMap.forEach(entry => {
+    entry.allCards.sort((a, b) => {
+      const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+      const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+      return aId - bId;
+    });
+    entry.firstCard = entry.allCards[0];
+  });
   const displayItems = Array.from(secMap.values());
 
   // Render list
