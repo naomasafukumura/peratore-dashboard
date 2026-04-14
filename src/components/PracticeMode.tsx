@@ -214,10 +214,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement>(null);
 
-  // 会話モード: patterns が複数ある場合、patterns[1] だけを練習ターゲットにする
+  // 会話モード: patterns が複数ある場合、patterns[index-1] をコンテキストにしてインデックスを順に進める
   const isConvMode = patterns.length > 1;
   const pattern = patterns[index];
-  const total = isConvMode ? 1 : patterns.length;
+  const total = patterns.length;
   const progress = total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
 
@@ -307,9 +307,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     setPhase('listen1');
 
-    // 会話モード: patterns[0] をコンテキストとして先に表示
-    if (patterns.length > 1) {
-      const ctx = patterns[0];
+    // 会話モード: patterns[index-1] をコンテキストとして先に表示
+    if (patterns.length > 1 && index > 0) {
+      const ctx = patterns[index - 1];
       addBubble({ type: 'typing', text: '' });
       await new Promise(r => setTimeout(r, 400));
       setBubbles(prev => prev.filter(b => b.type !== 'typing'));
