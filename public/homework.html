@@ -119,15 +119,9 @@
     return;
   }
 
-  // セクションごとにカードをグループ化（id ASCでソートして先頭を代表カードに）
+  // セクションごとにカードをグループ化（cards_jsonの順序＝先生の選択順を保持）
   const secMap = new Map(); // secKey -> { firstCard, allCards, count }
-  // id ASCでソート（最初に作成されたパターンを先頭に）
-  const sortedCards = [...cards].sort((a, b) => {
-    const aId = parseInt(String(a.id).replace('db-', '')) || 0;
-    const bId = parseInt(String(b.id).replace('db-', '')) || 0;
-    return aId - bId;
-  });
-  sortedCards.forEach(c => {
+  cards.forEach(c => {
     const sec = c._hwSection || c.chunkId || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
     if (!secMap.has(sec)) { secMap.set(sec, { firstCard: c, allCards: [], count: 0 }); }
     const entry = secMap.get(sec);
