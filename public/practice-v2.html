@@ -1642,8 +1642,14 @@ $startBtn.addEventListener('click', () => {
       return String(sorted[0].id).replace('db-', '');
     });
 
-    // キューを保存して最初のチャンクへ
-    sessionStorage.setItem('hwChunkQueue', JSON.stringify({ ids: chunkFirstIds.slice(1), student: studentParam, homework: isHomework ? '1' : '' }));
+    // キューを保存して最初のチャンクへ（chunkIdなし=埋め込みカードも残しておく）
+    const embeddedCards = cards.filter(c => !c.chunkId);
+    sessionStorage.setItem('hwChunkQueue', JSON.stringify({
+      ids: chunkFirstIds.slice(1),
+      embeddedCards: embeddedCards.length ? embeddedCards : undefined,
+      student: studentParam,
+      homework: isHomework ? '1' : ''
+    }));
     const suffix = (isHomework ? '?homework=1' : '?') + (studentParam ? (isHomework ? '&' : '') + 'student=' + encodeURIComponent(studentParam) : '');
     window.location.href = '/practice/pattern/' + chunkFirstIds[0] + suffix;
     return;
@@ -4230,6 +4236,20 @@ loadDataFromAPI().then(() => {
           const parts = [hwSuffix, studentSuffix].filter(Boolean);
           const suffix = parts.length ? '?' + parts.join('&') : '';
           window.location.href = '/practice/pattern/' + nextId + suffix;
+          return;
+        } else if (queue.embeddedCards && queue.embeddedCards.length > 0) {
+          // チャンクキュー完了、次は埋め込みカードを練習
+          const embCards = queue.embeddedCards;
+          sessionStorage.removeItem('hwChunkQueue');
+          cards = embCards;
+          currentIdx = 0;
+          stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
+          responseTimes = [];
+          cardTurnResults = [];
+          $cover.classList.add('hide');
+          $prac.classList.add('show');
+          $complete.classList.remove('show');
+          loadCard();
           return;
         } else {
           sessionStorage.removeItem('hwChunkQueue');
