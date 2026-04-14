@@ -1352,15 +1352,9 @@ const CHUNK_EXPLAINS = {
 function isLessonReviewCategory(cat) {
   return cat && cat.icon === 'message' && /復習集/.test(String(cat.category || ''));
 }
-/** DB由来カード（chunkIdが"db-chunk-"で始まる）を含むカテゴリ。宿題カテゴリは除外 */
-function isDbCategory(cat) {
-  if (!cat || cat.category === '宿題') return false;
-  return Array.isArray(cat.cards) && cat.cards.some(c => c.chunkId && String(c.chunkId).startsWith('db-chunk-'));
-}
-
 function getSections(cat) {
-  if ((isLessonReviewCategory(cat) || isDbCategory(cat)) && Array.isArray(cat.cards)) {
-    // chunkId でグループ化（会話チャンク・レッスンフォーム生成チャンクを1セクションとして表示）
+  if (isLessonReviewCategory(cat) && Array.isArray(cat.cards)) {
+    // chunkId でグループ化（会話チャンクの複数カードを1セクションにまとめる）
     const chunkMap = new Map();
     for (const card of cat.cards) {
       const key = card.chunkId || String(card.id);
@@ -1593,7 +1587,7 @@ document.getElementById('chunkExplainOverlay').addEventListener('click', (e) => 
 });
 
 function getSubKeyForCard(c, cat) {
-  if (isLessonReviewCategory(cat) || isDbCategory(cat)) return c.chunkId || String(c.id);
+  if (isLessonReviewCategory(cat)) return c.chunkId || String(c.id);
   return c.section || c.states[0].label;
 }
 
