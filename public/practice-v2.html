@@ -3551,6 +3551,14 @@ function openSettings() {
     e.stopPropagation();
     sub.classList.toggle('hw-on');
     updateSaveBar();
+    // 選択と同時に+展開も発動（選択→開く、解除→閉じる）
+    const isOn = sub.classList.contains('hw-on');
+    const detail = sub.querySelector('.cv-sub-detail');
+    const btn = sub.querySelector('.cv-sub-expand');
+    if (detail) {
+      sub.classList.toggle('detail-open', isOn);
+      if (btn) { btn.textContent = isOn ? '−' : '+'; btn.classList.toggle('open', isOn); }
+    }
   }, true);
 
   hwSaveBar.addEventListener('click', async () => {
