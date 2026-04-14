@@ -214,15 +214,15 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement>(null);
 
-  // 会話モード: patterns が複数ある場合、patterns[index-1] をコンテキストにしてインデックスを順に進める
+  // 会話モード: patterns[1] だけ練習し、patterns[0] をコンテキストとして表示
   const isConvMode = patterns.length > 1;
   const pattern = patterns[index];
-  const total = patterns.length;
-  // 会話モードは1チャンク=1練習として 1/1 表示
-  const displayNum = isConvMode ? 1 : index + 1;
-  const displayTotal = isConvMode ? 1 : total;
+  // 会話モードは1チャンク=1練習として total=1 で管理
+  const total = isConvMode ? 1 : patterns.length;
+  const displayNum = 1;
+  const displayTotal = isConvMode ? 1 : patterns.length;
   const progress = isConvMode
-    ? ((index - 1 + (phase === 'idle' ? 0 : 0.5)) / (total - 1)) * 100
+    ? (phase === 'idle' ? 0 : 50)
     : total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
 
