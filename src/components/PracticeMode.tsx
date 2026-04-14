@@ -377,6 +377,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     try {
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en');
       const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await res.json();
       const text = data.text || '';
@@ -398,12 +400,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       }
     }
 
-    // After processing, go to scoring / result
-    if (turn === 1) {
-      await scoreTurn1();
-    } else {
-      await showTurn2Review();
-    }
+    // mediaRecorderRef を null にして useEffect でスコアリングを起動する
+    // (processRecording 内で scoreTurn1() を直接呼ぶと stale closure で userAnswer1='') になる)
+    mediaRecorderRef.current = null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addBubble]);
 
@@ -564,10 +563,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   scoreTurn1Ref.current = scoreTurn1;
 
-  // Handle text submit effect - score after state updates
+  // Turn 1 スコアリング: テキスト入力 & 音声入力の両方をカバー
+  // processRecording が mediaRecorderRef.current = null してから呼ばれる
   useEffect(() => {
     if (phase === 'processing1' && userAnswer1 && !mediaRecorderRef.current?.state) {
-      // Text input path - score immediately
       scoreTurn1Ref.current?.();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
