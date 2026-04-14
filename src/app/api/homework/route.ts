@@ -31,7 +31,14 @@ export async function GET(req: NextRequest) {
     await ensureTable();
     const rows = await sql`SELECT cards_json FROM homework WHERE student_name = ${studentName}`;
     if (!rows.length || !rows[0].cards_json) return NextResponse.json({ cards: [] });
-    return NextResponse.json({ cards: rows[0].cards_json });
+
+    let displayName: string | null = null;
+    try {
+      const meta = await sql`SELECT display_name FROM student_meta WHERE name = ${studentName} LIMIT 1`;
+      displayName = (meta[0] as any)?.display_name ?? null;
+    } catch { /* カラム未作成の場合はスキップ */ }
+
+    return NextResponse.json({ cards: rows[0].cards_json, displayName });
   } catch (e) {
     console.error('homework GET:', e);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

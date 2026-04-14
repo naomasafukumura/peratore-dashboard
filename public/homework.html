@@ -33,10 +33,26 @@
 
   /* Card list */
   .hw-list{display:flex;flex-direction:column;gap:6px;margin-bottom:24px}
-  .hw-item{background:var(--surface);border:1px solid var(--border-lt);border-radius:12px;padding:12px 16px}
+  .hw-item{background:var(--surface);border:1px solid var(--border-lt);border-radius:12px;overflow:hidden}
+  .hw-item-main{padding:12px 16px;display:flex;align-items:flex-start;gap:8px}
+  .hw-item-body-wrap{flex:1;min-width:0}
   .hw-item-category{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:4px;letter-spacing:.02em}
   .hw-item-trigger{font-family:var(--fen);font-size:15px;font-weight:500;color:var(--text)}
   .hw-item-spp{font-size:13px;color:var(--text-sub);margin-top:4px}
+
+  /* Expand button */
+  .hw-expand-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-size:16px;font-weight:400;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;line-height:1;transition:all .15s;margin-top:2px}
+  .hw-expand-btn.open{background:var(--accent);color:#fff}
+
+  /* Detail panel */
+  .hw-item-detail{display:none;padding:10px 16px 14px;border-top:1px solid var(--border-lt);background:var(--surface-alt)}
+  .hw-item-detail.show{display:block}
+  .hw-detail-pair{margin-bottom:10px}
+  .hw-detail-pair:last-child{margin-bottom:0}
+  .hw-detail-row{display:flex;gap:8px;margin-top:4px;line-height:1.5;font-size:13px}
+  .hw-detail-lbl{font-size:10px;font-weight:700;color:var(--text-faint);width:26px;flex-shrink:0;padding-top:2px}
+  .hw-detail-spp{color:var(--accent);font-weight:500;font-family:var(--fen)}
+  .hw-detail-ja{font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:2px}
 
   /* Start button */
   .hw-start{width:100%;padding:16px;background:var(--cta);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;font-family:var(--fja);cursor:pointer;box-shadow:0 4px 20px var(--cta-glow);transition:all .2s var(--ease)}
@@ -75,19 +91,26 @@
   const backBtn = document.getElementById('backBtn');
   if (student) backBtn.href = 'practice-v2.html?student=' + encodeURIComponent(student);
 
-  // Student label
+  // Student label (will update with display_name from API)
   if (student) document.getElementById('studentLabel').textContent = student + ' さん';
 
   // Fetch homework
   const url = student ? '/api/homework?student=' + encodeURIComponent(student) : '/api/homework';
   let cards = [];
+  let displayName = null;
   try {
     const res = await fetch(url, { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       cards = data.cards || [];
+      displayName = data.displayName || null;
     }
   } catch (e) { console.error(e); }
+
+  // Update student label with display_name if available
+  if (displayName) {
+    document.getElementById('studentLabel').textContent = displayName + ' さん';
+  }
 
   const content = document.getElementById('hwContent');
 
@@ -96,25 +119,53 @@
     return;
   }
 
-  // セクションごとに件数を集計して1行にまとめる（表示用）
-  const secMap = new Map(); // secKey -> { card, count }
-  cards.forEach(c => {
-    const sec = c._hwSection || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
-    if (!secMap.has(sec)) { secMap.set(sec, { card: c, count: 0 }); }
-    secMap.get(sec).count++;
+  // セクションごとにカードをグループ化（id ASCでソートして先頭を代表カードに）
+  const secMap = new Map(); // secKey -> { firstCard, allCards, count }
+  // id ASCでソート（最初に作成されたパターンを先頭に）
+  const sortedCards = [...cards].sort((a, b) => {
+    const aId = parseInt(String(a.id).replace('db-', '')) || 0;
+    const bId = parseInt(String(b.id).replace('db-', '')) || 0;
+    return aId - bId;
+  });
+  sortedCards.forEach(c => {
+    const sec = c._hwSection || c.chunkId || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
+    if (!secMap.has(sec)) { secMap.set(sec, { firstCard: c, allCards: [], count: 0 }); }
+    const entry = secMap.get(sec);
+    entry.allCards.push(c);
+    entry.count++;
   });
   const displayItems = Array.from(secMap.values());
 
   // Render list
   let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + displayItems.length + '件</span></div>';
   html += '<div class="hw-list">';
-  displayItems.forEach(({ card: c, count }) => {
+  displayItems.forEach(({ firstCard: c, allCards, count }) => {
+    const st = c.states && c.states[0];
+    // 展開パネルのHTML（全ペアを表示）
+    let detailHtml = '';
+    allCards.forEach((card, idx) => {
+      const s = card.states && card.states[0];
+      if (!s) return;
+      detailHtml += '<div class="hw-detail-pair">';
+      if (allCards.length > 1) detailHtml += '<div class="hw-detail-lbl" style="font-size:9px;color:var(--text-faint);margin-bottom:2px">Pair ' + (idx + 1) + '</div>';
+      if (card.triggerJa) detailHtml += '<div class="hw-detail-ja">' + escHtml(card.triggerJa) + '</div>';
+      detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FPP</span><span>' + escHtml(card.trigger || '') + '</span></div>';
+      if (s.conclusion) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">SPP</span><span class="hw-detail-spp">' + escHtml(s.conclusion) + '</span></div>';
+      if (s.followup) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FQ</span><span>' + escHtml(s.followup) + '</span></div>';
+      if (s.conclusion2Examples && s.conclusion2Examples[0]) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FA</span><span>' + escHtml(s.conclusion2Examples[0]) + '</span></div>';
+      detailHtml += '</div>';
+    });
+
     html += '<div class="hw-item">';
+    html += '<div class="hw-item-main">';
+    html += '<div class="hw-item-body-wrap">';
     if (c._hwCategory) html += '<div class="hw-item-category">' + escHtml(c._hwCategory) + ' <span class="hw-badge">' + count + '</span></div>';
     html += '<div class="hw-item-trigger">' + escHtml(c.trigger || '') + '</div>';
-    if (c.states && c.states[0] && c.states[0].conclusion) {
-      html += '<div class="hw-item-spp">' + escHtml(c.states[0].conclusion) + '</div>';
-    }
+    if (st && st.conclusion) html += '<div class="hw-item-spp">' + escHtml(st.conclusion) + '</div>';
+    html += '</div>';
+    html += '<button class="hw-expand-btn" aria-label="詳細を見る">+</button>';
+    html += '</div>';
+    html += '<div class="hw-item-detail">' + detailHtml + '</div>';
     html += '</div>';
   });
   html += '</div>';
@@ -125,14 +176,25 @@
 
   content.innerHTML = html;
 
+  // Expand button toggle
+  content.querySelectorAll('.hw-expand-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = btn.closest('.hw-item');
+      const detail = item.querySelector('.hw-item-detail');
+      const isOpen = detail.classList.toggle('show');
+      btn.textContent = isOpen ? '−' : '+';
+      btn.classList.toggle('open', isOpen);
+    });
+  });
+
   document.getElementById('startBtn').addEventListener('click', () => {
-    // Store homework cards in sessionStorage for practice-v2.html to pick up
     sessionStorage.setItem('hwCards', JSON.stringify(cards));
     window.location.href = practiceUrl;
   });
 
   function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 })();
 </script>
