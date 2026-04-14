@@ -17,8 +17,8 @@ export default async function PracticePatternPage({
   const backHref = isHomework
     ? `/practice-v2.html?hwresume=1${student ? '&student=' + encodeURIComponent(student) : ''}`
     : student
-      ? `/practice-v2.html?student=${encodeURIComponent(student)}&rv=1`
-      : '/practice-v2.html?rv=1';
+      ? `/practice-v2.html?student=${encodeURIComponent(student)}`
+      : '/practice-v2.html';
 
   // まず指定パターンのchunk_idを取得し、同チャンクの全パターンをsort_order順で取得
   const targetRows = await sql`
