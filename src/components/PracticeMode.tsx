@@ -773,11 +773,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       setPhase('continueFlow');
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
+    } else if (isConvMode && index < total - 1) {
+      // 会話モード: まだペアが残っている → フルリプレイをスキップして次ペアへ直進
+      setStats(prev => ({ ...prev, [scoreLevel]: prev[scoreLevel] + 1 }));
+      setIndex(index + 1);
+      setPhase('idle');
+      setBubbles([]);
+      setUserAnswer1('');
+      setUserAnswer2('');
+      setReplayLines([]);
     } else {
-      // 会話モードは常に全体リプレイへ。通常モードも同様（1パターンのみ）
+      // 最後のペア or 通常モード: フルリプレイへ
       goToFullReplay();
     }
-  }, [hasTurn2, startTurn2, goToFullReplay]);
+  }, [hasTurn2, startTurn2, goToFullReplay, isConvMode, index, total, scoreLevel]);
 
   const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
     for (let i = 0; i < lines.length; i++) {
