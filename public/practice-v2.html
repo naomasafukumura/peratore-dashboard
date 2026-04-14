@@ -4225,15 +4225,19 @@ loadDataFromAPI().then(() => {
           const nextId = queue.ids.shift();
           sessionStorage.setItem('hwChunkQueue', JSON.stringify(queue));
           const isHw = queue.homework === '1';
-          const suffix = (isHw ? '?homework=1' : '?') + (sp ? (isHw ? '&' : '') + 'student=' + encodeURIComponent(sp) : '');
+          const studentSuffix = sp ? 'student=' + encodeURIComponent(sp) : '';
+          const hwSuffix = isHw ? 'homework=1' : '';
+          const parts = [hwSuffix, studentSuffix].filter(Boolean);
+          const suffix = parts.length ? '?' + parts.join('&') : '';
           window.location.href = '/practice/pattern/' + nextId + suffix;
+          return;
         } else {
           sessionStorage.removeItem('hwChunkQueue');
-          window.location.href = 'homework.html' + (sp ? '?student=' + encodeURIComponent(sp) : '');
+          // キュー完了 → 通常のカバー画面を表示（以下の init を継続）
         }
       } catch(e) { console.error('hwresume:', e); }
     }
-    return;
+    // キューなし or 完了 → 通常の init に続く（return しない）
   }
 
   // Homework autostart
