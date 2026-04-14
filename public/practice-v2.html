@@ -1237,6 +1237,7 @@ let selectedSubs = new Map(); // catIdx -> Set of section names
 let cards = [];
 let currentIdx = 0;
 let round = 1; // 1 = Turn 1, 2 = Turn 2
+let hwQueueMode = false; // キューから起動した埋め込み練習: 実践モードをスキップ
 let currentPhase = 'idle';
 let recognizedText = '';
 let thinkTimer = null;
@@ -3198,7 +3199,18 @@ document.getElementById('postReplayRetryBtn').addEventListener('click', () => {
 
 document.getElementById('postReplayNextBtn').addEventListener('click', () => {
   hidePostReplayBar();
-  // 会話確認モード → 実践モード → 次のカード
+  if (hwQueueMode) {
+    // キューモード: 実践モードをスキップして直接次のカードへ
+    currentIdx++;
+    if (currentIdx >= cards.length) {
+      showComplete();
+      return;
+    }
+    showActionPhase(null);
+    setTimeout(() => loadCard(), 400);
+    return;
+  }
+  // 通常モード: 会話確認 → 実践モード → 次のカード
   const c = cards[currentIdx];
   showPracticeMode(c, () => {
     currentIdx++;
@@ -3481,6 +3493,7 @@ async function fetchPracticeCheck(userAnswer, question, targetPattern, situation
 }
 
 function showComplete() {
+  hwQueueMode = false; // フラグをリセット
   // 複数チャンク練習: DB chunk側で積算したstatsを埋め込み分に合算
   const accRaw = sessionStorage.getItem('hwAccStats');
   if (accRaw) {
@@ -4263,6 +4276,7 @@ loadDataFromAPI().then(() => {
           sessionStorage.removeItem('hwChunkQueue');
           cards = embCards;
           currentIdx = 0;
+          hwQueueMode = true; // 実践モードをスキップするフラグ
           stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
           responseTimes = [];
           cardTurnResults = [];
