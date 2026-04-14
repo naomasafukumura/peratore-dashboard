@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>使い方ガイド - Pattern Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#FAFAF7;--surface:#FFFFFF;--surface-alt:#F4F7F8;
+  --text:#182124;--text-sub:#4E5B60;--text-muted:#7B8A90;--text-faint:#A8B0B5;
+  --accent:#2F6F75;--accent-soft:rgba(47,111,117,0.10);--accent-hover:#255A5F;--accent-glow:rgba(47,111,117,.22);
+  --cta:#E9852D;--cta-hover:#D4751F;--cta-soft:rgba(233,133,45,0.12);--cta-glow:rgba(233,133,45,.25);
+  --border:#E7ECEE;--border-lt:#EEF2F4;
+  --green:#2E8B57;--green-bg:#ECF8F1;--green-bd:#CBE8D7;
+  --amber:#9A6B16;--amber-bg:#FFF7E8;--amber-bd:#F0DEB6;
+  --red:#B14E3A;--red-bg:#FFF1EE;--red-bd:#EDC9C0;
+  --sh-s:0 1px 3px rgba(0,0,0,.04);--sh-m:0 4px 16px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.04);
+  --r:24px;--rs:14px;
+  --fen:'DM Sans',sans-serif;--fja:'Noto Sans JP',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);--eo:cubic-bezier(0,0,.2,1);
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+
+.manual{max-width:520px;margin:0 auto;padding:0 0 60px}
+
+.m-hd{display:flex;align-items:center;gap:12px;padding:16px 24px;position:sticky;top:0;z-index:20;background:var(--bg)}
+.m-back{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--text);flex-shrink:0;text-decoration:none;transition:all .2s var(--ease)}
+.m-back:active{transform:scale(.95)}
+.m-back svg{width:18px;height:18px}
+.m-hd-t{font-size:15px;font-weight:600}
+
+.m-body{padding:0 24px}
+
+.m-hero{text-align:center;padding:20px 0 32px}
+.m-hero-icon{width:64px;height:64px;background:var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#fff}
+.m-hero-icon svg{width:32px;height:32px}
+.m-hero-title{font-size:22px;font-weight:700;line-height:1.4;letter-spacing:-.02em;margin-bottom:8px}
+.m-hero-hl{color:var(--accent)}
+.m-hero-sub{font-size:14px;color:var(--text-muted);line-height:1.6}
+
+.m-sec{margin-bottom:28px}
+.m-sec-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:6px;font-family:var(--fen);font-size:12px;font-weight:700;margin-bottom:8px}
+.m-sec-title{font-size:17px;font-weight:700;line-height:1.4;margin-bottom:12px}
+
+.m-screenshot{width:100%;max-width:280px;display:block;margin:16px auto;border-radius:16px;border:1.5px solid var(--border);box-shadow:var(--sh-m)}
+
+.anno{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+.anno-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:50%;font-family:var(--fen);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.anno-text{font-size:13px;line-height:1.7;color:var(--text-sub)}
+.anno-text strong{color:var(--text);font-weight:600}
+
+.m-highlight{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:2px 10px 10px 2px;padding:14px 18px;margin:12px 0;font-size:14px;line-height:1.8;color:var(--text-sub)}
+.m-highlight strong{color:var(--accent);font-weight:600}
+
+.m-card{background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:20px;box-shadow:var(--sh-s);margin-bottom:12px}
+.m-card p{font-size:14px;line-height:1.85;color:var(--text-sub)}
+.m-card p+p{margin-top:10px}
+
+.m-important{background:var(--surface);border:2px solid var(--accent);border-radius:var(--r);padding:20px;margin:16px 0;text-align:center}
+.m-important-title{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.m-important p{font-size:14px;line-height:1.8;color:var(--text-sub)}
+
+.m-caution{background:var(--amber-bg);border:1.5px solid var(--amber-bd);border-radius:var(--r);padding:20px;margin:12px 0}
+.m-caution-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:10px}
+.m-caution ul{list-style:none;padding:0}
+.m-caution li{font-size:13px;line-height:1.8;color:var(--text-sub);padding-left:20px;position:relative;margin-bottom:4px}
+.m-caution li::before{content:"";position:absolute;left:0;top:8px;width:8px;height:8px;background:var(--amber);border-radius:2px;opacity:.5}
+
+.m-settings{display:flex;flex-direction:column;gap:10px}
+.m-setting{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)}
+.m-setting-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);border-radius:8px;flex-shrink:0;color:var(--accent)}
+.m-setting-icon svg{width:18px;height:18px}
+.m-setting-body{flex:1}
+.m-setting-name{font-size:14px;font-weight:600;margin-bottom:4px}
+.m-setting-desc{font-size:13px;color:var(--text-muted);line-height:1.65}
+.m-setting-opts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.m-setting-opt{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-sub)}
+.m-setting-opt.rec{background:var(--accent-soft);border-color:rgba(47,111,117,.3);color:var(--accent)}
+
+.m-cta{padding:24px 0;text-align:center}
+.m-cta-btn{display:inline-flex;align-items:center;gap:8px;padding:16px 32px;background:var(--cta);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:600;font-family:var(--fja);cursor:pointer;text-decoration:none;transition:all .2s var(--ease);box-shadow:0 4px 20px var(--cta-glow)}
+.m-cta-btn:hover{background:var(--cta-hover);box-shadow:0 6px 28px var(--cta-glow)}
+.m-cta-btn:active{transform:scale(.98)}
+.m-cta-btn svg{width:18px;height:18px}
+
+.m-divider{height:1px;background:var(--border);margin:8px 0 28px}
+
+.m-sub-step{font-size:15px;font-weight:600;margin:24px 0 12px;padding-left:12px;border-left:3px solid var(--cta);color:var(--text)}
+.m-screenshot.narrow{max-width:400px}
+
+/* 練習の流れ - ステップ表示 */
+.m-flow{margin:16px 0}
+.m-flow-step{position:relative;padding:16px 18px 16px 50px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s);margin-bottom:10px}
+.m-flow-step::before{content:attr(data-step);position:absolute;left:14px;top:16px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;border-radius:50%;font-family:var(--fen);font-size:12px;font-weight:700}
+.m-flow-title{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--text)}
+.m-flow-desc{font-size:13px;line-height:1.7;color:var(--text-sub)}
+
+/* コツ - 大きなハイライト */
+.m-tip-big{background:var(--cta-soft);border:2px solid var(--cta);border-radius:var(--r);padding:24px;margin:16px 0;text-align:center}
+.m-tip-big-title{font-size:20px;font-weight:700;color:var(--cta);margin-bottom:8px}
+.m-tip-big p{font-size:14px;line-height:1.8;color:var(--text-sub)}
+
+/* コツリスト */
+.m-tips{margin:16px 0}
+.m-tip-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s);margin-bottom:8px}
+.m-tip-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--green-bg);border:1px solid var(--green-bd);border-radius:8px;flex-shrink:0;font-size:16px}
+.m-tip-body{flex:1}
+.m-tip-name{font-size:14px;font-weight:600;margin-bottom:2px;color:var(--text)}
+.m-tip-desc{font-size:13px;line-height:1.65;color:var(--text-sub)}
+
+/* 6ステップ */
+.m-steps{margin:16px 0}
+.m-step{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:14px;color:var(--text-sub);line-height:1.5}
+.m-step-num{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--surface-alt);border:1px solid var(--border);border-radius:8px;font-family:var(--fen);font-size:13px;font-weight:700;color:var(--text-muted);flex-shrink:0}
+.m-step.active{background:var(--accent-soft);border:1.5px solid rgba(47,111,117,.25)}
+.m-step.active .m-step-num{background:var(--accent);color:#fff;border-color:var(--accent)}
+.m-step.active .m-step-label{font-weight:600;color:var(--accent)}
+.m-step-label{flex:1}
+
+/* 練習の流れ h3 */
+.m-flow-h3{font-size:15px;font-weight:600;margin:20px 0 10px;padding-left:4px;border-left:3px solid var(--accent);padding-left:10px}
+
+@media(min-width:640px){
+  .manual{max-width:560px;padding:20px 0 60px}
+  .m-hd{padding:24px 32px}
+  .m-body{padding:0 32px}
+  .m-hero-title{font-size:26px}
+  .m-screenshot{max-width:320px}
+  .m-cta-btn:hover{transform:translateY(-1px)}
+}
+</style>
+</head>
+<body>
+<div class="manual">
+
+  <!-- Header -->
+  <div class="m-hd">
+    <a href="#" onclick="history.back(); return false;" class="m-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+    <span class="m-hd-t">使い方ガイド</span>
+  </div>
+
+  <div class="m-body">
+
+    <!-- Hero -->
+    <div class="m-hero">
+      <div class="m-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+      <h1 class="m-hero-title"><span class="m-hero-hl">Pattern Practice</span><br>使い方ガイド</h1>
+      <p class="m-hero-sub">英語の質問を聞いて、声に出して答える練習です。<br>このページで使い方を全て説明します。</p>
+    </div>
+
+    <!-- パターンプラクティスってなに? -->
+    <div class="m-sec">
+      <div class="m-sec-num">?</div>
+      <h2 class="m-sec-title">パターンプラクティスってなに?</h2>
+
+      <div class="m-card">
+        <p>英語で何か聞かれた時に、<strong>3秒以内にパッと返せるようにする練習</strong>です。</p>
+        <p>MasaEnglishの6ステップの中で、<strong>パターンプラクティスは一番大事なステップ</strong>。ここが全ての土台になります。</p>
+      </div>
+
+      <div style="position:relative;padding-bottom:62.83%;height:0;margin:16px 0;border-radius:16px;overflow:hidden"><iframe src="https://www.loom.com/embed/e2a0afc02afa494e92abb297cc7ba98a" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe></div>
+    </div>
+
+    <!-- なぜ大事なの? -->
+    <div class="m-sec">
+      <h2 class="m-sec-title">なぜこれが大事なの?</h2>
+
+      <div class="m-card">
+        <p>英語を「知ってる」のと「使える」のは、脳の中で全く別の処理です。</p>
+        <p>テストで正解できるのは「知ってる」状態。でも会話で聞かれた時にパッと出てくるのは「体が覚えてる」状態。<strong>この2つは別物です。</strong></p>
+        <p>自転車と同じで、乗り方を知っているだけでは乗れない。<strong>何度も実際にやることで、考えなくても自然にできるようになる。</strong>英語も同じです。</p>
+      </div>
+
+      <div class="m-highlight">
+        日本の英語教育は、ほぼ全てが「知ってる」を増やすことに使われています。だから「知ってるのに話せない」が起きる。<strong>問題はあなたの能力ではなく、やり方です。</strong>
+      </div>
+    </div>
+
+    <!-- 6ステップの中の位置づけ -->
+    <div class="m-sec">
+      <h2 class="m-sec-title">6ステップの中の位置づけ</h2>
+
+      <div class="m-steps">
+        <div class="m-step">
+          <div class="m-step-num">1</div>
+          <div class="m-step-label">知る -- 文法・チャンクの意味と音を入れる</div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">2</div>
+          <div class="m-step-label">作る -- 場面を見て、自分で文を組み立てる</div>
+        </div>
+        <div class="m-step active">
+          <div class="m-step-num">3</div>
+          <div class="m-step-label">速くする -- パターンプラクティス!</div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">4</div>
+          <div class="m-step-label">聞く -- 自然な会話の中で聞き取る</div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">5</div>
+          <div class="m-step-label">真似する -- シャドーイングで音を体に入れる</div>
+        </div>
+        <div class="m-step">
+          <div class="m-step-num">6</div>
+          <div class="m-step-label">使う -- 実際の会話で使ってみる</div>
+        </div>
+      </div>
+
+      <div class="m-important">
+        <div class="m-important-title">ステップ3 =「速くする」がこの練習</div>
+        <p>文法やチャンクで「知った」ことを、<strong>パッと出せるように高速化する</strong>のがこの練習の役割です。ここを繰り返すことで、会話の土台ができます。</p>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 1: 〇〇年▢月復習集 -->
+    <div class="m-sec">
+      <div class="m-sec-num">1</div>
+      <h2 class="m-sec-title">「〇〇年▢月復習集」</h2>
+
+      <div class="m-card">
+        <p>先生がレッスン後に追加してくれた<strong>あなた専用のフレーズ</strong>は、ホーム画面の一番上に<strong>「2026年4月復習集」</strong>というカテゴリとして表示されます。</p>
+        <p>＊例文を作成した年月に応じて自動で変わります。</p>
+      </div>
+
+      <img src="images/manual/student/10-home-with-lesson.png" alt="レッスンで追加が一番上にある画面" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>「2026年4月復習集」</strong>が一番上に表示されます。先生がレッスン後に追加したフレーズが入っています。</div></div>
+
+      <img src="images/manual/student/11-category-expanded.png" alt="レッスンで追加カテゴリ展開" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">カテゴリを開くと、レッスンで実際に話した内容をもとにした<strong>具体的なフレーズ</strong>が表示されます。</div></div>
+
+      <div class="m-highlight">
+        <strong>ここを最優先で練習してください。</strong>あなたがレッスンで実際に話したい内容をもとに作られているので、一番定着しやすく、一番効果があります。
+      </div>
+
+      <div class="m-card">
+        <p>レッスンの後に先生がフレーズを追加すると、<strong>自動的にあなたの教材に追加されます</strong>。特別な操作は不要です。次にページを開いた時にはもう入っています。</p>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 1b: 復習集検索 -->
+    <div class="m-sec">
+      <div class="m-sec-num">↳</div>
+      <h2 class="m-sec-title">復習集を検索・確認する</h2>
+
+      <div class="m-card">
+        <p>ホーム画面の<strong>「復習集検索」ボタン</strong>を押すと、先生が追加した例文を一覧で確認できます。</p>
+      </div>
+
+      <img src="images/manual/teacher/15-review-search.png" alt="復習集検索パネル" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">例文は<strong>追加日（年・月）</strong>ごとにグループ分けされています。最近追加したものが上に表示されます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">上部の<strong>検索バー</strong>にキーワードを入力すると、例文の内容で絞り込みができます。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text">各例文は折り畳まれています。右端の <strong>▶</strong> をタップすると展開し、FPP / SPP / FQ / FA の全文が表示されます。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text">展開した状態から<strong>「練習する」ボタン</strong>を押すと、その例文だけの練習が始まります。練習が終わると自動でこの画面に戻ります。</div></div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 2: ホーム画面 -->
+    <div class="m-sec">
+      <div class="m-sec-num">2</div>
+      <h2 class="m-sec-title">ホーム画面</h2>
+
+      <div class="m-card">
+        <p>練習ページを開くと、まずこの画面が表示されます。ここで<strong>練習したいチャンクを選んでスタート</strong>します。</p>
+      </div>
+
+      <img src="images/manual/01-home.png" alt="ホーム画面" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>カテゴリ</strong> -- タップするとサブカテゴリ（チャンク）が展開されます。もう一度タップで閉じます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text"><strong>サブカテゴリ（チャンク）</strong> -- 練習したいチャンクを個別に選べます。タップでオン/オフ。カテゴリの丸ぽちを押すと全選択/全解除できます。</div></div>
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>検品済みマーク</strong> -- Masaが内容を確認済みのチャンクについています。</div></div>
+      <div class="anno"><div class="anno-icon">4</div><div class="anno-text"><strong>解説ボタン</strong> -- タップすると、そのチャンクが「どういう場面で使うのか」の解説が表示されます。練習前に読むと場面がイメージしやすくなります。</div></div>
+
+      <img src="images/manual/02-home-selected.png" alt="チャンクを選択した状態" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">5</div><div class="anno-text"><strong>STARTボタン</strong>（画面下のオレンジボタン）-- チャンクを選んだら、このボタンで練習開始です。</div></div>
+
+      <div class="m-highlight">
+        <strong>練習したいチャンクだけを選んで、集中的に繰り返すのがおすすめです。</strong>全部一気にやるより、少しずつ繰り返す方がずっと身につきます。
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 3: ヘッダーのボタン -->
+    <div class="m-sec">
+      <div class="m-sec-num">3</div>
+      <h2 class="m-sec-title">ヘッダーのボタン</h2>
+
+      <div class="m-card">
+        <p>画面右上に並んでいるアイコンの機能をまとめます。</p>
+      </div>
+
+      <!-- ボタン一覧 -->
+      <div style="background:var(--surface);border:1px solid var(--border-lt);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh-s);margin-bottom:16px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">復習集<br>検索</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">宿題<br>ページ</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">マニュアル</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">設定</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px">
+            <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--text-sub)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+            <span style="font-size:10px;color:var(--text-muted);text-align:center">一覧</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 各ボタン説明 -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">復習集検索</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">先生が追加してくれた例文を一覧で確認できます。キーワード検索・各例文の展開・その場で練習開始も可能です。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">宿題ページ</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">先生が宿題として選んだ例文の一覧ページを開きます。宿題の練習はここからスタートします。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">マニュアル</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">今見ているこの使い方ガイドを開きます。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">設定</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">入力モード（Voice / Text）・録音時間・フォントサイズなどを変更できます。下の「設定画面」で詳しく説明します。</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;background:var(--surface);border:1px solid var(--border-lt);border-radius:14px;box-shadow:var(--sh-s)">
+          <div style="width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:3px">一覧表示</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.65">全カードの内容と音声をまとめて確認できます。練習前の予習や復習に使えます。</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 設定画面 -->
+      <h3 class="m-flow-h3">設定画面</h3>
+
+      <img src="images/manual/student/15-settings-clean.png" alt="設定画面" class="m-screenshot">
+
+      <div class="m-settings">
+        <div class="m-setting">
+          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+          <div class="m-setting-body">
+            <div class="m-setting-name">INPUT MODE</div>
+            <div class="m-setting-desc">Voice（声で回答）か Text（タイピングで回答）を選べます。電車の中など声が出せない時はTextが便利です。</div>
+            <div class="m-setting-opts"><span class="m-setting-opt rec">Voice</span><span class="m-setting-opt">Text</span></div>
+          </div>
+        </div>
+        <div class="m-setting">
+          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="m-setting-body">
+            <div class="m-setting-name">SPEAK TIME</div>
+            <div class="m-setting-desc">マイクボタンを押してから録音できる秒数です。初期値は7秒。長めに答えたい場合は伸ばしてください。</div>
+          </div>
+        </div>
+        <div class="m-setting">
+          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="m-setting-body">
+            <div class="m-setting-name">TURN 2</div>
+            <div class="m-setting-desc">2往復目を「聞くだけ」にするか「自分も言う」にするか選べます。</div>
+            <div class="m-setting-opts"><span class="m-setting-opt">聞くだけ</span><span class="m-setting-opt rec">自分も言う</span></div>
+          </div>
+        </div>
+        <div class="m-setting">
+          <div class="m-setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></div>
+          <div class="m-setting-body">
+            <div class="m-setting-name">FONT SIZE</div>
+            <div class="m-setting-desc">チャット画面の文字サイズを調整できます。見づらい場合はここで大きくしてください。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 一覧表示 -->
+      <h3 class="m-flow-h3">一覧表示</h3>
+
+      <img src="images/manual/07-list-view.png" alt="一覧表示" class="m-screenshot">
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text"><strong>一覧表示</strong>では、全てのカードの内容と音声をまとめて確認できます。再生ボタンで個別に音声を聞けます。練習前の予習や、復習に使えます。</div></div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 4: 練習の流れ -->
+    <div class="m-sec">
+      <div class="m-sec-num">4</div>
+      <h2 class="m-sec-title">練習の流れ</h2>
+
+      <div class="m-card">
+        <p>STARTを押すと練習が始まります。流れは<strong>Turn 1 → Turn 2 → 実践モード</strong>です。1つずつ説明します。</p>
+      </div>
+
+      <!-- Turn 1 -->
+      <h3 class="m-flow-h3">Turn 1: 最初の質問に答える</h3>
+
+      <div class="m-flow">
+        <div class="m-flow-step" data-step="1">
+          <div class="m-flow-title">シチュエーションが表示される</div>
+          <div class="m-flow-desc">「こういう状況で聞かれた」という場面設定が画面上部に出ます。まずこれを読んで、場面をイメージしてください。</div>
+        </div>
+        <div class="m-flow-step" data-step="2">
+          <div class="m-flow-title">相手の質問が音声で流れる</div>
+          <div class="m-flow-desc">吹き出しで質問が表示され、同時に音声が再生されます。耳で聞いて、何を聞かれているか理解しましょう。</div>
+        </div>
+        <div class="m-flow-step" data-step="3">
+          <div class="m-flow-title">マイクボタンをタップして答える</div>
+          <div class="m-flow-desc">画面下のマイクボタンを押して、声で回答します。設定した秒数（初期値7秒）で自動で録音が止まります。</div>
+        </div>
+        <div class="m-flow-step" data-step="4">
+          <div class="m-flow-title">回答を確認する</div>
+          <div class="m-flow-desc">あなたの回答と模範回答が並んで表示されます。<strong>「できた」</strong>で次に進むか、<strong>「再度録音」</strong>でもう一度やり直せます。</div>
+        </div>
+      </div>
+
+      <!-- Turn 2 -->
+      <h3 class="m-flow-h3">Turn 2: フォローの質問に答える</h3>
+
+      <div class="m-flow">
+        <div class="m-flow-step" data-step="5">
+          <div class="m-flow-title">追加の質問が来る</div>
+          <div class="m-flow-desc">Turn 1の後、相手がさらに質問してきます。同じようにマイクで答えてください。</div>
+        </div>
+        <div class="m-flow-step" data-step="6">
+          <div class="m-flow-title">自己評価する</div>
+          <div class="m-flow-desc"><strong>「できた」</strong>か<strong>「できなかった」</strong>を選びます。正直に選んでOKです。この記録が次の練習に活かされます。</div>
+        </div>
+      </div>
+
+      <!-- 実践モード -->
+      <h3 class="m-flow-h3">実践モード: 自分の言葉で答える</h3>
+
+      <div class="m-card">
+        <p>自己評価の後、同じ質問がもう一度流れます。今度は<strong>シチュエーションも模範回答も表示されません</strong>。</p>
+        <p>さっき練習したパターンを使って、<strong>あなた自身の言葉で自由に答えてみてください</strong>。これが一番大事な練習です。</p>
+      </div>
+
+      <div class="m-flow">
+        <div class="m-flow-step" data-step="7">
+          <div class="m-flow-title">ヒントを見る</div>
+          <div class="m-flow-desc">パターン（I'm gonna ~ など）を忘れた時は「ヒントを見る」をタップすると確認できます。見ても全然OKです。</div>
+        </div>
+      </div>
+
+      <div class="m-highlight">
+        実践モードが<strong>一番大事な練習</strong>です。模範回答をなぞるのではなく、自分の言葉で答えることで、本当に使える英語になります。
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 5: 練習のコツ -->
+    <div class="m-sec">
+      <div class="m-sec-num">5</div>
+      <h2 class="m-sec-title">練習のコツ</h2>
+
+      <!-- 暗記はしない! を大きくハイライト -->
+      <div class="m-tip-big">
+        <div class="m-tip-big-title">暗記はしない!</div>
+        <p>暗記して→使う ではなく、<strong>使いながら→覚える</strong>。<br>これが最大のポイントです。</p>
+      </div>
+
+      <div class="m-tips">
+        <div class="m-tip-item">
+          <div class="m-tip-icon">🗣</div>
+          <div class="m-tip-body">
+            <div class="m-tip-name">必ず声に出す</div>
+            <div class="m-tip-desc">読むだけ・聞くだけでは「出る」ようにはなりません。声に出すことで、口が覚えていきます。</div>
+          </div>
+        </div>
+        <div class="m-tip-item">
+          <div class="m-tip-icon">👌</div>
+          <div class="m-tip-body">
+            <div class="m-tip-name">7〜8割でOK、完璧を目指さない</div>
+            <div class="m-tip-desc">パッと出なければ、回答例を見て次に活かす方が効率的です。完璧にしようとすると続きません。</div>
+          </div>
+        </div>
+        <div class="m-tip-item">
+          <div class="m-tip-icon">⭕</div>
+          <div class="m-tip-body">
+            <div class="m-tip-name">模範回答と違ってもOK</div>
+            <div class="m-tip-desc">模範回答と違っても、意味が通じていれば正解です。自分なりの表現で全く問題ありません。</div>
+          </div>
+        </div>
+        <div class="m-tip-item">
+          <div class="m-tip-icon">🔄</div>
+          <div class="m-tip-body">
+            <div class="m-tip-name">1回を完璧にするより何周も繰り返す</div>
+            <div class="m-tip-desc">同じチャンクを何度も繰り返す方が、1回を完璧にするよりずっと効果があります。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="m-important">
+        <div class="m-important-title">大事なのは「何回やったか」</div>
+        <p>1回を完璧にするより、たくさん繰り返す方がはるかに効果があります。<strong>気楽に、何度も。</strong>それが一番の近道です。</p>
+      </div>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <!-- Section 6: 宿題機能 -->
+    <div class="m-sec" id="sec-hw">
+      <div class="m-sec-num">6</div>
+      <h2 class="m-sec-title">宿題機能の使い方</h2>
+
+      <div class="m-card">
+        <p>レッスン中に例文を選んで宿題として保存できます。受講生はレッスン後に宿題ページを開いて、選ばれた例文だけを練習できます。</p>
+      </div>
+
+      <div class="m-sub-step">STEP 1: 宿題選択モードをオンにする</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">受講生の専用ページ上部の帯にある<strong>チェックボックスアイコン</strong>を押します。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">すべての例文の左に<strong>チェックボックス</strong>が表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step1.png" alt="宿題選択モード" class="m-screenshot narrow">
+
+      <div class="m-sub-step">STEP 2: 宿題にしたい例文を選ぶ</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">宿題にしたいセクションの<strong>チェックボックスを押す</strong>と、そのセクションの全例文が選択されます。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">複数のセクションを選択できます。選択数は画面下部のボタンに表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step2.png" alt="例文選択後" class="m-screenshot narrow">
+
+      <div class="m-sub-step">STEP 3: 宿題を保存する</div>
+
+      <div class="anno"><div class="anno-icon cta">!</div><div class="anno-text">画面下部に表示される<strong>「宿題保存（N件）」ボタン</strong>を押すと、選択した例文がその受講生の宿題としてサーバーに保存されます。</div></div>
+
+      <div class="m-highlight">
+        宿題の保存は<strong>上書き方式</strong>です。毎回新たに選び直して保存してください。前回の宿題は自動で上書きされます。
+      </div>
+
+      <div class="m-sub-step">受講生側: 宿題を練習する</div>
+
+      <div class="anno"><div class="anno-icon">1</div><div class="anno-text">受講生が専用ページの上部の帯に<strong>「宿題」アイコン</strong>を押してください。</div></div>
+      <div class="anno"><div class="anno-icon">2</div><div class="anno-text">宿題ページが開き、選ばれた例文の一覧（ジャンル・件数付き）が表示されます。</div></div>
+
+      <img src="images/manual/teacher/hw-step3.png" alt="宿題ページ" class="m-screenshot narrow">
+
+      <div class="anno"><div class="anno-icon">3</div><div class="anno-text"><strong>「練習を始める」ボタン</strong>を押すと、宿題の例文だけのPattern Practiceが始まります。最後の例文が終わると「宿題おわり」を押すと宿題のトップページに戻ります。</div></div>
+    </div>
+
+    <!-- CTA -->
+    <div class="m-cta">
+      <a href="#" onclick="history.back(); return false;" class="m-cta-btn">さっそく練習を始める <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
