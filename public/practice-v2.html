@@ -1678,9 +1678,16 @@ $backBtn.addEventListener('click', () => {
 
 document.getElementById('completeBtn').addEventListener('click', () => {
   $complete.classList.remove('show');
-  if (new URLSearchParams(window.location.search).get('homework') === '1') {
-    const s = new URLSearchParams(window.location.search).get('student');
-    window.location.href = 'homework.html' + (s ? '?student=' + encodeURIComponent(s) : '');
+  const _urlP = new URLSearchParams(window.location.search);
+  const _s = _urlP.get('student');
+  const _isHw = _urlP.get('homework') === '1';
+  if (_s) {
+    // student param がある場合は受講生専用ページへ
+    window.location.href = 'practice-v2.html?student=' + encodeURIComponent(_s);
+    return;
+  }
+  if (_isHw) {
+    window.location.href = 'homework.html';
     return;
   }
   if (lvFromListView) {
@@ -3474,6 +3481,19 @@ async function fetchPracticeCheck(userAnswer, question, targetPattern, situation
 }
 
 function showComplete() {
+  // 複数チャンク練習: DB chunk側で積算したstatsを埋め込み分に合算
+  const accRaw = sessionStorage.getItem('hwAccStats');
+  if (accRaw) {
+    try {
+      const acc = JSON.parse(accRaw);
+      stats.perfect += (acc.perfect || 0);
+      stats.great   = (stats.great  || 0) + (acc.great  || 0);
+      stats.good    = (stats.good   || 0) + (acc.good   || 0);
+      stats.almost  += (acc.almost  || 0);
+      stats.retry   += (acc.retry   || 0);
+    } catch(e) {}
+    sessionStorage.removeItem('hwAccStats');
+  }
   stopAll();
   $prac.classList.remove('show');
   $complete.classList.add('show');

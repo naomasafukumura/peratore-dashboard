@@ -860,9 +860,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     };
   }, [stopAudio, clearSpeakTimers]);
 
-  // ===== 宿題モード: 完了時に次チャンクへ or 最終結果表示 =====
+  // ===== チャンクキュー: 完了時に次チャンクへ or 最終結果表示 =====
   useEffect(() => {
-    if (phase !== 'complete' || !isHomework) return;
+    if (phase !== 'complete') return;
+    const queueRaw = sessionStorage.getItem('hwChunkQueue');
+    // キューも宿題モードもなければ通常の個別結果を表示
+    if (!queueRaw && !isHomework) return;
     const currentStats = statsRef.current;
     const prevRaw = sessionStorage.getItem('hwAccStats');
     const prev: Stats = prevRaw ? JSON.parse(prevRaw) : { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
@@ -873,15 +876,29 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       almost: prev.almost + currentStats.almost,
       retry: prev.retry + currentStats.retry,
     };
-    const queueRaw = sessionStorage.getItem('hwChunkQueue');
     const queue = queueRaw ? JSON.parse(queueRaw) : null;
-    const hasMore = queue && Array.isArray(queue.ids) && queue.ids.length > 0;
-    if (hasMore) {
+    const hasMoreChunks = queue && Array.isArray(queue.ids) && queue.ids.length > 0;
+    const hasEmbedded = queue && Array.isArray(queue.embeddedCards) && queue.embeddedCards.length > 0;
+    if (hasMoreChunks) {
       sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
       const nextId = queue.ids.shift();
       sessionStorage.setItem('hwChunkQueue', JSON.stringify(queue));
-      const studentParam = queue.student ? `&student=${encodeURIComponent(queue.student)}` : '';
-      window.location.href = `/practice/pattern/${nextId}?homework=1${studentParam}`;
+      const isHw = isHomework || queue.homework === '1';
+      const sp = queue.student || '';
+      const parts: string[] = [];
+      if (isHw) parts.push('homework=1');
+      if (sp) parts.push('student=' + encodeURIComponent(sp));
+      const suffix = parts.length ? '?' + parts.join('&') : '';
+      window.location.href = `/practice/pattern/${nextId}${suffix}`;
+    } else if (hasEmbedded) {
+      // 埋め込みカード練習へ（stats累積を保持したまま遷移）
+      sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
+      const isHw = isHomework || queue.homework === '1';
+      const sp = queue.student || '';
+      const parts: string[] = ['hwresume=1'];
+      if (isHw) parts.push('homework=1');
+      if (sp) parts.push('student=' + encodeURIComponent(sp));
+      window.location.href = `/practice-v2.html?${parts.join('&')}`;
     } else {
       sessionStorage.removeItem('hwChunkQueue');
       sessionStorage.removeItem('hwAccStats');
@@ -892,8 +909,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // ===== Completion Screen =====
   if (phase === 'complete') {
-    // 宿題モード: finalStats が確定するまで待機（useEffectが処理中）
-    if (isHomework && !finalStats) return null;
+    // キューまたは宿題モード: finalStats が確定するまで待機（useEffectが処理中）
+    const hasQueueOrHomework = isHomework || !!sessionStorage.getItem('hwChunkQueue');
+    if (hasQueueOrHomework && !finalStats) return null;
     const displayStats = finalStats ?? stats;
     const totalDone = displayStats.perfect + displayStats.great + displayStats.good + displayStats.almost + displayStats.retry;
     return (
