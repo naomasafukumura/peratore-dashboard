@@ -2503,12 +2503,21 @@ function startRecognition(statusEl) {
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(async stream => {
-      // AudioContext は別ストリームで音量検出のみに使用（MediaRecorderと競合させない）
+      // MediaRecorder を先に起動（AudioContextより優先）
+      recordingMimeType = getSupportedMimeType();
+      const recOptions = recordingMimeType ? { mimeType: recordingMimeType } : {};
+      mediaRecorder = new MediaRecorder(stream, recOptions);
+      recordingMimeType = mediaRecorder.mimeType || recordingMimeType || 'audio/webm';
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+      mediaRecorder.start(100);
+      console.log('Recording started, mimeType:', recordingMimeType);
+      // AudioContext は同ストリームから音量検出（MediaRecorder起動後に接続）
       try {
-        const volStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         audioContext = new AudioContext();
         if (audioContext.state === 'suspended') await audioContext.resume();
-        const source = audioContext.createMediaStreamSource(volStream);
+        const source = audioContext.createMediaStreamSource(stream);
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
         source.connect(analyser);
@@ -2538,15 +2547,6 @@ function startRecognition(statusEl) {
       } catch(e) {
         console.log('Volume detection unavailable:', e);
       }
-      recordingMimeType = getSupportedMimeType();
-      const recOptions = recordingMimeType ? { mimeType: recordingMimeType } : {};
-      mediaRecorder = new MediaRecorder(stream, recOptions);
-      recordingMimeType = mediaRecorder.mimeType || recordingMimeType || 'audio/webm';
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.start(100);
-      console.log('Recording started, mimeType:', recordingMimeType);
     })
     .catch(err => {
       console.log('Microphone error:', err);
