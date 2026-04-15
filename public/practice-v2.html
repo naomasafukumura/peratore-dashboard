@@ -2504,6 +2504,7 @@ function startRecognition(statusEl) {
   navigator.mediaDevices.getUserMedia({ audio: true })
     .then(stream => {
       audioContext = new AudioContext();
+      audioContext.resume();
       const source = audioContext.createMediaStreamSource(stream);
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
