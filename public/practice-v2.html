@@ -2598,7 +2598,7 @@ async function transcribeWithWhisper(blob) {
     console.log('Whisper result:', data.text);
     const rawText = (data.text || '').trim();
     // Filter out Whisper hallucinations (common noise artifacts)
-    const WHISPER_NOISE = ['thank you for watching', 'thanks for watching', 'thank you for listening', 'thanks for listening', 'bye', 'goodbye', 'see you', 'please subscribe', 'like and subscribe', 'subtitles by', 'you'];
+    const WHISPER_NOISE = ['thank you for watching', 'thanks for watching', 'thank you for listening', 'thanks for listening', 'bye', 'please subscribe', 'like and subscribe', 'subtitles by'];
     const cleaned = rawText.toLowerCase().replace(/[.!?,]/g, '');
     if (WHISPER_NOISE.includes(cleaned) || cleaned.includes('transcribed by') || cleaned.includes('otter.ai') || cleaned.includes('subtitles')) {
       console.log('Filtered Whisper noise:', rawText);
