@@ -2539,6 +2539,8 @@ function startRecognition(statusEl) {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunks.push(e.data);
       };
+      const tracks = stream.getAudioTracks();
+      console.log('Audio tracks:', tracks.length, tracks[0] ? 'enabled:' + tracks[0].enabled + ' muted:' + tracks[0].muted : 'none');
       mediaRecorder.start();
       console.log('Recording started, mimeType:', recordingMimeType);
     })
