@@ -2541,6 +2541,9 @@ function startRecognition(statusEl) {
       };
       const tracks = stream.getAudioTracks();
       console.log('Audio tracks:', tracks.length, tracks[0] ? 'enabled:' + tracks[0].enabled + ' muted:' + tracks[0].muted : 'none');
+      if (tracks[0] && tracks[0].muted) {
+        addSystemMessage('マイクがOSまたは別アプリにミュートされています。Windowsのサウンド設定を確認してください。');
+      }
       mediaRecorder.start();
       console.log('Recording started, mimeType:', recordingMimeType);
     })
