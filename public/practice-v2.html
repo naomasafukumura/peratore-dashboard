@@ -2563,7 +2563,7 @@ function stopRecognition() {
         mediaRecorder = null;
         if (audioContext) { audioContext.close(); audioContext = null; }
         analyser = null;
-        console.log('Max volume:', maxVolume, 'mimeType:', recordingMimeType);
+        console.log('Max volume:', maxVolume, 'blob size:', blob.size, 'chunks:', audioChunks.length, 'mimeType:', recordingMimeType);
         if (maxVolume > 0 && maxVolume < 10) {
           console.log('No speech detected (volume too low), skipping Whisper');
           resolve('');
