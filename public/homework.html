@@ -163,7 +163,7 @@
     html += '<div class="hw-item-main">';
     html += '<div class="hw-item-body-wrap">';
     if (c._hwCategory) html += '<div class="hw-item-category">' + escHtml(c._hwCategory) + ' <span class="hw-badge">' + count + '</span></div>';
-    html += '<div class="hw-item-trigger">' + escHtml(c.trigger || '') + '</div>';
+    html += '<div class="hw-item-trigger">' + escHtml(c.triggerJa || c.trigger || '') + '</div>';
     if (st && st.conclusion) html += '<div class="hw-item-spp">' + escHtml(st.conclusion) + '</div>';
     html += '</div>';
     html += '<button class="hw-expand-btn" aria-label="詳細を見る">+</button>';

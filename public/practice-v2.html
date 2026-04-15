@@ -1375,7 +1375,7 @@ function getSections(cat) {
         ? d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate()
         : '';
       const trigger = String(firstCard.trigger || '').trim();
-      const displayTitle = trigger || String(firstCard.section || firstCard.states?.[0]?.label || '');
+      const displayTitle = String(firstCard.triggerJa || '').trim() || trigger || String(firstCard.section || firstCard.states?.[0]?.label || '');
       sections.push({ name: key, displayTitle, count: cards.length, dateLabel, firstCard, allCards: sortedCards });
     }
     return sections;
