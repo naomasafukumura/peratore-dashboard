@@ -140,6 +140,7 @@
 
 /* Mic ready */
 .mic-ready-hint{font-size:13px;color:var(--text-muted);font-weight:500;margin-bottom:4px}
+.mic-ready-sub{font-size:13px;color:var(--accent);font-weight:600;margin-top:8px;text-align:center}
 .mic-start-btn{width:72px;height:72px;border-radius:50%;background:var(--cta);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px var(--cta-glow);transition:all .2s var(--ease);animation:ctaPulse 2.4s ease-in-out infinite}
 .mic-start-btn svg{width:32px;height:32px}
 .mic-start-btn:active{transform:scale(.93);animation:none}
