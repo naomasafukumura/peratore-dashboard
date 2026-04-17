@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>宿題 | Pattern Practice</title>
+<script>
+  // 簡易ページ経由の場合、コンテンツは一切見せない(ロード後、設定モーダル→直接練習画面へ)
+  if (new URLSearchParams(location.search).get('forceSettings') === '1') {
+    document.documentElement.classList.add('simple-flow');
+  }
+</script>
 <style>
+  html.simple-flow body > .hw-header, html.simple-flow body > .hw-body { visibility: hidden; }
+  html.simple-flow { background: #f4f6f5; }
   :root{
     --bg:#f4f6f5;--surface:#fff;--surface-alt:#f0f4f3;--border:#e0e8e5;--border-lt:#edf2f0;
     --accent:#2f5d62;--accent-soft:rgba(47,93,98,.08);--text:#1a2e2b;--text-sub:#4a6b66;
@@ -186,9 +194,9 @@ function gotoPractice() {
   }
   function open() { syncUI(); ov.classList.add('show'); }
   function close() {
+    // 簡易ページ経由の場合はモーダルを表示したまま練習画面へ遷移(ページ間のちらつき防止)
+    if (isSimpleFlow) { gotoPractice(); return; }
     ov.classList.remove('show');
-    // 簡易ページ経由の場合、設定を閉じたら直ちに練習画面へ遷移
-    if (isSimpleFlow) gotoPractice();
   }
   // 既定値がまだ保存されていなければ、初期デフォルト(音声/自分も言う)を保存
   if (!localStorage.getItem('pp-inputMode')) localStorage.setItem('pp-inputMode', 'voice');
