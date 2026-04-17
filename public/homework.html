@@ -62,6 +62,26 @@
 
   /* Badge */
   .hw-badge{display:inline-block;background:var(--cta);color:#fff;font-size:11px;font-weight:700;font-family:var(--fen);padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+
+  /* Settings overlay (簡易設定) */
+  .st-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;align-items:center;justify-content:center}
+  .st-ov.show{display:flex}
+  .st-panel{background:var(--surface);border-radius:20px;padding:24px;width:90%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:stIn .25s ease}
+  @keyframes stIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .st-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .st-title{font-size:18px;font-weight:700;color:var(--text)}
+  .st-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub)}
+  .st-close svg{width:16px;height:16px}
+  .st-sec{margin-bottom:20px}
+  .st-lbl{font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.04em;margin-bottom:8px}
+  .st-tg{display:flex;gap:8px}
+  .st-tbtn{flex:1;padding:10px 12px;border:1.5px solid var(--border);background:var(--surface);border-radius:10px;font-size:14px;font-weight:600;color:var(--text-sub);cursor:pointer;font-family:var(--fja)}
+  .st-tbtn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+  .st-srow{display:flex;align-items:center;gap:12px}
+  .st-slider{flex:1;accent-color:var(--accent)}
+  .st-sval{font-weight:700;color:var(--accent);font-size:14px;min-width:40px;text-align:right}
+  .st-hint{font-size:11px;color:var(--text-muted);margin-top:6px}
+  .st-ok{width:100%;padding:12px;margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:var(--fja);cursor:pointer}
 </style>
 </head>
 <body>
@@ -83,7 +103,85 @@
   </div>
 </div>
 
+<!-- Settings Overlay (簡易) -->
+<div class="st-ov" id="stOv">
+  <div class="st-panel">
+    <div class="st-hd">
+      <div class="st-title">設定</div>
+      <button class="st-close" id="stClose" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="st-sec">
+      <div class="st-lbl">入力モード</div>
+      <div class="st-tg">
+        <button class="st-tbtn" id="stInVoice" data-mode="voice">音声</button>
+        <button class="st-tbtn" id="stInText" data-mode="text">テキスト</button>
+      </div>
+    </div>
+    <div class="st-sec">
+      <div class="st-lbl">話す時間</div>
+      <div class="st-srow">
+        <input type="range" class="st-slider" id="stSpeakSlider" min="5" max="20" value="7" step="1">
+        <span class="st-sval" id="stSpeakVal">7秒</span>
+      </div>
+      <div class="st-hint">マイクを押してから録音する秒数</div>
+    </div>
+    <div class="st-sec">
+      <div class="st-lbl">2ターン目</div>
+      <div class="st-tg">
+        <button class="st-tbtn" id="stT2Listen" data-turn2="listen">聞くだけ</button>
+        <button class="st-tbtn" id="stT2Speak" data-turn2="speak">自分も言う</button>
+      </div>
+      <div class="st-hint">2ターン目を聞くだけにするか、自分でも回答するか</div>
+    </div>
+    <button class="st-ok" id="stOk">OK</button>
+  </div>
+</div>
+
 <script>
+// ===== 設定モーダル(簡易) =====
+(function() {
+  const ov = document.getElementById('stOv');
+  if (!ov) return;
+  function syncUI() {
+    const m = localStorage.getItem('pp-inputMode') || 'voice';
+    const t2 = localStorage.getItem('pp-turn2Mode') || 'speak';
+    const sp = parseInt(localStorage.getItem('pp-speakLimit') || '7', 10);
+    document.getElementById('stInVoice').classList.toggle('active', m === 'voice');
+    document.getElementById('stInText').classList.toggle('active', m === 'text');
+    document.getElementById('stT2Listen').classList.toggle('active', t2 === 'listen');
+    document.getElementById('stT2Speak').classList.toggle('active', t2 === 'speak');
+    document.getElementById('stSpeakSlider').value = sp;
+    document.getElementById('stSpeakVal').textContent = sp + '秒';
+  }
+  function open() { syncUI(); ov.classList.add('show'); }
+  function close() { ov.classList.remove('show'); }
+  // 既定値がまだ保存されていなければ、初期デフォルト(音声/自分も言う)を保存
+  if (!localStorage.getItem('pp-inputMode')) localStorage.setItem('pp-inputMode', 'voice');
+  if (!localStorage.getItem('pp-turn2Mode')) localStorage.setItem('pp-turn2Mode', 'speak');
+
+  document.querySelectorAll('.st-tbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.mode) localStorage.setItem('pp-inputMode', btn.dataset.mode);
+      if (btn.dataset.turn2) localStorage.setItem('pp-turn2Mode', btn.dataset.turn2);
+      syncUI();
+    });
+  });
+  document.getElementById('stSpeakSlider').addEventListener('input', (e) => {
+    const v = parseInt(e.target.value, 10);
+    localStorage.setItem('pp-speakLimit', String(v));
+    document.getElementById('stSpeakVal').textContent = v + '秒';
+  });
+  document.getElementById('stClose').addEventListener('click', close);
+  document.getElementById('stOk').addEventListener('click', close);
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+
+  // forceSettings=1 なら自動表示
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('forceSettings') === '1') setTimeout(open, 80);
+})();
+
 (async function() {
   const params = new URLSearchParams(window.location.search);
   const student = params.get('student');

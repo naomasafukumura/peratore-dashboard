@@ -218,6 +218,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 
 /* Mic ready */
 .mic-ready-hint{font-size:13px;color:var(--text-muted);font-weight:500;margin-bottom:4px}
+.mic-ready-sub{font-size:13px;color:var(--accent);font-weight:600;margin-top:8px;text-align:center}
 .mic-start-btn{width:72px;height:72px;border-radius:50%;background:var(--cta);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px var(--cta-glow);transition:all .2s var(--ease);animation:ctaPulse 2.4s ease-in-out infinite}
 .mic-start-btn svg{width:32px;height:32px}
 .mic-start-btn:active{transform:scale(.93);animation:none}
@@ -897,6 +898,7 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
             <button class="mic-start-btn" id="micStartBtn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
             </button>
+            <div class="mic-ready-sub">押してから喋ろう♪</div>
           </div>
         </div>
         <!-- SPEAK phase -->
@@ -996,36 +998,36 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
 <div class="settings-overlay" id="settingsOverlay">
   <div class="settings-panel">
     <div class="settings-hd">
-      <div class="settings-title">Settings</div>
+      <div class="settings-title">設定</div>
       <button class="settings-close" id="settingsCloseBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     <div class="settings-section">
-      <div class="settings-label">Input Mode</div>
+      <div class="settings-label">入力モード</div>
       <div class="settings-toggle-group">
-        <button class="settings-toggle active" id="inputModeVoice" data-mode="voice">Voice</button>
-        <button class="settings-toggle" id="inputModeText" data-mode="text">Text</button>
+        <button class="settings-toggle active" id="inputModeVoice" data-mode="voice">音声</button>
+        <button class="settings-toggle" id="inputModeText" data-mode="text">テキスト</button>
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-label">Speak Time</div>
+      <div class="settings-label">話す時間</div>
       <div class="settings-slider-row">
         <input type="range" class="settings-slider" id="speakLimitSlider" min="5" max="20" value="7" step="1">
-        <span class="settings-slider-val" id="speakLimitVal">7s</span>
+        <span class="settings-slider-val" id="speakLimitVal">7秒</span>
       </div>
-      <div class="settings-hint">Recording time limit after pressing mic</div>
+      <div class="settings-hint">マイクを押してから録音する秒数</div>
     </div>
     <div class="settings-section">
-      <div class="settings-label">Turn 2</div>
+      <div class="settings-label">2ターン目</div>
       <div class="settings-toggle-group">
-        <button class="settings-toggle active" id="turn2ModeListenOnly" data-turn2="listen">聞くだけ</button>
-        <button class="settings-toggle" id="turn2ModeSpeak" data-turn2="speak">自分も言う</button>
+        <button class="settings-toggle" id="turn2ModeListenOnly" data-turn2="listen">聞くだけ</button>
+        <button class="settings-toggle active" id="turn2ModeSpeak" data-turn2="speak">自分も言う</button>
       </div>
-      <div class="settings-hint">Turn 2を聞くだけにするか、自分でも回答するか</div>
+      <div class="settings-hint">2ターン目を聞くだけにするか、自分でも回答するか</div>
     </div>
     <div class="settings-section">
-      <div class="settings-label">Font Size</div>
+      <div class="settings-label">文字サイズ</div>
       <div class="settings-slider-row">
         <input type="range" class="settings-slider" id="fontSizeSlider" min="12" max="22" value="15" step="1">
         <span class="settings-slider-val" id="fontSizeVal">15px</span>
@@ -1245,7 +1247,7 @@ let currentAudio = null;
 // Settings (loaded from localStorage)
 let inputMode = localStorage.getItem('pp-inputMode') || 'voice';
 let speakLimitSec = parseInt(localStorage.getItem('pp-speakLimit') || '7', 10);
-let turn2Mode = localStorage.getItem('pp-turn2Mode') || 'listen';
+let turn2Mode = localStorage.getItem('pp-turn2Mode') || 'speak';
 let fontSize = parseInt(localStorage.getItem('pp-fontSize') || '15', 10);
 document.documentElement.style.setProperty('--chat-font-size', fontSize + 'px');
 
@@ -3556,7 +3558,7 @@ function openSettings() {
   document.getElementById('inputModeVoice').classList.toggle('active', inputMode === 'voice');
   document.getElementById('inputModeText').classList.toggle('active', inputMode === 'text');
   document.getElementById('speakLimitSlider').value = speakLimitSec;
-  document.getElementById('speakLimitVal').textContent = speakLimitSec + 's';
+  document.getElementById('speakLimitVal').textContent = speakLimitSec + '秒';
   document.getElementById('turn2ModeListenOnly').classList.toggle('active', turn2Mode === 'listen');
   document.getElementById('turn2ModeSpeak').classList.toggle('active', turn2Mode === 'speak');
   document.getElementById('fontSizeSlider').value = fontSize;
@@ -3687,7 +3689,7 @@ document.querySelectorAll('.settings-toggle').forEach(btn => {
 document.getElementById('speakLimitSlider').addEventListener('input', (e) => {
   speakLimitSec = parseInt(e.target.value, 10);
   localStorage.setItem('pp-speakLimit', speakLimitSec);
-  document.getElementById('speakLimitVal').textContent = speakLimitSec + 's';
+  document.getElementById('speakLimitVal').textContent = speakLimitSec + '秒';
 });
 document.getElementById('fontSizeSlider').addEventListener('input', (e) => {
   fontSize = parseInt(e.target.value, 10);
@@ -3695,6 +3697,14 @@ document.getElementById('fontSizeSlider').addEventListener('input', (e) => {
   document.getElementById('fontSizeVal').textContent = fontSize + 'px';
   document.documentElement.style.setProperty('--chat-font-size', fontSize + 'px');
 });
+
+// 簡易ページから来た場合、設定モーダルを自動表示
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('forceSettings') === '1') {
+    setTimeout(openSettings, 80);
+  }
+})();
 
 // ===== Text Input Submit =====
 function submitTextInput() {
