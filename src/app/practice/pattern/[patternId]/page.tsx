@@ -14,9 +14,11 @@ export default async function PracticePatternPage({
   const { patternId } = await params;
   const { student, homework } = await searchParams;
   const isHomework = homework === '1';
-  const backHref = student
-    ? `/practice-v2.html?student=${encodeURIComponent(student)}`
-    : '/practice-v2.html';
+  const backParams = new URLSearchParams();
+  if (isHomework) backParams.set('homework', '1');
+  if (student) backParams.set('student', student);
+  const backQs = backParams.toString();
+  const backHref = backQs ? `/practice-v2.html?${backQs}` : '/practice-v2.html';
 
   // まず指定パターンのchunk_idを取得し、同チャンクの全パターンをsort_order順で取得
   const targetRows = await sql`
