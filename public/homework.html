@@ -140,6 +140,35 @@
 </div>
 
 <script>
+// 簡易ページ経由か判定(forceSettings=1)
+const isSimpleFlow = new URLSearchParams(window.location.search).get('forceSettings') === '1';
+// 宿題データを受け取る共有領域(設定モーダルclose時に練習画面へ遷移する用)
+let __hwCardsCache = null;
+let __hwStudent = new URLSearchParams(window.location.search).get('student') || '';
+
+function gotoPractice() {
+  const url = 'practice-v2.html?homework=1' + (__hwStudent ? '&student=' + encodeURIComponent(__hwStudent) : '');
+  function jump() {
+    try { sessionStorage.setItem('hwCards', JSON.stringify(__hwCardsCache || [])); } catch (e) {}
+    window.location.href = url;
+  }
+  // カード未ロードなら少し待つ
+  if (!__hwCardsCache) {
+    const content = document.getElementById('hwContent');
+    if (content) content.innerHTML = '<div class="hw-empty">準備中...</div>';
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries++;
+      if (__hwCardsCache || tries > 30) { // 最大3秒待機
+        clearInterval(iv);
+        jump();
+      }
+    }, 100);
+    return;
+  }
+  jump();
+}
+
 // ===== 設定モーダル(簡易) =====
 (function() {
   const ov = document.getElementById('stOv');
@@ -156,7 +185,11 @@
     document.getElementById('stSpeakVal').textContent = sp + '秒';
   }
   function open() { syncUI(); ov.classList.add('show'); }
-  function close() { ov.classList.remove('show'); }
+  function close() {
+    ov.classList.remove('show');
+    // 簡易ページ経由の場合、設定を閉じたら直ちに練習画面へ遷移
+    if (isSimpleFlow) gotoPractice();
+  }
   // 既定値がまだ保存されていなければ、初期デフォルト(音声/自分も言う)を保存
   if (!localStorage.getItem('pp-inputMode')) localStorage.setItem('pp-inputMode', 'voice');
   if (!localStorage.getItem('pp-turn2Mode')) localStorage.setItem('pp-turn2Mode', 'speak');
@@ -177,9 +210,7 @@
   document.getElementById('stOk').addEventListener('click', close);
   ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
 
-  // forceSettings=1 なら自動表示
-  const p = new URLSearchParams(window.location.search);
-  if (p.get('forceSettings') === '1') setTimeout(open, 80);
+  if (isSimpleFlow) setTimeout(open, 80);
 })();
 
 (async function() {
@@ -211,10 +242,18 @@
     document.getElementById('studentLabel').textContent = displayName + ' さん';
   }
 
+  // 簡易ページ経由の場合、宿題リスト/スタートボタンは表示せず、キャッシュのみ
+  __hwCardsCache = cards;
+
   const content = document.getElementById('hwContent');
 
   if (!cards.length) {
     content.innerHTML = '<div class="hw-empty">宿題はまだ設定されていません。<br>先生がレッスン後に設定します。</div>';
+    return;
+  }
+
+  if (isSimpleFlow) {
+    content.innerHTML = '<div class="hw-empty">準備中...</div>';
     return;
   }
 
