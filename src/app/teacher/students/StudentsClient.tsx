@@ -10,12 +10,32 @@ export default function StudentsClient({
   students: StudentEntry[];
   pendingDeletions: string[];
 }) {
-  const [students] = useState(initialStudents);
+  const [students, setStudents] = useState(initialStudents);
   const [query, setQuery] = useState('');
+  const [savingName, setSavingName] = useState<string | null>(null);
 
   const filtered = query.trim()
     ? students.filter(s => s.name.includes(query.trim()) || s.yomi.includes(query.trim()))
     : students;
+
+  async function toggleSelect(name: string, next: boolean) {
+    const prev = students;
+    setStudents(list => list.map(s => (s.name === name ? { ...s, selected: next } : s)));
+    setSavingName(name);
+    try {
+      const res = await fetch('/api/teacher/students/select', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name, selected: next }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setStudents(prev);
+      alert('保存に失敗しました');
+    } finally {
+      setSavingName(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-bg-page">
@@ -46,12 +66,21 @@ export default function StudentsClient({
           {filtered.length === 0 && (
             <li className="text-sm text-text-muted py-8 text-center">該当する受講生が見つかりません</li>
           )}
-          {filtered.map(({ name, yomi }) => (
+          {filtered.map(({ name, yomi, selected }) => (
             <li
               key={name}
               className="bg-bg-card border border-border rounded-[var(--radius-card)] px-4 py-3 shadow-[var(--shadow-card)]"
             >
               <div className="flex items-center gap-3">
+                <label className="shrink-0 flex items-center justify-center cursor-pointer" title="受講生ページ(簡易)を有効化">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    disabled={savingName === name}
+                    onChange={e => toggleSelect(name, e.target.checked)}
+                    className="w-5 h-5 accent-primary cursor-pointer"
+                  />
+                </label>
                 <div className="flex-1 min-w-0">
                   <Link
                     href={`/teacher/students/${encodeURIComponent(name)}`}
@@ -61,14 +90,26 @@ export default function StudentsClient({
                   </Link>
                   {yomi && <p className="text-[10px] text-text-muted">{yomi}</p>}
                 </div>
-                <a
-                  href={`/practice-v2.html?student=${encodeURIComponent(name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 px-3 py-1.5 bg-primary/10 text-primary rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary/20 transition-colors"
-                >
-                  専用ページ →
-                </a>
+                <div className="shrink-0 flex flex-col items-end gap-1">
+                  <a
+                    href={`/practice-v2.html?student=${encodeURIComponent(name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-primary/10 text-primary rounded-[var(--radius-button)] text-xs font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    専用ページ →
+                  </a>
+                  {selected && (
+                    <a
+                      href={`/teacher/students/selected/${encodeURIComponent(name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-[#1A1A1A] text-white rounded-[var(--radius-button)] text-xs font-medium hover:opacity-90 transition-opacity"
+                    >
+                      専用ページ（簡易）→
+                    </a>
+                  )}
+                </div>
               </div>
             </li>
           ))}

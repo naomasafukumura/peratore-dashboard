@@ -16,16 +16,28 @@ const PRESET_STUDENTS = [
   'ロバス由貴',
 ];
 
-export type StudentEntry = { name: string; yomi: string; displayName: string };
+export type StudentEntry = { name: string; yomi: string; displayName: string; selected: boolean };
 
 export default async function StudentsPage() {
 
-  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '', displayName: '' }));
+  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '', displayName: '', selected: false }));
 
   if (hasDatabaseUrl()) {
     let assignNames: string[] = [];
     let yomiMap = new Map<string, string>();
     let displayNameMap = new Map<string, string>();
+    let selectedSet = new Set<string>();
+
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS student_selected (
+          name TEXT PRIMARY KEY,
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `;
+      const rows = await sql`SELECT name FROM student_selected`;
+      selectedSet = new Set((rows as { name: string }[]).map(r => r.name));
+    } catch {}
 
     try {
       const rows = await sql`SELECT DISTINCT TRIM(student_name) AS name FROM assignments WHERE student_name IS NOT NULL AND TRIM(student_name) <> ''`;
@@ -45,7 +57,12 @@ export default async function StudentsPage() {
     } catch {}
 
     const allNames = Array.from(new Set([...PRESET_STUDENTS, ...assignNames, ...registeredNames]));
-    entries = allNames.map(name => ({ name, yomi: yomiMap.get(name) ?? '', displayName: displayNameMap.get(name) ?? '' }));
+    entries = allNames.map(name => ({
+      name,
+      yomi: yomiMap.get(name) ?? '',
+      displayName: displayNameMap.get(name) ?? '',
+      selected: selectedSet.has(name),
+    }));
     entries.sort((a, b) => {
       const ya = a.yomi || a.name;
       const yb = b.yomi || b.name;
