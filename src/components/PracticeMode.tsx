@@ -254,9 +254,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // ---- Auto-scroll chat ----
   useEffect(() => {
-    if (chatThreadRef.current) {
-      chatThreadRef.current.scrollTop = chatThreadRef.current.scrollHeight;
-    }
+    const el = chatThreadRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const last = el.lastElementChild;
+      if (last) last.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    }));
   }, [bubbles, phase]);
 
   // ---- Audio helpers ----
