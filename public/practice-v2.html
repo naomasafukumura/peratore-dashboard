@@ -2188,9 +2188,9 @@ function clearStage() {
   $chatThread.innerHTML = '';
 }
 function scrollToBottom() {
-  requestAnimationFrame(() => {
-    $chatThread.scrollTop = $chatThread.scrollHeight;
-  });
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    $chatThread.scrollTo({ top: $chatThread.scrollHeight, behavior: 'smooth' });
+  }));
 }
 
 function addSystemMessage(text, onComplete) {
