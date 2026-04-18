@@ -260,7 +260,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       const last = el.lastElementChild;
       if (last) last.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
     }));
-  }, [bubbles, phase]);
+  }, [bubbles, phase, replayPlayingIdx, showPostReplayBar]);
 
   // ---- Audio helpers ----
   const stopAudio = useCallback(() => {
