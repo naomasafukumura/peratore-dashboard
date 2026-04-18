@@ -143,6 +143,14 @@
       </div>
       <div class="st-hint">2ターン目を聞くだけにするか、自分でも回答するか</div>
     </div>
+    <div class="st-sec">
+      <div class="st-lbl">文字サイズ</div>
+      <div class="st-srow">
+        <input type="range" class="st-slider" id="stFontSlider" min="12" max="22" value="15" step="1">
+        <span class="st-sval" id="stFontVal">15px</span>
+      </div>
+      <div class="st-hint" id="stFontPreview" style="font-size:15px;color:var(--text-sub);margin-top:8px;line-height:1.6">例: Hello, how are you?</div>
+    </div>
     <button class="st-ok" id="stOk">OK</button>
   </div>
 </div>
@@ -185,12 +193,16 @@ function gotoPractice() {
     const m = localStorage.getItem('pp-inputMode') || 'voice';
     const t2 = localStorage.getItem('pp-turn2Mode') || 'speak';
     const sp = parseInt(localStorage.getItem('pp-speakLimit') || '7', 10);
+    const fs = parseInt(localStorage.getItem('pp-fontSize') || '15', 10);
     document.getElementById('stInVoice').classList.toggle('active', m === 'voice');
     document.getElementById('stInText').classList.toggle('active', m === 'text');
     document.getElementById('stT2Listen').classList.toggle('active', t2 === 'listen');
     document.getElementById('stT2Speak').classList.toggle('active', t2 === 'speak');
     document.getElementById('stSpeakSlider').value = sp;
     document.getElementById('stSpeakVal').textContent = sp + '秒';
+    document.getElementById('stFontSlider').value = fs;
+    document.getElementById('stFontVal').textContent = fs + 'px';
+    document.getElementById('stFontPreview').style.fontSize = fs + 'px';
   }
   function open() { syncUI(); ov.classList.add('show'); }
   function close() {
@@ -213,6 +225,12 @@ function gotoPractice() {
     const v = parseInt(e.target.value, 10);
     localStorage.setItem('pp-speakLimit', String(v));
     document.getElementById('stSpeakVal').textContent = v + '秒';
+  });
+  document.getElementById('stFontSlider').addEventListener('input', (e) => {
+    const v = parseInt(e.target.value, 10);
+    localStorage.setItem('pp-fontSize', String(v));
+    document.getElementById('stFontVal').textContent = v + 'px';
+    document.getElementById('stFontPreview').style.fontSize = v + 'px';
   });
   document.getElementById('stClose').addEventListener('click', close);
   document.getElementById('stOk').addEventListener('click', close);
