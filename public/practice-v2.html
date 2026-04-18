@@ -1758,6 +1758,16 @@ function lvStopAll() {
 }
 
 function lvGetCardLines(card) {
+  // レッスン復習集: chunkId単位で複数カードに分かれているので、全ペアを順に再生
+  if (card._lessonReviewPairs && card._lessonReviewPairs.length) {
+    const lines = [];
+    for (const c of card._lessonReviewPairs) {
+      if (c.triggerAudio) lines.push({ audio: c.triggerAudio, text: c.trigger });
+      const cst = c.states && c.states[0];
+      if (cst && cst.conclusionAudio) lines.push({ audio: cst.conclusionAudio, text: cst.conclusion });
+    }
+    return lines;
+  }
   const st = card.states[0];
   const lines = [
     { audio: card.triggerAudio, text: card.trigger },
@@ -1832,6 +1842,7 @@ function openListView() {
         const cardDate = firstCard.createdAt ? (() => { const d = new Date(firstCard.createdAt); return isNaN(d.getTime()) ? '' : (d.getMonth()+1) + '/' + d.getDate(); })() : '';
         total++;
         const displayId = '1-' + total;
+        firstCard._lessonReviewPairs = sorted;
         allCards.push({ card: firstCard, displayId });
         const el = document.createElement('div');
         el.className = 'lv-phrase';
