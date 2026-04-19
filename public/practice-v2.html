@@ -1781,27 +1781,42 @@ function lvGetCardLines(card) {
 function lvPlayCards(cards, repeat, onDone) {
   lvPlayState = { active: true, cancel: false };
   const state = lvPlayState;
-  let ci = 0;
-  function playCard() {
-    if (state.cancel || ci >= cards.length) {
-      if (!state.cancel && repeat) { ci = 0; playCard(); return; }
+
+  const playlist = [];
+  cards.forEach((card) => {
+    const lines = lvGetCardLines(card);
+    lines.forEach((line, idx) => {
+      playlist.push({ card, line, isFirst: idx === 0, isLast: idx === lines.length - 1 });
+    });
+  });
+
+  let pi = 0;
+  function playNext() {
+    if (state.cancel) return;
+    if (pi >= playlist.length) {
+      if (repeat) { pi = 0; playNext(); return; }
       if (onDone) onDone();
       return;
     }
-    const lines = lvGetCardLines(cards[ci]);
-    const phraseEl = document.querySelector(`[data-lv-card-id="${cards[ci].id}"]`);
-    if (phraseEl) { document.querySelectorAll('.lv-playing').forEach(el => el.classList.remove('lv-playing')); phraseEl.classList.add('lv-playing'); phraseEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-    let li = 0;
-    function playLine() {
-      if (state.cancel || li >= lines.length) { ci++; setTimeout(playCard, 800); return; }
-      currentAudio = new Audio(lines[li].audio);
-      currentAudio.onended = () => { li++; setTimeout(playLine, 600); };
-      currentAudio.onerror = () => { li++; setTimeout(playLine, 600); };
-      currentAudio.play().catch(() => { li++; setTimeout(playLine, 600); });
+    const item = playlist[pi];
+    if (item.isFirst) {
+      const phraseEl = document.querySelector(`[data-lv-card-id="${item.card.id}"]`);
+      if (phraseEl) {
+        document.querySelectorAll('.lv-playing').forEach(el => el.classList.remove('lv-playing'));
+        phraseEl.classList.add('lv-playing');
+        phraseEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
-    playLine();
+    const gap = item.isLast ? 800 : 600;
+    const advance = () => { pi++; setTimeout(playNext, gap); };
+    currentAudio = new Audio(item.line.audio);
+    currentAudio.onended = advance;
+    currentAudio.onerror = advance;
+    currentAudio.play().catch(advance);
   }
-  playCard();
+
+  if (playlist.length === 0) { if (onDone) onDone(); return; }
+  playNext();
 }
 
 const stopSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>';
