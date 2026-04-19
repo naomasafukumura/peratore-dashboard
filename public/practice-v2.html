@@ -3725,13 +3725,6 @@ document.getElementById('fontSizeSlider').addEventListener('input', (e) => {
   document.documentElement.style.setProperty('--chat-font-size', fontSize + 'px');
 });
 
-// 簡易ページから来た場合、設定モーダルを自動表示
-(function() {
-  const p = new URLSearchParams(window.location.search);
-  if (p.get('forceSettings') === '1') {
-    setTimeout(openSettings, 80);
-  }
-})();
 
 // ===== Text Input Submit =====
 function submitTextInput() {

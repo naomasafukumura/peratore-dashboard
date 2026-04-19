@@ -8,7 +8,7 @@ export default async function SelectedStudentPage({
   const { name } = await params;
   const studentName = decodeURIComponent(name);
   const homeworkHref = `/homework.html?student=${encodeURIComponent(studentName)}&forceSettings=1`;
-  const reviewHref = `/practice-v2.html?student=${encodeURIComponent(studentName)}&forceSettings=1`;
+  const reviewHref = `/practice-v2.html?student=${encodeURIComponent(studentName)}`;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(165deg,#FFF5EC_0%,#FDE8DC_50%,#F6DDD8_100%)]">

@@ -235,8 +235,6 @@ function gotoPractice() {
   document.getElementById('stClose').addEventListener('click', close);
   document.getElementById('stOk').addEventListener('click', close);
   ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
-
-  if (isSimpleFlow) setTimeout(open, 80);
 })();
 
 (async function() {
@@ -280,6 +278,7 @@ function gotoPractice() {
 
   if (isSimpleFlow) {
     content.innerHTML = '<div class="hw-empty">準備中...</div>';
+    gotoPractice();
     return;
   }
 
