@@ -392,6 +392,8 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
+.lv-phrase.lv-hidden{display:none}
+.lv-cat-hdr.lv-hidden{display:none}
 .lv-phrase{background:var(--surface);border:1px solid var(--border-lt);border-radius:16px;padding:12px;box-shadow:var(--sh-s)}
 .lv-phrase-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .lv-phrase-id{font-size:10px;font-weight:800;color:var(--text-faint);letter-spacing:.06em;text-transform:uppercase}
@@ -1834,6 +1836,7 @@ function openListView() {
         const el = document.createElement('div');
         el.className = 'lv-phrase';
         el.setAttribute('data-lv-card-id', firstCard.id);
+        el.setAttribute('data-lv-idx', allCards.length - 1);
         let pairsHtml = '';
         for (const card of sorted) {
           const st = card.states[0];
@@ -1868,6 +1871,7 @@ function openListView() {
       const el = document.createElement('div');
       el.className = 'lv-phrase';
       el.setAttribute('data-lv-card-id', card.id);
+      el.setAttribute('data-lv-idx', allCards.length - 1);
       const hasT2 = st.followup && st.conclusion2Examples && st.conclusion2Examples.length > 0;
       const cardDate = card.createdAt ? (() => { const d = new Date(card.createdAt); return isNaN(d.getTime()) ? '' : (d.getMonth()+1) + '/' + d.getDate(); })() : '';
       el.innerHTML = `
@@ -1929,6 +1933,9 @@ function openListView() {
     $to.appendChild(opt2);
   });
   $to.value = allCards.length - 1;
+
+  // 範囲選択に応じて例文リストを即フィルタ
+  lvApplyRange();
 
   // Individual play buttons
   body.querySelectorAll('.lv-play').forEach((btn) => {
@@ -2011,6 +2018,46 @@ function openListView() {
   $cover.classList.add('hide');
   document.getElementById('listView').classList.add('show');
 }
+
+// ===== List View range filter =====
+function lvApplyRange() {
+  const $from = document.getElementById('lvRangeFrom');
+  const $to = document.getElementById('lvRangeTo');
+  const body = document.getElementById('lvBody');
+  if (!$from || !$to || !body) return;
+  const from = parseInt($from.value);
+  const to = parseInt($to.value);
+  if (isNaN(from) || isNaN(to)) return;
+
+  // phrase カードを範囲でフィルタ
+  body.querySelectorAll('.lv-phrase').forEach(el => {
+    const idx = parseInt(el.getAttribute('data-lv-idx'));
+    const hidden = isNaN(idx) || idx < from || idx > to;
+    el.classList.toggle('lv-hidden', hidden);
+  });
+
+  // カテゴリヘッダーは配下に表示中カードがある場合のみ表示
+  const children = Array.from(body.children);
+  let currentHdr = null;
+  const hdrVisible = new Map();
+  children.forEach(el => {
+    if (el.classList.contains('lv-cat-hdr')) {
+      currentHdr = el;
+      hdrVisible.set(el, false);
+    } else if (el.classList.contains('lv-phrase') && !el.classList.contains('lv-hidden') && currentHdr) {
+      hdrVisible.set(currentHdr, true);
+    }
+  });
+  hdrVisible.forEach((visible, hdr) => {
+    hdr.classList.toggle('lv-hidden', !visible);
+  });
+}
+
+// range セレクト変更で即反映（select要素自体はDOMに常在、options のみ openListView で上書き）
+['lvRangeFrom', 'lvRangeTo'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', lvApplyRange);
+});
 
 // ===== List View static button listeners (registered once) =====
 document.getElementById('lvRangePlay').addEventListener('click', (e) => {
