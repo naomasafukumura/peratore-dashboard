@@ -391,7 +391,11 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-range-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
-.lv-range-btns{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:4px}
+.lv-range-btns{display:flex;gap:10px;flex-wrap:wrap;width:100%;margin-top:4px;align-items:center}
+.lv-listen-group{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1.5px dashed var(--accent);border-radius:10px;background:var(--accent-soft,rgba(0,0,0,.02))}
+.lv-listen-label{font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.04em}
+.lv-range-clear{padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-weight:700;font-family:var(--fja);cursor:pointer;transition:all .15s}
+.lv-range-clear:active{background:var(--border);transform:scale(.95)}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
 .lv-phrase.lv-hidden{display:none}
 .lv-cat-hdr.lv-hidden{display:none}
@@ -1093,11 +1097,14 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <select id="lvRangeFrom"></select>
     <span class="lv-range-label">〜</span>
     <select id="lvRangeTo"></select>
+    <button class="lv-range-clear" id="lvRangeClear">クリア</button>
     <div class="lv-range-btns">
-      <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
-      <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+      <div class="lv-listen-group" title="聞き流し用の連続再生モード">
+        <span class="lv-listen-label">聞き流し</span>
+        <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
+        <button class="lv-sec-repeat" id="lvRangeRepeat" title="聞き流しをループ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> リピート</button>
+      </div>
       <button class="lv-practice-btn" id="lvRangePractice">練習</button>
-      <button class="lv-sec-repeat" id="lvRangeClear">範囲クリア</button>
     </div>
   </div>
   <div class="lv-body" id="lvBody"></div>
