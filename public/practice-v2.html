@@ -391,6 +391,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-range-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
+.lv-range-btns{display:flex;gap:8px;flex-wrap:wrap;width:100%;margin-top:4px}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
 .lv-phrase.lv-hidden{display:none}
 .lv-cat-hdr.lv-hidden{display:none}
@@ -1092,10 +1093,12 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <select id="lvRangeFrom"></select>
     <span class="lv-range-label">〜</span>
     <select id="lvRangeTo"></select>
-    <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
-    <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
-    <button class="lv-practice-btn" id="lvRangePractice">練習</button>
-    <button class="lv-sec-repeat" id="lvRangeClear">範囲クリア</button>
+    <div class="lv-range-btns">
+      <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
+      <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+      <button class="lv-practice-btn" id="lvRangePractice">練習</button>
+      <button class="lv-sec-repeat" id="lvRangeClear">範囲クリア</button>
+    </div>
   </div>
   <div class="lv-body" id="lvBody"></div>
   <button class="lv-top-btn" id="lvTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
