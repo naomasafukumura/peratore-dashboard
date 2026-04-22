@@ -391,20 +391,6 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-range-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
-.lv-search-bar{display:flex;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
-.lv-search-wrap{flex:1;min-width:140px;position:relative}
-.lv-search-label{font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:3px;display:block}
-.lv-search-input{width:100%;padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--bg);box-sizing:border-box}
-.lv-search-input:focus{outline:none;border-color:var(--accent)}
-.lv-search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--border);border:none;color:var(--text);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:6px;display:none}
-.lv-search-clear.show{display:block}
-.lv-ac-drop{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1.5px solid var(--accent);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:999;max-height:200px;overflow-y:auto;display:none}
-.lv-ac-drop.open{display:block}
-.lv-ac-opt{padding:6px 10px;font-size:12px;font-family:var(--fja);color:var(--text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lv-ac-opt:hover,.lv-ac-opt.active{background:var(--accent);color:#fff}
-.lv-search-note{font-size:10px;color:var(--text-muted);padding:4px 16px 6px;background:var(--surface)}
-.lv-phrase.lv-hidden{display:none}
-.lv-cat-hdr.lv-hidden{display:none}
 .lv-range-label{font-size:11px;font-weight:700;color:var(--text-muted)}
 .lv-phrase{background:var(--surface);border:1px solid var(--border-lt);border-radius:16px;padding:12px;box-shadow:var(--sh-s)}
 .lv-phrase-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
@@ -1106,22 +1092,8 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <select id="lvRangeTo"></select>
     <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
     <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
+    <button class="lv-practice-btn" id="lvRangePractice">練習</button>
   </div>
-  <div class="lv-search-bar">
-    <div class="lv-search-wrap">
-      <span class="lv-search-label">フレーズ検索</span>
-      <input type="text" id="lvSearchPhrase" class="lv-search-input" placeholder="例: What are you gonna…" autocomplete="off">
-      <div class="lv-ac-drop" id="lvPhraseDrop"></div>
-      <button class="lv-search-clear" id="lvSearchPhraseClear">×</button>
-    </div>
-    <div class="lv-search-wrap">
-      <span class="lv-search-label">タイトル検索</span>
-      <input type="text" id="lvSearchTitle" class="lv-search-input" placeholder="例: 返答・未来" autocomplete="off">
-      <div class="lv-ac-drop" id="lvTitleDrop"></div>
-      <button class="lv-search-clear" id="lvSearchTitleClear">×</button>
-    </div>
-  </div>
-  <p class="lv-search-note">＊どちらかの検索一つで検索してください。両方がマッチしない場合は検索結果が表示されません。</p>
   <div class="lv-body" id="lvBody"></div>
   <button class="lv-top-btn" id="lvTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
 </div>
@@ -2036,27 +2008,6 @@ function openListView() {
   document.getElementById('lvTitle').textContent = 'Phrases';
   document.getElementById('lvCount').textContent = total + ' cards';
 
-  // オートコンプリート候補を更新
-  const seenSections = new Set();
-  lvPhraseOptions = [];
-  allCards.forEach(item => {
-    const sec = item.card.section;
-    if (seenSections.has(sec)) return;
-    seenSections.add(sec);
-    lvPhraseOptions.push(item.displayId + ' ' + sec);
-  });
-  lvTitleOptions = [];
-  DATA.forEach(cat => {
-    if (!cat.cards || !cat.cards.length) return;
-    lvTitleOptions.push(cat.category);
-  });
-
-  // 検索入力をリセット
-  document.getElementById('lvSearchPhrase').value = '';
-  document.getElementById('lvSearchTitle').value = '';
-  document.getElementById('lvSearchPhraseClear').classList.remove('show');
-  document.getElementById('lvSearchTitleClear').classList.remove('show');
-
   $cover.classList.add('hide');
   document.getElementById('listView').classList.add('show');
 }
@@ -2094,120 +2045,59 @@ document.getElementById('lvAllPlay').addEventListener('click', (e) => {
   lvPlayCards(lvFlatCards, false, () => { lvStopAll(); });
 });
 
-// ===== List View Search =====
-function lvFuzzySearch(query, target) {
-  if (!query) return true;
-  const q = query.toLowerCase().replace(/\s+/g, '');
-  const t = target.toLowerCase();
-  let matched = 0, ti = 0;
-  for (let qi = 0; qi < q.length; qi++) {
-    while (ti < t.length && t[ti] !== q[qi]) ti++;
-    if (ti < t.length) { matched++; ti++; }
-  }
-  return q.length === 0 || matched / q.length >= 0.7;
-}
+// ===== Range → Practice =====
+document.getElementById('lvRangePractice').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const from = parseInt(document.getElementById('lvRangeFrom').value);
+  const to = parseInt(document.getElementById('lvRangeTo').value);
+  if (isNaN(from) || isNaN(to) || from > to || !lvFlatCards.length) return;
+  const rangeCards = lvFlatCards.slice(from, to + 1);
+  if (!rangeCards.length) return;
 
-function lvApplyFilter() {
-  const phraseQ = document.getElementById('lvSearchPhrase').value.trim();
-  const titleQ = document.getElementById('lvSearchTitle').value.trim();
-  const body = document.getElementById('lvBody');
+  lvStopAll();
 
-  // 各phraseにヒットするカテゴリヘッダーを事前に紐付け
-  const allEls = Array.from(body.children);
-  let currentHdr = null;
-  allEls.forEach(el => {
-    if (el.classList.contains('lv-cat-hdr')) { currentHdr = el; }
-    else if (el.classList.contains('lv-phrase')) { el._hdr = currentHdr; }
-  });
-
-  // phraseを絞り込み
-  allEls.forEach(el => {
-    if (!el.classList.contains('lv-phrase')) return;
-    const section = el.querySelector('.lv-phrase-sec')?.textContent || '';
-    const displayId = el.querySelector('.lv-phrase-id')?.textContent || '';
-    const catName = el._hdr?.querySelector('.lv-cat-hdr-text')?.textContent || '';
-    const phraseMatch = !phraseQ || lvFuzzySearch(phraseQ, section) || lvFuzzySearch(phraseQ, displayId + ' ' + section);
-    const titleMatch = !titleQ || lvFuzzySearch(titleQ, catName);
-    el.classList.toggle('lv-hidden', !phraseMatch || !titleMatch);
-  });
-
-  // カテゴリヘッダーを、配下に表示中のカードがあるときだけ表示
-  allEls.forEach(el => {
-    if (!el.classList.contains('lv-cat-hdr')) return;
-    const catName = el.querySelector('.lv-cat-hdr-text')?.textContent || '';
-    const titleMatch = !titleQ || lvFuzzySearch(titleQ, catName);
-    const hasVisible = allEls.some(p =>
-      p.classList.contains('lv-phrase') && p._hdr === el && !p.classList.contains('lv-hidden')
-    );
-    el.classList.toggle('lv-hidden', !titleMatch || !hasVisible);
-  });
-}
-
-// オートコンプリート候補（lvRenderList実行時に更新）
-var lvPhraseOptions = [];
-var lvTitleOptions = [];
-
-function lvMakeAC(input, drop, clearBtn, getOptions) {
-  function showDrop(opts) {
-    drop.innerHTML = '';
-    opts.forEach(val => {
-      const d = document.createElement('div');
-      d.className = 'lv-ac-opt';
-      d.textContent = val;
-      d.addEventListener('mousedown', e => {
-        e.preventDefault();
-        input.value = val;
-        clearBtn.classList.add('show');
-        drop.classList.remove('open');
-        lvApplyFilter();
-      });
-      drop.appendChild(d);
+  // 会話チャンク（chunkId あり）が含まれる場合は /practice/pattern へ遷移（$startBtn と同様の処理）
+  if (rangeCards.some(c => c.chunkId)) {
+    const isHomework = new URLSearchParams(location.search).get('homework') === '1';
+    const studentParam = new URLSearchParams(location.search).get('student') || '';
+    const chunkOrder = [];
+    const seen = new Set();
+    for (const c of rangeCards) {
+      if (c.chunkId && !seen.has(c.chunkId)) {
+        seen.add(c.chunkId);
+        chunkOrder.push(c.chunkId);
+      }
+    }
+    const chunkFirstIds = chunkOrder.map(chunkId => {
+      const group = rangeCards.filter(c => c.chunkId === chunkId);
+      const sorted = group.sort((a, b) => (parseInt(String(a.id).replace('db-', '')) || 0) - (parseInt(String(b.id).replace('db-', '')) || 0));
+      return String(sorted[0].id).replace('db-', '');
     });
-    drop.classList.toggle('open', opts.length > 0);
+    const embeddedCards = rangeCards.filter(c => !c.chunkId);
+    sessionStorage.setItem('hwChunkQueue', JSON.stringify({
+      ids: chunkFirstIds.slice(1),
+      embeddedCards: embeddedCards.length ? embeddedCards : undefined,
+      student: studentParam,
+      homework: isHomework ? '1' : ''
+    }));
+    const suffix = (isHomework ? '?homework=1' : '?') + (studentParam ? (isHomework ? '&' : '') + 'student=' + encodeURIComponent(studentParam) : '');
+    window.location.href = '/practice/pattern/' + chunkFirstIds[0] + suffix;
+    return;
   }
 
-  function openDrop() {
-    const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
-    const opts = q ? getOptions().filter(o => lvFuzzySearch(q, o)) : getOptions();
-    showDrop(opts);
-  }
-  input.addEventListener('focus', openDrop);
-  input.addEventListener('click', openDrop);
-
-  input.addEventListener('input', () => {
-    clearBtn.classList.toggle('show', input.value.length > 0);
-    lvApplyFilter();
-    const q = input.value.trim().toLowerCase().replace(/\s+/g, '');
-    const opts = q ? getOptions().filter(o => lvFuzzySearch(q, o)) : getOptions();
-    showDrop(opts);
-  });
-
-  input.addEventListener('blur', () => {
-    setTimeout(() => drop.classList.remove('open'), 150);
-  });
-
-  clearBtn.addEventListener('click', () => {
-    input.value = '';
-    clearBtn.classList.remove('show');
-    drop.classList.remove('open');
-    lvApplyFilter();
-  });
-}
-
-(function() {
-  lvMakeAC(
-    document.getElementById('lvSearchPhrase'),
-    document.getElementById('lvPhraseDrop'),
-    document.getElementById('lvSearchPhraseClear'),
-    () => lvPhraseOptions
-  );
-  lvMakeAC(
-    document.getElementById('lvSearchTitle'),
-    document.getElementById('lvTitleDrop'),
-    document.getElementById('lvSearchTitleClear'),
-    () => lvTitleOptions
-  );
-})();
+  // 通常フレーズ: このページ内で練習モードを起動
+  lvFromListView = true;
+  cards = rangeCards;
+  currentIdx = 0;
+  stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
+  responseTimes = [];
+  cardTurnResults = [];
+  document.getElementById('listView').classList.remove('show');
+  $cover.classList.add('hide');
+  $prac.classList.add('show');
+  $complete.classList.remove('show');
+  loadCard();
+});
 
 // ===== Stage helpers =====
 function clearStage() {
