@@ -1095,6 +1095,7 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <button class="lv-sec-play" id="lvRangePlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> 再生</button>
     <button class="lv-sec-repeat" id="lvRangeRepeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>
     <button class="lv-practice-btn" id="lvRangePractice">練習</button>
+    <button class="lv-sec-repeat" id="lvRangeClear">範囲クリア</button>
   </div>
   <div class="lv-body" id="lvBody"></div>
   <button class="lv-top-btn" id="lvTopBtn" aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
@@ -2057,6 +2058,17 @@ function lvApplyRange() {
 ['lvRangeFrom', 'lvRangeTo'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', lvApplyRange);
+});
+
+// 範囲クリア: from=先頭, to=末尾 に戻して再フィルタ
+document.getElementById('lvRangeClear').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const $from = document.getElementById('lvRangeFrom');
+  const $to = document.getElementById('lvRangeTo');
+  if (!$from.options.length || !$to.options.length) return;
+  $from.value = 0;
+  $to.value = $to.options.length - 1;
+  lvApplyRange();
 });
 
 // ===== List View static button listeners (registered once) =====
