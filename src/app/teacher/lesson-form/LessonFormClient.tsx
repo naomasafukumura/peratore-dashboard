@@ -375,18 +375,23 @@ export default function LessonFormClient() {
                   )}
                 </div>
                 <div className="px-4 py-3 space-y-0.5">
-                  {previewPatterns.map((p, i) => (
-                    <div key={i} className="space-y-0.5">
-                      <div className="flex gap-2">
-                        <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">FPP</span>
-                        <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                  {previewPatterns.map((p, i) => {
+                    const isMultiPair = (directStyle === 'multi' || directStyle === 'pairs') && previewPatterns.length > 1;
+                    const triggerLabel = isMultiPair && i > 0 ? 'FQ' : 'FPP';
+                    const responseLabel = isMultiPair && i > 0 ? 'FA' : 'SPP';
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <div className="flex gap-2">
+                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7">{triggerLabel}</span>
+                          <span className="text-sm text-text-dark">{p.fpp_question}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-[10px] font-semibold text-primary shrink-0 w-7">{responseLabel}</span>
+                          <span className="text-sm text-text-dark">{p.spp}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <span className="text-[10px] font-semibold text-primary shrink-0 w-7">SPP</span>
-                        <span className="text-sm text-text-dark">{p.spp}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
