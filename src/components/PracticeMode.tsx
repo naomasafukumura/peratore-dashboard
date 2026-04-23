@@ -343,34 +343,14 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       await playAudio(pattern.id, 'fpp_question');
     }
 
-    if (turn2Mode === 'listen') {
-      // 聞くだけモード: SPP を表示して自動再生し、次パターンへ or fullReplay
-      addBubble({
-        type: 'user',
-        text: pattern.spp,
-        textJp: pattern.spp_jp || undefined,
-      });
-      if (pattern.has_spp_audio) {
-        await playAudio(pattern.id, 'spp');
-      }
-      await new Promise(r => setTimeout(r, 1000));
-      if (index < total - 1) {
-        pendingNextIndexRef.current = index + 1;
-        setIndex(index + 1);
-      } else {
-        goToFullReplayRef.current?.();
-      }
+    // 最初のSPPは設定に関わらず常に録音
+    if (inputMode === 'text') {
+      setPhase('micReady1');
+      setTimeout(() => textInputRef.current?.focus(), 100);
     } else {
-      // Go to micReady
-      if (inputMode === 'text') {
-        setPhase('micReady1');
-        setTimeout(() => textInputRef.current?.focus(), 100);
-      } else {
-        setPhase('micReady1');
-      }
+      setPhase('micReady1');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pattern, addBubble, playAudio, inputMode, turn2Mode, index, total]);
+  }, [pattern, addBubble, playAudio, inputMode]);
 
   // ---- Recording ----
   const clearSpeakTimers = useCallback(() => {
