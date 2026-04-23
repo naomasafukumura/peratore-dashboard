@@ -217,10 +217,15 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   const pattern = patterns[index];
   const total = patterns.length;
-  const displayNum = index + 1;
-  const displayTotal = patterns.length;
+  // 表示は常に 1/1（複数パターンは同一セッション内で連続処理）
+  const displayNum = 1;
+  const displayTotal = 1;
+  // progress バーは内部 index 基準で計算（全体進捗を反映）
   const progress = total > 0 ? ((index + (phase === 'idle' ? 0 : 0.5)) / total) * 100 : 0;
   const hasTurn2 = !!(pattern?.followup_question);
+
+  // 次パターンへの継続遷移用: index 更新後に発火するための ref
+  const pendingNextIndexRef = useRef<number | null>(null);
 
   // UI phase mapping
   const uiPhase: UiPhase | null = (() => {
@@ -634,6 +639,54 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     }
   }, [inputMode]);
 
+  // ===== 次パターン継続フロー（バブル履歴を残したまま Turn 1 を開始）=====
+  // index 更新後に呼ぶため、対象 pattern を引数で受け取る
+  const startNextPatternTurn1 = useCallback(async (nextPattern: Pattern) => {
+    setShowReview(false);
+    setUserAnswer1('');
+    setUserAnswer2('');
+    setAiFeedback(null);
+    // bubbles はクリアしない（チャット履歴を継続表示）
+
+    setPhase('listen1');
+
+    addBubble({ type: 'typing', text: '' });
+    await new Promise(r => setTimeout(r, 600));
+
+    setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+    addBubble({
+      type: 'opponent',
+      text: nextPattern.fpp_question,
+      textJp: nextPattern.situation || undefined,
+      showEq: nextPattern.has_fpp_question_audio,
+      audioType: 'fpp_question',
+      patternId: nextPattern.id,
+    });
+
+    if (nextPattern.has_fpp_question_audio) {
+      await playAudio(nextPattern.id, 'fpp_question');
+    }
+
+    if (inputMode === 'text') {
+      setPhase('micReady1');
+      setTimeout(() => textInputRef.current?.focus(), 100);
+    } else {
+      setPhase('micReady1');
+    }
+  }, [addBubble, playAudio, inputMode]);
+
+  // pendingNextIndexRef が設定されたら startNextPatternTurn1 を発火
+  useEffect(() => {
+    if (pendingNextIndexRef.current === null) return;
+    const nextIdx = pendingNextIndexRef.current;
+    pendingNextIndexRef.current = null;
+    const nextPattern = patterns[nextIdx];
+    if (nextPattern) {
+      startNextPatternTurn1(nextPattern);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
   // ===== Turn 2 Flow =====
   const startTurn2 = useCallback(async () => {
     if (!pattern?.followup_question) return;
@@ -707,14 +760,15 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const handleT2Eval = useCallback((eval_: 'good' | 'couldnt') => {
     setShowReview(false);
     if (index < total - 1) {
-      setIndex(index + 1);
-      setPhase('idle');
-      setBubbles([]);
-      setUserAnswer1('');
-      setUserAnswer2('');
-      setReplayLines([]);
+      // バブル履歴を残したまま次パターンへ継続
+      const nextIdx = index + 1;
+      pendingNextIndexRef.current = nextIdx;
+      setIndex(nextIdx);
+      // index 変更を検知した useEffect が startNextPatternTurn1 を発火する
     } else {
-      goToFullReplay();
+      // goToFullReplay は後方で定義されているため eslint-disable で抑制
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      goToFullReplayRef.current?.();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, total]);
@@ -725,6 +779,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       playAudio(pattern.id, 'spp'); // Play the model answer
     }
   }, [pattern, playAudio]);
+
+  // handleT2Eval より後に定義される goToFullReplay を ref 経由で参照するための型付き ref
+  const goToFullReplayRef = useRef<(() => void) | null>(null);
 
   // ===== Full Replay (全パターン) =====
   const goToFullReplay = useCallback(() => {
@@ -779,6 +836,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patterns]);
 
+  // ref を最新の goToFullReplay で更新
+  goToFullReplayRef.current = goToFullReplay;
+
   // ---- Review OK (Turn 1): proceed to Turn 2 or next pattern / full replay ----
   const handleReviewOk = useCallback(async () => {
     setShowReview(false);
@@ -788,14 +848,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
     } else if (index < total - 1) {
-      // まだパターンが残っている → フルリプレイをスキップして次パターンへ直進
+      // まだパターンが残っている → バブル履歴を残したまま次パターンへ継続
       setStats(prev => ({ ...prev, [scoreLevel]: prev[scoreLevel] + 1 }));
-      setIndex(index + 1);
-      setPhase('idle');
-      setBubbles([]);
-      setUserAnswer1('');
-      setUserAnswer2('');
-      setReplayLines([]);
+      const nextIdx = index + 1;
+      pendingNextIndexRef.current = nextIdx;
+      setIndex(nextIdx);
+      // index 変更を検知した useEffect が startNextPatternTurn1 を発火する
     } else {
       // 最後のパターン: フルリプレイへ
       goToFullReplay();
