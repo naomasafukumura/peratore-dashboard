@@ -379,12 +379,17 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     }
   }, [clearSpeakTimers]);
 
-  const processRecording = useCallback(async (blob: Blob, turn: 1 | 2) => {
+  const processRecording = useCallback(async (blob: Blob, turn: 1 | 2, mimeType: string) => {
     setPhase(turn === 1 ? 'processing1' : 'processing2');
 
     try {
+      let ext = 'webm';
+      if (mimeType.includes('mp4')) ext = 'mp4';
+      else if (mimeType.includes('ogg')) ext = 'ogg';
+      else if (mimeType.includes('wav')) ext = 'wav';
+
       const formData = new FormData();
-      formData.append('file', blob, 'audio.webm');
+      formData.append('file', blob, `audio.${ext}`);
       formData.append('model', 'whisper-1');
       formData.append('language', 'en');
       const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
@@ -398,7 +403,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         setUserAnswer2(text || '(No speech detected)');
         addBubble({ type: 'user', text: text || '(No speech detected)' });
       }
-    } catch {
+    } catch (err) {
+      console.error('[PracticeMode] transcribe failed:', err);
       if (turn === 1) {
         setUserAnswer1('(Recognition error)');
         addBubble({ type: 'user', text: '(Recognition error)' });
@@ -433,7 +439,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         stream.getTracks().forEach(t => t.stop());
         clearSpeakTimers();
         const blobData = new Blob(chunksRef.current, { type: mimeType });
-        processRecording(blobData, turn);
+        processRecording(blobData, turn, mimeType);
       };
 
       recorder.start();
@@ -442,6 +448,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       // Silence detection via Web Audio API
       try {
         const audioContext = new AudioContext();
+        if (audioContext.state === 'suspended') await audioContext.resume();
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
@@ -469,7 +476,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
           silenceTimerRef.current = setTimeout(checkSilence, 50);
         };
         silenceTimerRef.current = setTimeout(checkSilence, 1000); // start after 1s
-      } catch {
+      } catch (err) {
+        console.error('[PracticeMode] AudioContext init failed:', err);
         // Silence detection not available, rely on timer only
       }
 
@@ -488,7 +496,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       speakTimeoutRef.current = setTimeout(() => {
         stopRecording();
       }, speakLimitSec * 1000);
-    } catch {
+    } catch (err) {
+      console.error('[PracticeMode] getUserMedia failed:', err);
       // Mic access denied → fallback to text
       setInputMode('text');
       setPhase(turn === 1 ? 'micReady1' : 'micReady2');
