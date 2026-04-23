@@ -1426,12 +1426,15 @@ function initCover() {
         detailHtml = `<div class="cv-sub-detail">`;
         // 複数ペア（会話チャンク）は全ペアを表示、単一は従来通り
         const pairsToShow = sec.allCards || [card];
-        pairsToShow.forEach(c => {
+        pairsToShow.forEach((c, pi) => {
           const s = c.states && c.states[0];
           if (!s) return;
+          const isMultiPair = pairsToShow.length > 1;
+          const trigLbl = isMultiPair && pi > 0 ? 'FQ' : 'FPP';
+          const respLbl = isMultiPair && pi > 0 ? 'FA' : 'SPP';
           if (c.triggerJa) detailHtml += `<div class="cv-sub-detail-ja">${esc(c.triggerJa)}</div>`;
-          detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FPP</span><span>${esc(c.trigger)}</span></div>`;
-          if (s.conclusion) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">SPP</span><span class="cv-sub-detail-spp">${esc(s.conclusion)}</span></div>`;
+          detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">${trigLbl}</span><span>${esc(c.trigger)}</span></div>`;
+          if (s.conclusion) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">${respLbl}</span><span class="cv-sub-detail-spp">${esc(s.conclusion)}</span></div>`;
           if (s.followup) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FQ</span><span>${esc(s.followup)}</span></div>`;
           if (s.conclusion2Examples && s.conclusion2Examples[0]) detailHtml += `<div class="cv-sub-detail-row"><span class="cv-sub-detail-lbl">FA</span><span>${esc(s.conclusion2Examples[0])}</span></div>`;
         });
@@ -4462,10 +4465,13 @@ function renderReviewList(items) {
         html += '<div class="rv-item-body">';
         if (item.situationJa) html += '<div style="font-size:11px;color:var(--text-muted);font-style:italic;margin-bottom:4px">' + esc(item.situationJa) + '</div>';
         if (item.pairs && item.pairs.length > 1) {
-          // 会話モード: 全ペアを FPP/SPP 交互に表示
-          for (const pair of item.pairs) {
-            html += '<div class="rv-item-row"><span class="rv-item-label">FPP</span><span class="rv-item-val">' + esc(pair.trigger) + '</span></div>';
-            html += '<div class="rv-item-row"><span class="rv-item-label">SPP</span><span class="rv-item-val spp">' + esc(pair.spp) + '</span></div>';
+          // 会話モード: 1ペア目は FPP/SPP、2ペア目以降は FQ/FA
+          for (let pi = 0; pi < item.pairs.length; pi++) {
+            const pair = item.pairs[pi];
+            const trigLbl = pi === 0 ? 'FPP' : 'FQ';
+            const respLbl = pi === 0 ? 'SPP' : 'FA';
+            html += '<div class="rv-item-row"><span class="rv-item-label">' + trigLbl + '</span><span class="rv-item-val">' + esc(pair.trigger) + '</span></div>';
+            html += '<div class="rv-item-row"><span class="rv-item-label">' + respLbl + '</span><span class="rv-item-val spp">' + esc(pair.spp) + '</span></div>';
           }
         } else {
           html += '<div class="rv-item-row"><span class="rv-item-label">FPP</span><span class="rv-item-val">' + esc(item.trigger) + '</span></div>';
