@@ -343,14 +343,34 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       await playAudio(pattern.id, 'fpp_question');
     }
 
-    // Go to micReady
-    if (inputMode === 'text') {
-      setPhase('micReady1');
-      setTimeout(() => textInputRef.current?.focus(), 100);
+    if (turn2Mode === 'listen') {
+      // 聞くだけモード: SPP を表示して自動再生し、次パターンへ or fullReplay
+      addBubble({
+        type: 'user',
+        text: pattern.spp,
+        textJp: pattern.spp_jp || undefined,
+      });
+      if (pattern.has_spp_audio) {
+        await playAudio(pattern.id, 'spp');
+      }
+      await new Promise(r => setTimeout(r, 1000));
+      if (index < total - 1) {
+        pendingNextIndexRef.current = index + 1;
+        setIndex(index + 1);
+      } else {
+        goToFullReplayRef.current?.();
+      }
     } else {
-      setPhase('micReady1');
+      // Go to micReady
+      if (inputMode === 'text') {
+        setPhase('micReady1');
+        setTimeout(() => textInputRef.current?.focus(), 100);
+      } else {
+        setPhase('micReady1');
+      }
     }
-  }, [pattern, addBubble, playAudio, inputMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pattern, addBubble, playAudio, inputMode, turn2Mode, index, total]);
 
   // ---- Recording ----
   const clearSpeakTimers = useCallback(() => {
@@ -667,13 +687,35 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       await playAudio(nextPattern.id, 'fpp_question');
     }
 
-    if (inputMode === 'text') {
-      setPhase('micReady1');
-      setTimeout(() => textInputRef.current?.focus(), 100);
+    if (turn2Mode === 'listen') {
+      // 聞くだけモード: SPP を表示して自動再生し、次パターンへ or fullReplay
+      addBubble({
+        type: 'user',
+        text: nextPattern.spp,
+        textJp: nextPattern.spp_jp || undefined,
+      });
+      if (nextPattern.has_spp_audio) {
+        await playAudio(nextPattern.id, 'spp');
+      }
+      await new Promise(r => setTimeout(r, 1000));
+      // nextPattern の index を特定して次へ進む
+      const nextIdx = patterns.indexOf(nextPattern);
+      if (nextIdx >= 0 && nextIdx < total - 1) {
+        pendingNextIndexRef.current = nextIdx + 1;
+        setIndex(nextIdx + 1);
+      } else {
+        goToFullReplayRef.current?.();
+      }
     } else {
-      setPhase('micReady1');
+      if (inputMode === 'text') {
+        setPhase('micReady1');
+        setTimeout(() => textInputRef.current?.focus(), 100);
+      } else {
+        setPhase('micReady1');
+      }
     }
-  }, [addBubble, playAudio, inputMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addBubble, playAudio, inputMode, turn2Mode, patterns, total]);
 
   // pendingNextIndexRef が設定されたら startNextPatternTurn1 を発火
   useEffect(() => {
