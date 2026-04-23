@@ -175,6 +175,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [micError, setMicError] = useState<string | null>(null);
+
   // Text input
   const [textInput, setTextInput] = useState('');
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -421,11 +423,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   }, [addBubble]);
 
   const startRecording = useCallback(async (turn: 1 | 2) => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError('このブラウザではマイク機能が利用できません。\nChrome等の標準ブラウザで開き直してください（HTTPS接続が必要です）。');
+      setInputMode('text');
+      setPhase(turn === 1 ? 'micReady1' : 'micReady2');
+      setTimeout(() => textInputRef.current?.focus(), 100);
+      return;
+    }
+
     setPhase(turn === 1 ? 'speak1' : 'speak2');
     setSpeakTimer(speakLimitSec);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicError(null);
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
         : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/ogg';
       const recorder = new MediaRecorder(stream, { mimeType });
@@ -498,7 +509,18 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       }, speakLimitSec * 1000);
     } catch (err) {
       console.error('[PracticeMode] getUserMedia failed:', err);
-      // Mic access denied → fallback to text
+      const name = err instanceof DOMException ? err.name : '';
+      let msg: string;
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        msg = 'マイクの使用が許可されていません。\nブラウザのアドレスバー横のアイコンからマイクを許可するか、Chrome等の標準ブラウザで開き直してください。\n※LINE/Instagram/X等のアプリ内ブラウザでは動作しないことがあります。';
+      } else if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        msg = 'マイクが見つかりません。端末にマイクが接続されているか確認してください。';
+      } else if (name === 'NotReadableError') {
+        msg = 'マイクが他のアプリで使用中のようです。他のアプリを閉じてから再試行してください。';
+      } else {
+        msg = 'このブラウザではマイク機能が利用できません。\nChrome等の標準ブラウザで開き直してください（HTTPS接続が必要です）。';
+      }
+      setMicError(msg);
       setInputMode('text');
       setPhase(turn === 1 ? 'micReady1' : 'micReady2');
       setTimeout(() => textInputRef.current?.focus(), 100);
@@ -1145,6 +1167,19 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
               {/* micReady1 / micReady2 */}
               {(phase === 'micReady1' || phase === 'micReady2') && (
                 <div className="action-phase v">
+                  {micError && (
+                    <div style={{ background: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px', lineHeight: '1.6' }}>
+                      {micError.split('\n').map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
+                      <button
+                        style={{ marginTop: '8px', fontSize: '12px', padding: '4px 10px', cursor: 'pointer', background: 'transparent', border: '1px solid #991b1b', borderRadius: '4px', color: '#991b1b' }}
+                        onClick={() => { setInputMode('voice'); setMicError(null); startRecording(phase === 'micReady1' ? 1 : 2); }}
+                      >
+                        再試行
+                      </button>
+                    </div>
+                  )}
                   {inputMode === 'voice' ? (
                     <div className="action-speak">
                       <div className="mic-ready-hint">Tap to answer</div>
