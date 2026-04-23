@@ -3,6 +3,11 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 
+type LessonPair = {
+  trigger: string;
+  spp: string;
+};
+
 type SummaryItem = {
   patternId: number;
   categoryName: string;
@@ -13,6 +18,7 @@ type SummaryItem = {
   followupAnswer: string;
   situationJa: string;
   createdAt: string | null;
+  pairs: LessonPair[] | null;
 };
 
 type Props = {
@@ -167,25 +173,48 @@ export function LessonReviewSection({ summary, categoryLabel }: Props) {
                                   {row.situationJa && (
                                     <p className="text-[11px] text-text-muted italic mb-1">{row.situationJa}</p>
                                   )}
-                                  <div className="flex gap-2">
-                                    <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FPP</span>
-                                    <span className="text-sm text-text-dark">{row.trigger}</span>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">SPP</span>
-                                    <span className="text-sm text-text-dark">{row.spp}</span>
-                                  </div>
-                                  {row.followupQuestion && (
-                                    <div className="flex gap-2">
-                                      <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FQ</span>
-                                      <span className="text-sm text-text-dark">{row.followupQuestion}</span>
-                                    </div>
-                                  )}
-                                  {row.followupAnswer && (
-                                    <div className="flex gap-2">
-                                      <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FA</span>
-                                      <span className="text-sm text-text-dark">{row.followupAnswer}</span>
-                                    </div>
+                                  {row.pairs && row.pairs.length > 1 ? (
+                                    // 複数ペア: 1ペア目=FPP/SPP、2ペア目以降=FQ/FA
+                                    row.pairs.map((pair, pairIndex) => (
+                                      <div key={pairIndex} className="space-y-1.5">
+                                        <div className="flex gap-2">
+                                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">
+                                            {pairIndex === 0 ? 'FPP' : 'FQ'}
+                                          </span>
+                                          <span className="text-sm text-text-dark">{pair.trigger}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">
+                                            {pairIndex === 0 ? 'SPP' : 'FA'}
+                                          </span>
+                                          <span className="text-sm text-text-dark">{pair.spp}</span>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    // 単一ペア: 従来どおり FPP/SPP（+ FQ/FA があれば表示）
+                                    <>
+                                      <div className="flex gap-2">
+                                        <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FPP</span>
+                                        <span className="text-sm text-text-dark">{row.trigger}</span>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">SPP</span>
+                                        <span className="text-sm text-text-dark">{row.spp}</span>
+                                      </div>
+                                      {row.followupQuestion && (
+                                        <div className="flex gap-2">
+                                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FQ</span>
+                                          <span className="text-sm text-text-dark">{row.followupQuestion}</span>
+                                        </div>
+                                      )}
+                                      {row.followupAnswer && (
+                                        <div className="flex gap-2">
+                                          <span className="text-[10px] font-semibold text-text-muted shrink-0 w-7 pt-0.5">FA</span>
+                                          <span className="text-sm text-text-dark">{row.followupAnswer}</span>
+                                        </div>
+                                      )}
+                                    </>
                                   )}
                                   <div className="pt-1">
                                     <Link

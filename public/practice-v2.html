@@ -1849,14 +1849,19 @@ function openListView() {
         el.setAttribute('data-lv-card-id', firstCard.id);
         el.setAttribute('data-lv-idx', allCards.length - 1);
         let pairsHtml = '';
-        for (const card of sorted) {
+        for (let pairIndex = 0; pairIndex < sorted.length; pairIndex++) {
+          const card = sorted[pairIndex];
           const st = card.states[0];
+          const triggerLabel = pairIndex === 0 ? 'FPP' : 'FQ';
+          const responseLabel = pairIndex === 0 ? 'SPP' : 'FA';
           pairsHtml += `
+            <div class="lv-turn-label">${triggerLabel}</div>
             <div class="lv-bub">
               <div class="lv-av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
               <div class="lv-bubble">${escapeHtml(card.trigger)}</div>
               ${card.triggerAudio ? `<button class="lv-play" data-audio="${escapeHtml(card.triggerAudio)}" data-text="${escapeHtml(card.trigger)}">${playSvg}</button>` : ''}
             </div>
+            <div class="lv-turn-label">${responseLabel}</div>
             <div class="lv-bub right">
               <div class="lv-bubble">${escapeHtml(st.conclusion)}</div>
               ${st.conclusionAudio ? `<button class="lv-play" data-audio="${escapeHtml(st.conclusionAudio)}" data-text="${escapeHtml(st.conclusion)}">${playSvg}</button>` : ''}

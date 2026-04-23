@@ -312,11 +312,14 @@ function gotoPractice() {
     allCards.forEach((card, idx) => {
       const s = card.states && card.states[0];
       if (!s) return;
+      const isFirstPair = idx === 0;
+      const triggerLabel = isFirstPair ? 'FPP' : 'FQ';
+      const responseLabel = isFirstPair ? 'SPP' : 'FA';
       detailHtml += '<div class="hw-detail-pair">';
       if (allCards.length > 1) detailHtml += '<div class="hw-detail-lbl" style="font-size:9px;color:var(--text-faint);margin-bottom:2px">Pair ' + (idx + 1) + '</div>';
       if (card.triggerJa) detailHtml += '<div class="hw-detail-ja">' + escHtml(card.triggerJa) + '</div>';
-      detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FPP</span><span>' + escHtml(card.trigger || '') + '</span></div>';
-      if (s.conclusion) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">SPP</span><span class="hw-detail-spp">' + escHtml(s.conclusion) + '</span></div>';
+      detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">' + triggerLabel + '</span><span>' + escHtml(card.trigger || '') + '</span></div>';
+      if (s.conclusion) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">' + responseLabel + '</span><span class="hw-detail-spp">' + escHtml(s.conclusion) + '</span></div>';
       if (s.followup) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FQ</span><span>' + escHtml(s.followup) + '</span></div>';
       if (s.conclusion2Examples && s.conclusion2Examples[0]) detailHtml += '<div class="hw-detail-row"><span class="hw-detail-lbl">FA</span><span>' + escHtml(s.conclusion2Examples[0]) + '</span></div>';
       detailHtml += '</div>';
