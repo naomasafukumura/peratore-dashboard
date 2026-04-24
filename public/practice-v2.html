@@ -2388,6 +2388,7 @@ function startListenFlow() {
   showActionPhase(null);
   hidePostReplayBar();
   stopAudio();
+  console.log('[startListenFlow] cards.length=' + cards.length, cards.map(c => c.id || c.trigger));
   playListenCard(0);
 }
 
@@ -2402,7 +2403,11 @@ function buildListenLines(card) {
     }
     return lines;
   }
-  const st = card.states[0];
+  const st = card.states && card.states[0];
+  if (!st) {
+    console.error('[buildListenLines] card.states[0] が undefined', card);
+    return [{ audio: null, text: card.trigger || '(データなし)', speaker: 'opponent' }];
+  }
   const lines = [
     { audio: card.triggerAudio || null, text: card.trigger, speaker: 'opponent' },
     { audio: st.conclusionAudio || null, text: st.conclusion, speaker: 'user' },
@@ -2413,7 +2418,17 @@ function buildListenLines(card) {
 }
 
 function playListenCard(idx) {
+  // 例文切り替え時にバブルをクリア（idx > 0 のとき前例文のバブルを消去）
+  if (idx > 0) {
+    $chatThread.innerHTML = '';
+    $chatThread.style.paddingBottom = '';
+  }
   const c = cards[idx];
+  if (!c) {
+    console.error('[playListenCard] cards[' + idx + '] が undefined。cards.length=' + cards.length);
+    setTimeout(() => showListenEndBar(), 600);
+    return;
+  }
   const lines = buildListenLines(c);
   showActionPhase(null);
 

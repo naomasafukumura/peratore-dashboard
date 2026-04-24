@@ -153,6 +153,16 @@ function showReactionPopup(text: string) {
   setTimeout(() => el.remove(), 1800);
 }
 
+// ---- 聞くだけモード: patterns を例文グループに分割 ----
+// 代替案A: 1つでも followup_question != null なら各 pattern = 独立した1例文
+//          全て null なら全 patterns を1例文（生成例文の複数ペアを連続再生）
+function buildExampleGroups(ps: Pattern[]): Pattern[][] {
+  if (ps.length === 0) return [];
+  const hasFollowup = ps.some(p => p.followup_question != null);
+  if (hasFollowup) return ps.map(p => [p]);
+  return [ps];
+}
+
 // ===== Main Component =====
 export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework }: Props) {
   const [index, setIndex] = useState(0);
@@ -264,7 +274,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       const last = el.lastElementChild;
       if (last) last.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
     }));
-  }, [bubbles, phase, replayPlayingIdx, showPostReplayBar]);
+  }, [bubbles, phase, replayPlayingIdx, replayLines, showPostReplayBar]);
 
   // ---- Audio helpers ----
   const stopAudio = useCallback(() => {
@@ -816,56 +826,91 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // handleT2Eval より後に定義される goToFullReplay を ref 経由で参照するための型付き ref
   const goToFullReplayRef = useRef<(() => void) | null>(null);
   // ===== Listen Mode Flow =====
-  const startListenReplayRef = useRef<((idx: number) => void) | null>(null);
+  const startListenReplayRef = useRef<((exampleIdx: number) => void) | null>(null);
 
-  const startListenReplay = useCallback(async (idx: number) => {
-    const p = patterns[idx];
-    if (!p) return;
+  const startListenReplay = useCallback(async (exampleIdx: number) => {
+    const examples = buildExampleGroups(patterns);
+    const group = examples[exampleIdx];
+    if (!group || group.length === 0) return;
+
     setPhase('fullReplay');
     setReplayBubbleHints({});
 
+    // progress バー用に先頭 pattern の index を反映
+    const firstPatternIdx = patterns.indexOf(group[0]);
+    if (firstPatternIdx >= 0) setIndex(firstPatternIdx);
+
+    // lines 構築
     const lines: ReplayLine[] = [];
+    const first = group[0];
     lines.push({
       speaker: 'opponent',
-      text: p.fpp_question,
-      ja: p.situation || '',
+      text: first.fpp_question,
+      ja: first.situation || '',
       audioType: 'fpp_question',
-      patternId: p.id,
-      hasAudio: p.has_fpp_question_audio,
+      patternId: first.id,
+      hasAudio: first.has_fpp_question_audio,
     });
     lines.push({
       speaker: 'user',
-      text: p.spp,
-      ja: p.spp_jp || '',
+      text: first.spp,
+      ja: first.spp_jp || '',
       audioType: 'spp',
-      patternId: p.id,
-      hasAudio: p.has_spp_audio,
+      patternId: first.id,
+      hasAudio: first.has_spp_audio,
     });
-    if (p.followup_question) {
-      lines.push({
-        speaker: 'opponent',
-        text: p.followup_question,
-        ja: '',
-        audioType: 'followup_question',
-        patternId: p.id,
-        hasAudio: p.has_followup_audio,
-      });
-    }
-    if (p.followup_answer) {
-      lines.push({
-        speaker: 'user',
-        text: p.followup_answer,
-        ja: p.followup_answer_jp || '',
-        audioType: 'natural',
-        patternId: p.id,
-        hasAudio: p.has_natural_audio,
-      });
+
+    if (group.length === 1) {
+      // 単独例文: followup_question / followup_answer を FQ/FA として追加
+      if (first.followup_question) {
+        lines.push({
+          speaker: 'opponent',
+          text: first.followup_question,
+          ja: '',
+          audioType: 'followup_question',
+          patternId: first.id,
+          hasAudio: first.has_followup_audio,
+        });
+      }
+      if (first.followup_answer) {
+        lines.push({
+          speaker: 'user',
+          text: first.followup_answer,
+          ja: first.followup_answer_jp || '',
+          audioType: 'natural',
+          patternId: first.id,
+          hasAudio: first.has_natural_audio,
+        });
+      }
+    } else {
+      // 複数ペア例文: 2つ目以降の pattern を FQ/FA として連続追加（休止なし）
+      for (let gi = 1; gi < group.length; gi++) {
+        const extra = group[gi];
+        lines.push({
+          speaker: 'opponent',
+          text: extra.fpp_question,
+          ja: '',
+          audioType: 'fpp_question',
+          patternId: extra.id,
+          hasAudio: extra.has_fpp_question_audio,
+        });
+        lines.push({
+          speaker: 'user',
+          text: extra.spp,
+          ja: extra.spp_jp || '',
+          audioType: 'spp',
+          patternId: extra.id,
+          hasAudio: extra.has_spp_audio,
+        });
+      }
     }
 
-    setReplayLines(lines);
+    // バブルをクリアしてから新しい lines をセット
+    setReplayLines([]);
     setReplayPlayingIdx(-1);
 
     for (let i = 0; i < lines.length; i++) {
+      setReplayLines(lines.slice(0, i + 1));
       setReplayPlayingIdx(i);
       if (lines[i].hasAudio) {
         await playAudio(lines[i].patternId, lines[i].audioType);
@@ -875,14 +920,16 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     }
     setReplayPlayingIdx(-1);
 
-    if (idx < total - 1) {
+    if (exampleIdx < examples.length - 1) {
+      // 次の例文へ: バブルクリア + 1秒休止
+      setReplayLines([]);
       await new Promise(r => setTimeout(r, 1000));
-      setIndex(idx + 1);
-      startListenReplayRef.current?.(idx + 1);
+      startListenReplayRef.current?.(exampleIdx + 1);
     } else {
       setShowListenEndBar(true);
     }
-  }, [patterns, total, playAudio]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patterns, playAudio]);
 
   startListenReplayRef.current = startListenReplay;
 
@@ -1243,9 +1290,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                 })}
               </div>
             ) : (
-              /* Full replay view: 音声に合わせて1行ずつ表示 */
+              /* Full replay view: 音声に合わせて1行ずつ表示（replayLines を逐次更新） */
               <div className="chat-thread" ref={chatThreadRef}>
-                {replayLines.slice(0, (showPostReplayBar || showListenEndBar) ? replayLines.length : replayPlayingIdx + 1).map((line, li) => {
+                {replayLines.map((line, li) => {
                   if (line.speaker === 'opponent') {
                     return (
                       <div key={li}>
