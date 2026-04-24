@@ -35,6 +35,7 @@ interface Props {
 
 type Phase =
   | 'idle'
+  | 'chapter'
   | 'listen1'
   | 'micReady1'
   | 'speak1'
@@ -203,6 +204,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const [replayBubbleHints, setReplayBubbleHints] = useState<Record<number, boolean>>({});
   const [showPostReplayBar, setShowPostReplayBar] = useState(false);
 
+  // Listen mode
+  const [showListenEndBar, setShowListenEndBar] = useState(false);
+  const chapterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Stats
   const [stats, setStats] = useState<Stats>({ perfect: 0, great: 0, good: 0, almost: 0, retry: 0 });
   const statsRef = useRef(stats);
@@ -313,6 +318,13 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setAiFeedback(null);
     setShowReview(false);
     setShowPostReplayBar(false);
+    setShowListenEndBar(false);
+
+    if (turn2Mode === 'listen') {
+      setIndex(0);
+      startListenChapterRef.current?.(0);
+      return;
+    }
 
     setPhase('listen1');
 
@@ -350,7 +362,8 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     } else {
       setPhase('micReady1');
     }
-  }, [pattern, addBubble, playAudio, inputMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pattern, addBubble, playAudio, inputMode, turn2Mode]);
 
   // ---- Recording ----
   const clearSpeakTimers = useCallback(() => {
@@ -804,6 +817,114 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // handleT2Eval より後に定義される goToFullReplay を ref 経由で参照するための型付き ref
   const goToFullReplayRef = useRef<(() => void) | null>(null);
+  // listen モード用: startListenChapter を前方参照するための ref
+  const startListenChapterRef = useRef<((idx: number) => void) | null>(null);
+
+  // ===== Listen Mode Flow =====
+  const startListenChapter = useCallback((idx: number) => {
+    if (chapterTimerRef.current) {
+      clearTimeout(chapterTimerRef.current);
+      chapterTimerRef.current = null;
+    }
+    setIndex(idx);
+    setPhase('chapter');
+    chapterTimerRef.current = setTimeout(() => {
+      chapterTimerRef.current = null;
+      startListenReplayRef.current?.(idx);
+    }, 2500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startListenReplayRef = useRef<((idx: number) => void) | null>(null);
+
+  const startListenReplay = useCallback(async (idx: number) => {
+    const p = patterns[idx];
+    if (!p) return;
+    setPhase('fullReplay');
+    setReplayBubbleHints({});
+
+    const lines: ReplayLine[] = [];
+    lines.push({
+      speaker: 'opponent',
+      text: p.fpp_question,
+      ja: p.situation || '',
+      audioType: 'fpp_question',
+      patternId: p.id,
+      hasAudio: p.has_fpp_question_audio,
+    });
+    lines.push({
+      speaker: 'user',
+      text: p.spp,
+      ja: p.spp_jp || '',
+      audioType: 'spp',
+      patternId: p.id,
+      hasAudio: p.has_spp_audio,
+    });
+    if (p.followup_question) {
+      lines.push({
+        speaker: 'opponent',
+        text: p.followup_question,
+        ja: '',
+        audioType: 'followup_question',
+        patternId: p.id,
+        hasAudio: p.has_followup_audio,
+      });
+    }
+    if (p.followup_answer) {
+      lines.push({
+        speaker: 'user',
+        text: p.followup_answer,
+        ja: p.followup_answer_jp || '',
+        audioType: 'natural',
+        patternId: p.id,
+        hasAudio: p.has_natural_audio,
+      });
+    }
+
+    setReplayLines(lines);
+    setReplayPlayingIdx(-1);
+
+    for (let i = 0; i < lines.length; i++) {
+      setReplayPlayingIdx(i);
+      if (lines[i].hasAudio) {
+        await playAudio(lines[i].patternId, lines[i].audioType);
+      } else {
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+    setReplayPlayingIdx(-1);
+
+    if (idx < total - 1) {
+      startListenChapterRef.current?.(idx + 1);
+    } else {
+      setShowListenEndBar(true);
+    }
+  }, [patterns, total, playAudio]);
+
+  startListenReplayRef.current = startListenReplay;
+  startListenChapterRef.current = startListenChapter;
+
+  const skipChapter = useCallback(() => {
+    if (chapterTimerRef.current) {
+      clearTimeout(chapterTimerRef.current);
+      chapterTimerRef.current = null;
+    }
+    const currentIdx = index;
+    startListenReplayRef.current?.(currentIdx);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  const handleListenAgain = useCallback(() => {
+    setShowListenEndBar(false);
+    setBubbles([]);
+    setReplayLines([]);
+    startListenChapterRef.current?.(0);
+  }, []);
+
+  const handleListenEnd = useCallback(() => {
+    setShowListenEndBar(false);
+    setPhase('complete');
+  }, []);
 
   // ===== Full Replay (全パターン) =====
   const goToFullReplay = useCallback(() => {
@@ -1100,7 +1221,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         <div className="prac-body">
           <div className="prac-right" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             {/* Chat thread */}
-            {phase !== 'fullReplay' ? (
+            {phase !== 'fullReplay' && phase !== 'chapter' ? (
               <div className="chat-thread" ref={chatThreadRef}>
                 {bubbles.map((b) => {
                   if (b.type === 'typing') {
@@ -1148,10 +1269,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                   return null;
                 })}
               </div>
+            ) : phase === 'chapter' ? (
+              /* Chapter screen for listen mode */
+              <div
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', userSelect: 'none' }}
+                onClick={skipChapter}
+              >
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>📖</div>
+                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main)' }}>例文 {index + 1} / {total}</div>
+                <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>タップでスキップ</div>
+              </div>
             ) : (
               /* Full replay view: 音声に合わせて1行ずつ表示 */
               <div className="chat-thread" ref={chatThreadRef}>
-                {replayLines.slice(0, showPostReplayBar ? replayLines.length : replayPlayingIdx + 1).map((line, li) => {
+                {replayLines.slice(0, (showPostReplayBar || showListenEndBar) ? replayLines.length : replayPlayingIdx + 1).map((line, li) => {
                   if (line.speaker === 'opponent') {
                     return (
                       <div key={li}>
@@ -1326,8 +1457,13 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                 </div>
               )}
 
+              {/* chapter: listen mode chapter screen (no action buttons) */}
+              {phase === 'chapter' && (
+                <div className="action-phase v" />
+              )}
+
               {/* fullReplay: no action buttons, post-replay bar at bottom */}
-              {phase === 'fullReplay' && !showPostReplayBar && (
+              {phase === 'fullReplay' && !showPostReplayBar && !showListenEndBar && (
                 <div className="action-phase v">
                   <div className="action-speak">
                     <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Replaying conversation...</div>
@@ -1431,6 +1567,14 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
           <button className="post-replay-btn replay" onClick={handleReplayAgain}>再度再生</button>
           <button className="post-replay-btn retry" onClick={handleReplayRetry}>もう一回</button>
           <button className="post-replay-btn next" onClick={handleReplayNext}>次へ</button>
+        </div>
+      )}
+
+      {/* ===== Listen mode end bar ===== */}
+      {showListenEndBar && (
+        <div className="post-replay-bar show">
+          <button className="post-replay-btn retry" onClick={handleListenAgain}>&#128257; もう一回</button>
+          <button className="post-replay-btn next" onClick={handleListenEnd}>&#10003; 終わり</button>
         </div>
       )}
 
