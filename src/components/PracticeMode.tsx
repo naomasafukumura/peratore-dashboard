@@ -35,7 +35,6 @@ interface Props {
 
 type Phase =
   | 'idle'
-  | 'chapter'
   | 'listen1'
   | 'micReady1'
   | 'speak1'
@@ -206,7 +205,6 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // Listen mode
   const [showListenEndBar, setShowListenEndBar] = useState(false);
-  const chapterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stats
   const [stats, setStats] = useState<Stats>({ perfect: 0, great: 0, good: 0, almost: 0, retry: 0 });
@@ -322,7 +320,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     if (turn2Mode === 'listen') {
       setIndex(0);
-      startListenChapterRef.current?.(0);
+      startListenReplayRef.current?.(0);
       return;
     }
 
@@ -817,24 +815,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // handleT2Eval より後に定義される goToFullReplay を ref 経由で参照するための型付き ref
   const goToFullReplayRef = useRef<(() => void) | null>(null);
-  // listen モード用: startListenChapter を前方参照するための ref
-  const startListenChapterRef = useRef<((idx: number) => void) | null>(null);
-
   // ===== Listen Mode Flow =====
-  const startListenChapter = useCallback((idx: number) => {
-    if (chapterTimerRef.current) {
-      clearTimeout(chapterTimerRef.current);
-      chapterTimerRef.current = null;
-    }
-    setIndex(idx);
-    setPhase('chapter');
-    chapterTimerRef.current = setTimeout(() => {
-      chapterTimerRef.current = null;
-      startListenReplayRef.current?.(idx);
-    }, 2500);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const startListenReplayRef = useRef<((idx: number) => void) | null>(null);
 
   const startListenReplay = useCallback(async (idx: number) => {
@@ -895,30 +876,22 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setReplayPlayingIdx(-1);
 
     if (idx < total - 1) {
-      startListenChapterRef.current?.(idx + 1);
+      await new Promise(r => setTimeout(r, 1000));
+      setIndex(idx + 1);
+      startListenReplayRef.current?.(idx + 1);
     } else {
       setShowListenEndBar(true);
     }
   }, [patterns, total, playAudio]);
 
   startListenReplayRef.current = startListenReplay;
-  startListenChapterRef.current = startListenChapter;
-
-  const skipChapter = useCallback(() => {
-    if (chapterTimerRef.current) {
-      clearTimeout(chapterTimerRef.current);
-      chapterTimerRef.current = null;
-    }
-    const currentIdx = index;
-    startListenReplayRef.current?.(currentIdx);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
 
   const handleListenAgain = useCallback(() => {
     setShowListenEndBar(false);
     setBubbles([]);
     setReplayLines([]);
-    startListenChapterRef.current?.(0);
+    setIndex(0);
+    startListenReplayRef.current?.(0);
   }, []);
 
   const handleListenEnd = useCallback(() => {
@@ -1221,7 +1194,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         <div className="prac-body">
           <div className="prac-right" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             {/* Chat thread */}
-            {phase !== 'fullReplay' && phase !== 'chapter' ? (
+            {phase !== 'fullReplay' ? (
               <div className="chat-thread" ref={chatThreadRef}>
                 {bubbles.map((b) => {
                   if (b.type === 'typing') {
@@ -1268,16 +1241,6 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                   }
                   return null;
                 })}
-              </div>
-            ) : phase === 'chapter' ? (
-              /* Chapter screen for listen mode */
-              <div
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', userSelect: 'none' }}
-                onClick={skipChapter}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '12px' }}>📖</div>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main)' }}>例文 {index + 1} / {total}</div>
-                <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>タップでスキップ</div>
               </div>
             ) : (
               /* Full replay view: 音声に合わせて1行ずつ表示 */
@@ -1455,11 +1418,6 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                     <div className="speak-status">Listening...</div>
                   </div>
                 </div>
-              )}
-
-              {/* chapter: listen mode chapter screen (no action buttons) */}
-              {phase === 'chapter' && (
-                <div className="action-phase v" />
               )}
 
               {/* fullReplay: no action buttons, post-replay bar at bottom */}

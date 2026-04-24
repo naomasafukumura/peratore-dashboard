@@ -2383,10 +2383,101 @@ function loadCard() {
   showActionPhase('actionStart');
 }
 
+// ===== Listen Flow (聞くだけモード) =====
+function startListenFlow() {
+  showActionPhase(null);
+  hidePostReplayBar();
+  stopAudio();
+  playListenCard(0);
+}
+
+function buildListenLines(card) {
+  // speaker を明示的に付与したライン配列を返す
+  if (card._lessonReviewPairs && card._lessonReviewPairs.length) {
+    const lines = [];
+    for (const c of card._lessonReviewPairs) {
+      lines.push({ audio: c.triggerAudio || null, text: c.trigger, speaker: 'opponent' });
+      const cst = c.states && c.states[0];
+      if (cst) lines.push({ audio: cst.conclusionAudio || null, text: cst.conclusion, speaker: 'user' });
+    }
+    return lines;
+  }
+  const st = card.states[0];
+  const lines = [
+    { audio: card.triggerAudio || null, text: card.trigger, speaker: 'opponent' },
+    { audio: st.conclusionAudio || null, text: st.conclusion, speaker: 'user' },
+  ];
+  if (st.followup) lines.push({ audio: st.followupAudio || null, text: st.followup, speaker: 'opponent' });
+  if (st.conclusion2Examples && st.conclusion2Examples[0]) lines.push({ audio: st.naturalAudio || null, text: st.conclusion2Examples[0], speaker: 'user' });
+  return lines;
+}
+
+function playListenCard(idx) {
+  const c = cards[idx];
+  const lines = buildListenLines(c);
+  showActionPhase(null);
+
+  let li = 0;
+  function playNextLine() {
+    if (li >= lines.length) {
+      if (idx < cards.length - 1) {
+        setTimeout(() => playListenCard(idx + 1), 1000);
+      } else {
+        setTimeout(() => showListenEndBar(), 600);
+      }
+      return;
+    }
+    const line = lines[li];
+    if (line.speaker === 'opponent') addOpponentBubble(line.text, false);
+    else addUserBubble(line.text);
+    scrollToBottom();
+    li++;
+    if (line.audio) {
+      stopAudio();
+      currentAudio = new Audio(line.audio);
+      currentAudio.onended = () => setTimeout(playNextLine, 600);
+      currentAudio.onerror = () => setTimeout(playNextLine, 600);
+      currentAudio.play().catch(() => setTimeout(playNextLine, 600));
+    } else {
+      setTimeout(playNextLine, 1200);
+    }
+  }
+  playNextLine();
+}
+
+function showListenEndBar() {
+  let bar = document.getElementById('listenEndBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'listenEndBar';
+    bar.className = 'post-replay-bar';
+    bar.innerHTML = '<button class="post-replay-btn replay" id="listenEndAgainBtn">🔁 もう一回</button><button class="post-replay-btn next" id="listenEndDoneBtn">✅ 終わり</button>';
+    document.getElementById('postReplayBar').parentNode.appendChild(bar);
+    document.getElementById('listenEndAgainBtn').addEventListener('click', () => {
+      bar.classList.remove('show');
+      $chatThread.style.paddingBottom = '';
+      $chatThread.innerHTML = '';
+      playListenCard(0);
+    });
+    document.getElementById('listenEndDoneBtn').addEventListener('click', () => {
+      bar.classList.remove('show');
+      $chatThread.style.paddingBottom = '';
+      showComplete();
+    });
+  }
+  bar.classList.add('show');
+  $chatThread.style.paddingBottom = '100px';
+  scrollToBottom();
+}
+
 // ===== Phase: Tap to Start → Listen =====
 document.getElementById('tapStartBtn').addEventListener('click', startListenPhase);
 
 function startListenPhase() {
+  if (turn2Mode === 'listen') {
+    startListenFlow();
+    return;
+  }
   const c = cards[currentIdx];
   updatePhaseIndicator('listen1');
   removeTypingIndicator();
