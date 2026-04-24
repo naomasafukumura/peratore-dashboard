@@ -268,16 +268,19 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   useEffect(() => { localStorage.setItem('pp-speakLimit', String(speakLimitSec)); }, [speakLimitSec]);
   useEffect(() => { localStorage.setItem('pp-turn2Mode', turn2Mode); }, [turn2Mode]);
 
-  // ---- 宿題フロー × 聞くだけモード: START ボタン待たず自動再生 ----
+  // ---- 宿題チャンク継続 × 聞くだけモード: hwresume=1 のとき START 待たず自動再生 ----
+  // 最初のチャンクは必ず START ボタンを表示（ユーザーが設定を変更できるように）
   useEffect(() => {
     if (!autoStartChecked) return;
     if (phase !== 'idle') return;
     if (turn2Mode !== 'listen') return;
-    if (!isHomework) return;
     if (!pattern) return;
+    const isResume = typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('hwresume') === '1';
+    if (!isResume) return;
     handleStart();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartChecked, isHomework, turn2Mode, pattern]);
+  }, [autoStartChecked, turn2Mode, pattern]);
 
   // ---- Auto-scroll chat ----
   useEffect(() => {
@@ -1148,10 +1151,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       sessionStorage.setItem('hwChunkQueue', JSON.stringify(queue));
       const isHw = isHomework || queue.homework === '1';
       const sp = queue.student || '';
-      const parts: string[] = [];
+      const parts: string[] = ['hwresume=1'];
       if (isHw) parts.push('homework=1');
       if (sp) parts.push('student=' + encodeURIComponent(sp));
-      const suffix = parts.length ? '?' + parts.join('&') : '';
+      const suffix = '?' + parts.join('&');
       window.location.href = `/practice/pattern/${nextId}${suffix}`;
     } else if (hasEmbedded) {
       // 埋め込みカード練習へ（stats累積を保持したまま遷移）
