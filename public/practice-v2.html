@@ -2429,6 +2429,18 @@ function playListenCard(idx) {
     setTimeout(() => showListenEndBar(), 600);
     return;
   }
+  // タイトル・situation・progress を更新
+  const s0 = c.states && c.states[0];
+  if (s0) {
+    const titleEl = document.getElementById('pracTitle');
+    if (titleEl) titleEl.textContent = s0.label || '';
+    const mobileChunkEl = document.getElementById('mobileSituationChunk');
+    if (mobileChunkEl) mobileChunkEl.textContent = s0.label || '';
+    const mobileSitEl = document.getElementById('mobileSituationText');
+    if (mobileSitEl) mobileSitEl.textContent = s0.situation || '';
+  }
+  currentIdx = idx;
+  updateProgress();
   const lines = buildListenLines(c);
   showActionPhase(null);
 

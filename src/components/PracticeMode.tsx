@@ -833,12 +833,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     const group = examples[exampleIdx];
     if (!group || group.length === 0) return;
 
-    setPhase('fullReplay');
-    setReplayBubbleHints({});
-
-    // progress バー用に先頭 pattern の index を反映
+    // progress バー用に先頭 pattern の index を先に反映（setPhase より前）
     const firstPatternIdx = patterns.indexOf(group[0]);
     if (firstPatternIdx >= 0) setIndex(firstPatternIdx);
+
+    setPhase('fullReplay');
+    setReplayBubbleHints({});
 
     // lines 構築
     const lines: ReplayLine[] = [];
@@ -926,7 +926,22 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       await new Promise(r => setTimeout(r, 1000));
       startListenReplayRef.current?.(exampleIdx + 1);
     } else {
-      setShowListenEndBar(true);
+      // チャンク完了。宿題キューに残りがあれば 2択バーを出さず次チャンクへ自動遷移
+      const queueRaw = typeof window !== 'undefined' ? sessionStorage.getItem('hwChunkQueue') : null;
+      let hasMore = false;
+      if (queueRaw) {
+        try {
+          const q = JSON.parse(queueRaw);
+          if ((q.ids && q.ids.length > 0) || (q.embeddedCards && q.embeddedCards.length > 0)) {
+            hasMore = true;
+          }
+        } catch { /* ignore */ }
+      }
+      if (hasMore) {
+        setPhase('complete'); // L1098 の useEffect が次チャンクへリダイレクト
+      } else {
+        setShowListenEndBar(true);
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patterns, playAudio]);
