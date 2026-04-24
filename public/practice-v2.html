@@ -4416,6 +4416,10 @@ loadDataFromAPI().then(() => {
           $prac.classList.add('show');
           $complete.classList.remove('show');
           loadCard();
+          // listen モードなら START ボタン押下を待たず自動で再生開始
+          if (turn2Mode === 'listen') {
+            setTimeout(() => startListenFlow(), 50);
+          }
           return;
         } else {
           sessionStorage.removeItem('hwChunkQueue');

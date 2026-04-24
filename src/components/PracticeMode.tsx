@@ -253,6 +253,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   })();
 
   // ---- localStorage ----
+  const [autoStartChecked, setAutoStartChecked] = useState(false);
   useEffect(() => {
     const im = localStorage.getItem('pp-inputMode');
     if (im === 'voice' || im === 'text') setInputMode(im);
@@ -260,11 +261,23 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     if (sl) { const n = parseInt(sl); if (n >= 5 && n <= 20) setSpeakLimitSec(n); }
     const t2 = localStorage.getItem('pp-turn2Mode');
     if (t2 === 'listen' || t2 === 'speak') setTurn2Mode(t2);
+    setAutoStartChecked(true);
   }, []);
 
   useEffect(() => { localStorage.setItem('pp-inputMode', inputMode); }, [inputMode]);
   useEffect(() => { localStorage.setItem('pp-speakLimit', String(speakLimitSec)); }, [speakLimitSec]);
   useEffect(() => { localStorage.setItem('pp-turn2Mode', turn2Mode); }, [turn2Mode]);
+
+  // ---- 宿題フロー × 聞くだけモード: START ボタン待たず自動再生 ----
+  useEffect(() => {
+    if (!autoStartChecked) return;
+    if (phase !== 'idle') return;
+    if (turn2Mode !== 'listen') return;
+    if (!isHomework) return;
+    if (!pattern) return;
+    handleStart();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartChecked, isHomework, turn2Mode, pattern]);
 
   // ---- Auto-scroll chat ----
   useEffect(() => {
