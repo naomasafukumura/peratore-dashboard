@@ -674,12 +674,28 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <div class="cv-mark">PP</div>
     <div class="cv-brand">Pattern Practice</div>
     <div class="cv-top-spacer"></div>
+    <button class="cv-list-btn" id="editModeBtn" aria-label="Edit mode" style="background:var(--accent-soft);border-color:var(--accent);color:var(--accent);display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+    </button>
     <button class="cv-list-btn rv-search-btn" id="rvSearchBtn" aria-label="復習集検索" title="復習集検索">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
-    <button class="cv-list-btn" id="editModeBtn" aria-label="Edit mode" style="background:var(--accent-soft);border-color:var(--accent);color:var(--accent)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-    </button>
+    <script>
+      // 受講生URL（?student=...）ではペンを DOM から削除、
+      // 講師の通常アクセスではペンを表示
+      (function(){
+        try {
+          var sp = new URLSearchParams(window.location.search).get('student');
+          var b = document.getElementById('editModeBtn');
+          if (!b) return;
+          if (sp) {
+            b.remove();
+          } else {
+            b.style.display = '';
+          }
+        } catch(e) {}
+      })();
+    </script>
     <a id="hwLink" href="homework.html" class="cv-list-btn" aria-label="宿題ページ" style="text-decoration:none" title="宿題">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     </a>
@@ -3909,12 +3925,17 @@ let editSelectedCatId = null;
 let editSelectedStudentName = null;
 let editAssignedChunkIds = new Set();
 
-// Toggle edit mode
-document.getElementById('editModeBtn').addEventListener('click', () => {
-  document.getElementById('cover').classList.add('hide');
-  document.getElementById('editPanel').classList.add('show');
-  loadEditData();
-});
+// Toggle edit mode（受講生URLではペンが DOM から除去されているため null チェック）
+{
+  const _editBtn = document.getElementById('editModeBtn');
+  if (_editBtn) {
+    _editBtn.addEventListener('click', () => {
+      document.getElementById('cover').classList.add('hide');
+      document.getElementById('editPanel').classList.add('show');
+      loadEditData();
+    });
+  }
+}
 
 document.getElementById('editBackBtn').addEventListener('click', () => {
   document.getElementById('editPanel').classList.remove('show');
@@ -4376,8 +4397,6 @@ loadDataFromAPI().then(() => {
   if (studentName) {
     const desc = document.querySelector('.cv-desc');
     if (desc) desc.textContent = studentName + ' さんの練習セット';
-    const editBtn = document.getElementById('editModeBtn');
-    if (editBtn) editBtn.style.display = 'none';
     initReviewSearch(studentName);
   }
   // Homework mode tweaks
