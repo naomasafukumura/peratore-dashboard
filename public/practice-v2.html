@@ -681,17 +681,18 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </button>
     <script>
-      // 受講生URL（?student=...）ではペンを DOM から削除、
-      // 講師の通常アクセスではペンを表示
+      // 受講生URL（?student=...）ではペンを DOM 削除＋虫眼鏡を即表示、
+      // 講師アクセスではペンを表示
       (function(){
         try {
           var sp = new URLSearchParams(window.location.search).get('student');
-          var b = document.getElementById('editModeBtn');
-          if (!b) return;
+          var pen = document.getElementById('editModeBtn');
+          var rv = document.getElementById('rvSearchBtn');
           if (sp) {
-            b.remove();
+            if (pen) pen.remove();
+            if (rv) rv.classList.add('show');
           } else {
-            b.style.display = '';
+            if (pen) pen.style.display = '';
           }
         } catch(e) {}
       })();
