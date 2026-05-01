@@ -2,6 +2,47 @@ import { sql } from '@/lib/db';
 import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * PUT /api/chunks/:id
+ * カテゴリを単純更新する（origin 制限なし）。受講生編集画面のカテゴリ select 用。
+ */
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await unauthorizedIfNotTeacher(req);
+  if (denied) return denied;
+
+  const { id: idStr } = await params;
+  const chunkId = parseInt(idStr, 10);
+  if (Number.isNaN(chunkId)) {
+    return NextResponse.json({ error: 'Invalid chunk id' }, { status: 400 });
+  }
+
+  let body: { categoryId?: number };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const categoryId = body.categoryId;
+  if (categoryId == null || typeof categoryId !== 'number' || categoryId < 1) {
+    return NextResponse.json({ error: 'categoryId が必要です' }, { status: 400 });
+  }
+
+  const [cat] = await sql`SELECT id FROM categories WHERE id = ${categoryId}`;
+  if (!cat) {
+    return NextResponse.json({ error: 'カテゴリが見つかりません' }, { status: 404 });
+  }
+
+  const [updated] = await sql`
+    UPDATE chunks SET category_id = ${categoryId} WHERE id = ${chunkId} RETURNING id
+  `;
+  if (!updated) {
+    return NextResponse.json({ error: 'チャンクが見つかりません' }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, chunkId, categoryId });
+}
+
 export const dynamic = 'force-dynamic';
 
 /**

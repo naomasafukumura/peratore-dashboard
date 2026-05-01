@@ -56,9 +56,11 @@ async function setup() {
       followup_answer TEXT,
       followup_answer_jp TEXT,
       character TEXT DEFAULT '友人',
-      sort_order INT DEFAULT 0
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE patterns ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS audio_files (

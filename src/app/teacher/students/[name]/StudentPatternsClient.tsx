@@ -14,6 +14,7 @@ interface Pattern {
   followup_answer: string | null;
   character: string;
   category_name: string;
+  created_at: string | null;
   chunk_title_en: string | null;
   raw_memo: string | null;
   has_trigger_audio: boolean;
@@ -27,9 +28,11 @@ type Edits = Partial<Pick<Pattern, 'situation' | 'fpp_question' | 'spp' | 'follo
 export default function StudentPatternsClient({
   studentName,
   initialPatterns,
+  categories,
 }: {
   studentName: string;
   initialPatterns: Pattern[];
+  categories: { id: number; name: string }[];
 }) {
   const [patterns, setPatterns] = useState<Pattern[]>(initialPatterns);
   const [edits, setEdits] = useState<Record<number, Edits>>({});
@@ -38,6 +41,8 @@ export default function StudentPatternsClient({
   const [deleting, setDeleting] = useState<number | null>(null);
   const [memoOpen, setMemoOpen] = useState<Record<number, boolean>>({});
   const [openCards, setOpenCards] = useState<Set<number>>(new Set());
+  const [categoryUpdating, setCategoryUpdating] = useState<number | null>(null);
+
   const toggleCard = (id: number) => setOpenCards(prev => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
@@ -129,14 +134,40 @@ export default function StudentPatternsClient({
     }
   };
 
-  // カテゴリ → チャンクIDでグループ化
-  const grouped = new Map<string, Map<number, Pattern[]>>();
+  const updateChunkCategory = async (chunkId: number, categoryId: number, categoryName: string) => {
+    setCategoryUpdating(chunkId);
+    try {
+      const res = await fetch(`/api/chunks/${chunkId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(`カテゴリ変更失敗: ${data.error ?? res.status}`);
+        return;
+      }
+      // 同一チャンクの全パターンの category_name を一括更新
+      setPatterns(prev =>
+        prev.map(p => p.chunk_id === chunkId ? { ...p, category_name: categoryName } : p)
+      );
+    } finally {
+      setCategoryUpdating(null);
+    }
+  };
+
+  // チャンク単位でグループ化（順序を保持するため Map を使用）
+  const grouped = new Map<number, Pattern[]>();
   for (const p of patterns) {
-    if (!grouped.has(p.category_name)) grouped.set(p.category_name, new Map());
-    const chunkMap = grouped.get(p.category_name)!;
-    if (!chunkMap.has(p.chunk_id)) chunkMap.set(p.chunk_id, []);
-    chunkMap.get(p.chunk_id)!.push(p);
+    if (!grouped.has(p.chunk_id)) grouped.set(p.chunk_id, []);
+    grouped.get(p.chunk_id)!.push(p);
   }
+
+  const formatDate = (dateStr: string | null): string => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('ja-JP');
+  };
 
   return (
     <div className="min-h-screen bg-bg-page">
@@ -170,156 +201,174 @@ export default function StudentPatternsClient({
             </Link>
           </div>
         ) : (
-          Array.from(grouped.entries()).map(([cat, chunkMap]) => (
-            <div key={cat} className="mb-8">
-              <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 px-1">{cat}</h2>
-              <div className="space-y-3">
-                {Array.from(chunkMap.entries()).map(([chunkId, pats]) => {
-                  const isMulti = pats.length > 1;
-                  const chunkKey = `chunk-${chunkId}`;
-                  const isChunkOpen = openCards.has(-chunkId); // 負のIDでチャンクの開閉を管理
+          <div className="space-y-3">
+            {Array.from(grouped.entries()).map(([chunkId, pats]) => {
+              const isMulti = pats.length > 1;
+              const isChunkOpen = openCards.has(-chunkId);
 
-                  return (
-                    <div key={chunkId} className="bg-bg-card border border-border rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
-                      {/* チャンクヘッダー（複数パターンの場合のみ） */}
-                      {isMulti && (
-                        <button
-                          type="button"
-                          onClick={() => toggleCard(-chunkId)}
-                          className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left bg-primary/5 hover:bg-primary/10 border-b border-border"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-primary truncate">
-                              {pats[0].chunk_title_en || pats[0].fpp_question}
-                              <span className="ml-2 text-text-muted font-normal">{pats.length}パターン</span>
+              return (
+                <div key={chunkId} className="bg-bg-card border border-border rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden">
+                  {/* チャンクヘッダー（複数パターンの場合のみ折りたたみボタン） */}
+                  {isMulti && (
+                    <button
+                      type="button"
+                      onClick={() => toggleCard(-chunkId)}
+                      className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left bg-primary/5 hover:bg-primary/10 border-b border-border"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-primary truncate">
+                          {pats[0].chunk_title_en || pats[0].fpp_question}
+                          <span className="ml-2 text-text-muted font-normal">{pats.length}パターン</span>
+                        </p>
+                      </div>
+                      <span className="text-text-muted text-xs shrink-0">{isChunkOpen ? '▼' : '▶'}</span>
+                    </button>
+                  )}
+
+                  {/* カテゴリ選択UI（単体・複数共通、常に表示） */}
+                  <div className={`px-4 py-2 flex items-center gap-2 ${isMulti ? 'border-b border-border/50' : ''}`}>
+                    <span className="text-[10px] text-text-muted shrink-0">カテゴリ:</span>
+                    <select
+                      value={categories.find(c => c.name === pats[0].category_name)?.id ?? ''}
+                      onChange={e => {
+                        const id = parseInt(e.target.value, 10);
+                        const cat = categories.find(c => c.id === id);
+                        if (cat) updateChunkCategory(chunkId, cat.id, cat.name);
+                      }}
+                      disabled={categoryUpdating === chunkId}
+                      className="text-[11px] px-2 py-1 bg-bg-page border border-border rounded-[var(--radius-button)] text-text-dark disabled:opacity-50"
+                    >
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    {categoryUpdating === chunkId && (
+                      <span className="text-[10px] text-text-muted">更新中…</span>
+                    )}
+                  </div>
+
+                  {/* パターンリスト（単体は常に表示、複数は展開時のみ） */}
+                  {(!isMulti || isChunkOpen) && (
+                    <div className="px-4 pb-4 pt-3">
+                      {/* 元メモ: チャンク先頭のパターンにだけ表示 */}
+                      {pats[0].raw_memo && (
+                        <div className="mb-4">
+                          <button
+                            onClick={() => setMemoOpen(prev => ({ ...prev, [pats[0].id]: !prev[pats[0].id] }))}
+                            className="text-[11px] text-text-muted hover:text-text-dark flex items-center gap-1"
+                          >
+                            <span>{memoOpen[pats[0].id] ? '▾' : '▸'}</span>
+                            元メモを{memoOpen[pats[0].id] ? '閉じる' : '見る'}
+                          </button>
+                          {memoOpen[pats[0].id] && (
+                            <p className="mt-1 px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-[11px] text-text-muted whitespace-pre-wrap">
+                              {pats[0].raw_memo}
                             </p>
-                          </div>
-                          <span className="text-text-muted text-xs shrink-0">{isChunkOpen ? '▼' : '▶'}</span>
-                        </button>
-                      )}
-
-                      {/* パターンリスト（単体は常に表示、複数は展開時のみ） */}
-                      {(!isMulti || isChunkOpen) && (
-                        <div className="px-4 pb-4 pt-3">
-                          {/* 元メモ: チャンク先頭のパターンにだけ表示 */}
-                          {pats[0].raw_memo && (
-                            <div className="mb-4">
-                              <button
-                                onClick={() => setMemoOpen(prev => ({ ...prev, [pats[0].id]: !prev[pats[0].id] }))}
-                                className="text-[11px] text-text-muted hover:text-text-dark flex items-center gap-1"
-                              >
-                                <span>{memoOpen[pats[0].id] ? '▾' : '▸'}</span>
-                                元メモを{memoOpen[pats[0].id] ? '閉じる' : '見る'}
-                              </button>
-                              {memoOpen[pats[0].id] && (
-                                <p className="mt-1 px-3 py-2 bg-bg-page border border-border rounded-[var(--radius-button)] text-[11px] text-text-muted whitespace-pre-wrap">
-                                  {pats[0].raw_memo}
-                                </p>
-                              )}
-                            </div>
                           )}
-
-                          {/* 各パターンのフィールド（チャンク内は折りたたみなし） */}
-                          <div className={isMulti ? 'space-y-5' : 'space-y-2'}>
-                            {pats.map((p, pidx) => {
-                              const fqVal = val(p, 'followup_question');
-                              const faVal = val(p, 'followup_answer');
-                              const hasFq = !!(p.followup_question || fqVal.trim());
-                              const hasFa = !!(p.followup_answer || faVal.trim());
-                              return (
-                                <div key={p.id} className={isMulti ? 'pt-4 border-t border-border/50 first:border-t-0 first:pt-0' : ''}>
-                                  {isMulti && (
-                                    <p className="text-[10px] font-semibold text-text-muted mb-2">#{pidx + 1}</p>
-                                  )}
-                                  <div className="space-y-2 mb-3">
-                                    <div>
-                                      <label className="block text-[10px] text-text-muted mb-1">Situation</label>
-                                      <input
-                                        value={val(p, 'situation')}
-                                        onChange={e => updateEdit(p.id, 'situation', e.target.value)}
-                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                        placeholder="（なし）"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-[10px] text-text-muted mb-1">Trigger（相手のセリフ）</label>
-                                      <input
-                                        value={val(p, 'fpp_question')}
-                                        onChange={e => updateEdit(p.id, 'fpp_question', e.target.value)}
-                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-medium text-text-dark"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="block text-[10px] text-text-muted mb-1">SPP（模範回答）</label>
-                                      <input
-                                        value={val(p, 'spp')}
-                                        onChange={e => updateEdit(p.id, 'spp', e.target.value)}
-                                        className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-semibold text-primary"
-                                      />
-                                    </div>
-                                    {/* FQ/FA は値がある場合のみ表示 */}
-                                    {hasFq && (
-                                      <div>
-                                        <label className="block text-[10px] text-text-muted mb-1">Followup Question</label>
-                                        <input
-                                          value={fqVal}
-                                          onChange={e => updateEdit(p.id, 'followup_question', e.target.value)}
-                                          className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                        />
-                                      </div>
-                                    )}
-                                    {hasFa && (
-                                      <div>
-                                        <label className="block text-[10px] text-text-muted mb-1">Followup Answer</label>
-                                        <input
-                                          value={faVal}
-                                          onChange={e => updateEdit(p.id, 'followup_answer', e.target.value)}
-                                          className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 pt-2 border-t border-border/40">
-                                    <div className="flex gap-1 text-[10px]">
-                                      <span className={`px-1.5 py-0.5 rounded-full ${p.has_trigger_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>T</span>
-                                      <span className={`px-1.5 py-0.5 rounded-full ${p.has_spp_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>S</span>
-                                      {hasFq && <span className={`px-1.5 py-0.5 rounded-full ${p.has_followup_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FQ</span>}
-                                      {hasFa && <span className={`px-1.5 py-0.5 rounded-full ${p.has_natural_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FA</span>}
-                                    </div>
-                                    <div className="ml-auto flex items-center gap-2">
-                                      {saveMsg[p.id] && (
-                                        <span className={`text-[10px] ${saveMsg[p.id].includes('失敗') ? 'text-error' : 'text-success'}`}>
-                                          {saveMsg[p.id]}
-                                        </span>
-                                      )}
-                                      <button
-                                        onClick={() => deletePattern(p.id)}
-                                        disabled={deleting === p.id || saving === p.id}
-                                        className="px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs disabled:opacity-40 transition-colors"
-                                      >
-                                        {deleting === p.id ? '削除中…' : '削除'}
-                                      </button>
-                                      <button
-                                        onClick={() => savePattern(p)}
-                                        disabled={saving === p.id || !isDirty(p.id)}
-                                        className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40 transition-opacity"
-                                      >
-                                        {saving === p.id ? '処理中…' : '保存 + 音声生成'}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
                         </div>
                       )}
+
+                      {/* 各パターンのフィールド */}
+                      <div className={isMulti ? 'space-y-5' : 'space-y-2'}>
+                        {pats.map((p, pidx) => {
+                          const fqVal = val(p, 'followup_question');
+                          const faVal = val(p, 'followup_answer');
+                          const hasFq = !!(p.followup_question || fqVal.trim());
+                          const hasFa = !!(p.followup_answer || faVal.trim());
+                          return (
+                            <div key={p.id} className={isMulti ? 'pt-4 border-t border-border/50 first:border-t-0 first:pt-0' : ''}>
+                              {isMulti && (
+                                <p className="text-[10px] font-semibold text-text-muted mb-2">#{pidx + 1}</p>
+                              )}
+                              <div className="space-y-2 mb-3">
+                                <div>
+                                  <label className="block text-[10px] text-text-muted mb-1">Situation</label>
+                                  <input
+                                    value={val(p, 'situation')}
+                                    onChange={e => updateEdit(p.id, 'situation', e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
+                                    placeholder="（なし）"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-text-muted mb-1">Trigger（相手のセリフ）</label>
+                                  <input
+                                    value={val(p, 'fpp_question')}
+                                    onChange={e => updateEdit(p.id, 'fpp_question', e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-medium text-text-dark"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] text-text-muted mb-1">SPP（模範回答）</label>
+                                  <input
+                                    value={val(p, 'spp')}
+                                    onChange={e => updateEdit(p.id, 'spp', e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-sm font-semibold text-primary"
+                                  />
+                                </div>
+                                {hasFq && (
+                                  <div>
+                                    <label className="block text-[10px] text-text-muted mb-1">Followup Question</label>
+                                    <input
+                                      value={fqVal}
+                                      onChange={e => updateEdit(p.id, 'followup_question', e.target.value)}
+                                      className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
+                                    />
+                                  </div>
+                                )}
+                                {hasFa && (
+                                  <div>
+                                    <label className="block text-[10px] text-text-muted mb-1">Followup Answer</label>
+                                    <input
+                                      value={faVal}
+                                      onChange={e => updateEdit(p.id, 'followup_answer', e.target.value)}
+                                      className="w-full px-3 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs text-text-dark"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+                                <div className="flex gap-1 text-[10px]">
+                                  <span className={`px-1.5 py-0.5 rounded-full ${p.has_trigger_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>T</span>
+                                  <span className={`px-1.5 py-0.5 rounded-full ${p.has_spp_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>S</span>
+                                  {hasFq && <span className={`px-1.5 py-0.5 rounded-full ${p.has_followup_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FQ</span>}
+                                  {hasFa && <span className={`px-1.5 py-0.5 rounded-full ${p.has_natural_audio ? 'bg-success/10 text-success' : 'bg-border text-text-light'}`}>FA</span>}
+                                  {p.created_at && (
+                                    <span className="ml-2 text-text-light">{formatDate(p.created_at)}</span>
+                                  )}
+                                </div>
+                                <div className="ml-auto flex items-center gap-2">
+                                  {saveMsg[p.id] && (
+                                    <span className={`text-[10px] ${saveMsg[p.id].includes('失敗') ? 'text-error' : 'text-success'}`}>
+                                      {saveMsg[p.id]}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={() => deletePattern(p.id)}
+                                    disabled={deleting === p.id || saving === p.id}
+                                    className="px-3 py-1.5 text-error/60 hover:text-error hover:bg-error/5 rounded-[var(--radius-button)] text-xs disabled:opacity-40 transition-colors"
+                                  >
+                                    {deleting === p.id ? '削除中…' : '削除'}
+                                  </button>
+                                  <button
+                                    onClick={() => savePattern(p)}
+                                    disabled={saving === p.id || !isDirty(p.id)}
+                                    className="px-3 py-1.5 bg-primary text-white rounded-[var(--radius-button)] text-xs font-semibold disabled:opacity-40 transition-opacity"
+                                  >
+                                    {saving === p.id ? '処理中…' : '保存 + 音声生成'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </main>
     </div>

@@ -167,8 +167,10 @@ export async function findSimilarPatterns(trigger: string): Promise<SimilarPatte
 }
 
 /**
- * Trigger / SPP / フォロー質問・返答の4つがすべて DB 上の同一パターンと一致するものを1件返す。
+ * Trigger / SPP / フォロー質問・返答の4つがすべて DB 上の同一パターンと一致し、
+ * かつ同一受講生のチャンクであるものを1件返す。
  * 一致すれば新規 INSERT はせず既存行＋割当のみとする。
+ * 他受講生のチャンクは絶対にマッチしない（完全独立を保証）。
  */
 async function findIdenticalPattern(input: TeacherLessonPersistInput): Promise<{
   patternId: number;
@@ -179,15 +181,18 @@ async function findIdenticalPattern(input: TeacherLessonPersistInput): Promise<{
   const s = normLine(input.spp);
   const fq = normLine(input.followupQuestion);
   const fa = normLine(input.followupAnswer);
+  const studentName = input.studentName.trim();
 
   const rows = await sql`
     SELECT p.id AS pattern_id, p.chunk_id, c.category_id
     FROM patterns p
     JOIN chunks c ON c.id = p.chunk_id
+    JOIN assignments a ON a.chunk_id = c.id
     WHERE TRIM(p.fpp_question) = ${t}
       AND TRIM(p.spp) = ${s}
       AND COALESCE(TRIM(p.followup_question), '') = ${fq}
       AND COALESCE(TRIM(p.followup_answer), '') = ${fa}
+      AND a.student_name = ${studentName}
     ORDER BY p.id ASC
     LIMIT 1
   `;
