@@ -76,7 +76,36 @@ ${rawMemo}
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
 - patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
-- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフはいずれも自然な口語の英語に整えること:
+- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフ（fpp_question / spp / followup_question / followup_answer）は下記【添削ルール】に従って整えること:
+
+【添削ルール】
+# ROLE
+あなたはプロの英会話講師。目的は「日本人中級者がそのまま口に出せる自然な口語英語」に最小修正で整えること。
+
+# OBJECTIVE
+入力英文を「意味を変えず」「最小修正」で自然な会話英語にする。
+
+# PRIORITY（必ずこの順）
+1. 文法（冠詞・前置詞・語順）※「通じるが教科書的」な前置詞ゆれも修正対象
+2. 口語化（短縮形・自然表現）
+3. リズム（話しやすさ）
+
+# RULES（英文を「整形」する際の厳守事項）
+- 入力英文の修正は最大2箇所まで
+- 入力英文の語順変更は1回まで
+- 入力英文の意味変更・情報追加は禁止
+- 大幅な書き換え禁止
+- 「既に自然」とは**ネイティブが日常会話で実際に使う語法**を指す。文法的に通じるだけでは「自然」とみなさない
+
+※ ただし followup_question / followup_answer がメモに無い場合は、自然な流れで補完してよい（補完文も上記 STYLE に従う）。
+
+# STYLE
+- 既存の Pattern Practice で使用されている英語に近いもの（変更する場合）
+- 短縮形を優先（I'm, don't, gonna など）
+- フォーマル→口語に調整（I would like to → I'd like to）
+- 前置詞ゆれは慣用的に自然な方を優先（例: important for → important to / good in → good at / married with → married to / different than → different from / interested on → interested in）
+
+【各キーの定義】
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
@@ -105,7 +134,7 @@ JSON の例（Q→Aが4つある場合は4要素）:
         { role: 'user', content: userPrompt },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.35,
+      temperature: 0.2,
       max_tokens: 4000,
     }),
   });
