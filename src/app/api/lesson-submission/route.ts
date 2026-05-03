@@ -81,8 +81,14 @@ ${rawMemo}
 
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
-- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
-- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフ（fpp_question / spp / followup_question / followup_answer）は下記【添削ルール】に従って整えること:
+${isMulti
+  ? `- **メモ内のQ→Aペア1つ = patterns 配列の1要素。** メモに3ペアあるなら patterns は3要素になる。**複数ペアを1要素にまとめないこと。**
+- 各パターンの fpp_question と spp は必須（空文字不可）。
+- **followup_question と followup_answer は必ず空文字 "" にする。補完してはならない。**（次ペアと内容が混ざるため）
+- situation_ja は会話全体の状況を、すべての要素に同じ文字列で入れる。
+- 英語のセリフ（fpp_question / spp）は下記【添削ルール】に従って整えること:`
+  : `- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
+- 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフ（fpp_question / spp / followup_question / followup_answer）は下記【添削ルール】に従って整えること:`}
 
 【添削ルール】
 # ROLE
@@ -103,7 +109,9 @@ ${rawMemo}
 - 大幅な書き換え禁止
 - 「既に自然」とは**ネイティブが日常会話で実際に使う語法**を指す。文法的に通じるだけでは「自然」とみなさない
 
-※ ただし followup_question / followup_answer がメモに無い場合は、自然な流れで補完してよい（補完文も上記 STYLE に従う）。
+${isMulti
+  ? '※ followup_question / followup_answer は補完しない（必ず空文字 "" にする）。'
+  : '※ ただし followup_question / followup_answer がメモに無い場合は、自然な流れで補完してよい（補完文も上記 STYLE に従う）。'}
 
 # STYLE
 - 既存の Pattern Practice で使用されている英語に近いもの（変更する場合）
@@ -112,16 +120,19 @@ ${rawMemo}
 - 前置詞ゆれは慣用的に自然な方を優先（例: important for → important to / good in → good at / married with → married to / different than → different from / interested on → interested in）
 
 【各キーの定義】
-  - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）
+  - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）${isMulti ? '。会話モードでは全要素に同じ文字列を入れる。' : ''}
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
-  - followup_question … そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）
-  - followup_answer … followup_question への受講生の返答（**1文のみ・短く簡潔に**）
+  - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）'}
+  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答（**1文のみ・短く簡潔に**）'}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
-JSON の例（Q→Aが4つある場合は4要素）:
-{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`;
+${isMulti
+  ? `JSON の例（Q→Aが3ペアの会話なら patterns は3要素。FQ/FAは必ず ""）:
+{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`
+  : `JSON の例（Q→Aが4つある場合は4要素）:
+{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
