@@ -55,7 +55,7 @@ function normalizePattern(parsed: Record<string, unknown>): ExtractedPattern {
   };
 }
 
-async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Promise<AnalyzeResult> {
+async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], directStyle?: '1sentence' | 'multi' | 'pairs'): Promise<AnalyzeResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
@@ -66,9 +66,15 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[]): Prom
       ? `次の一覧は practice-v2 教材（埋め込み DATA）と DB のカテゴリ名です。suggested_category には**この一覧から意味が最も近い1つを選び、可能なら文字列をそのまま（完全一致で）入れてください**。どれも明らかに不適切なときだけ、新しいカテゴリ名を1つ付けてください。**新規名は既存区分に揃え、可能なら「数字. 大項目：細目（調整中）」のような形式**（例: 「1. 返答：未来」「6. 返答：招待」）にしてください。：\n${categoryNames.join('、')}`
       : `suggested_category には、practice-v2 の区分に近い形式（「数字. 大項目：細目」）で付けてください。`;
 
+  const isMulti = directStyle === 'multi';
+
+  const chunkRule = isMulti
+    ? `**メモ全体を「1つの会話」として扱ってください。** トピックが複数あっても**分割せず、すべてのQ→Aペアを1チャンク内のペアとして順番通りに並べて抽出**してください。**重複統合（主動詞が同じペアの統合）も適用しないでください**。メモに登場するすべてのQ→Aペアを欠落なく抽出すること。`
+    : `**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）`;
+
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
-**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）
+${chunkRule}
 
 【先生メモ】
 ${rawMemo}
@@ -375,7 +381,7 @@ export async function POST(req: NextRequest) {
     }
 
     const categoryNames = await fetchCategoryNamesForPrompt();
-    const result = await analyzeLessonMemo(raw, categoryNames);
+    const result = await analyzeLessonMemo(raw, categoryNames, body.directStyle);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
@@ -391,7 +397,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       patterns: patternsWithSimilar,
-      message: `${result.patterns.length}パターンを解析しました。`,
+      message: body.directStyle === 'multi'
+        ? `${result.patterns.length}ペアを解析しました。1チャンクとして保存されます。`
+        : `${result.patterns.length}パターンを解析しました。`,
     });
   }
 

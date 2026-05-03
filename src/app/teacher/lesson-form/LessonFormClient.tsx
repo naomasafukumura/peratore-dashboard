@@ -108,14 +108,20 @@ export default function LessonFormClient() {
     if (!resolvedStudentName) { setMessage('受講生名を入力してください'); return; }
     if (lessonMemo.trim().length < 20) { setMessage('レッスンメモは20文字以上で入力してください'); return; }
 
-    setDirectMode(false);
+    const isMultiMode = directStyle === 'multi';
+    setDirectMode(isMultiMode);
     setAnalyzing(true);
     try {
       const res = await fetch('/api/lesson-submission', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent: 'analyze-memo', studentName: resolvedStudentName, rawLessonMemo: lessonMemo.trim() }),
+        body: JSON.stringify({
+          intent: 'analyze-memo',
+          studentName: resolvedStudentName,
+          rawLessonMemo: lessonMemo.trim(),
+          ...(isMultiMode ? { directStyle: 'multi' } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -227,7 +233,11 @@ export default function LessonFormClient() {
               <a href="/teacher" className="text-text-muted hover:text-text-dark shrink-0 text-sm">←</a>
             )}
             <h1 className="text-base font-bold text-text-dark truncate">
-              {stage === 'preview' ? `解析結果（${previewPatterns.length}チャンク）` : 'レッスン後フォーム'}
+              {stage === 'preview'
+                ? (directMode
+                    ? `解析結果（1チャンク・${previewPatterns.length}ペア）`
+                    : `解析結果（${previewPatterns.length}チャンク）`)
+                : 'レッスン後フォーム'}
             </h1>
           </div>
           <div className="flex items-center gap-3 shrink-0">
