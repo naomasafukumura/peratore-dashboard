@@ -31,12 +31,14 @@ async function ensureCreatedAt(): Promise<void> {
   _createdAtEnsured = true;
 }
 
-function formatCategoryLabel(dateVal: unknown): string {
-  const d = dateVal ? new Date(String(dateVal)) : null;
-  if (d && !isNaN(d.getTime())) {
-    return `${d.getFullYear()}年${d.getMonth() + 1}月復習集`;
-  }
-  return 'レッスン復習集';
+function jstMonthKey(createdAt: unknown): string | null {
+  if (!createdAt) return null;
+  const t = new Date(String(createdAt)).getTime();
+  if (isNaN(t)) return null;
+  const jst = new Date(t + 9 * 60 * 60 * 1000);
+  const y = jst.getUTCFullYear();
+  const m = jst.getUTCMonth() + 1;
+  return `${y}-${String(m).padStart(2, '0')}`;
 }
 
 /**
@@ -48,11 +50,11 @@ export async function fetchRecentLessonForStudent(
 ): Promise<{
   summary: RecentLessonSummaryItem[];
   categoryLabel: string;
-  practiceCategory: { category: string; icon: string; cards: Record<string, unknown>[] } | null;
+  practiceCategories: Array<{ category: string; icon: 'message'; cards: Record<string, unknown>[] }>;
 }> {
   const name = studentName?.trim();
   if (!name) {
-    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategories: [] };
   }
 
   await ensureCreatedAt();
@@ -75,10 +77,8 @@ export async function fetchRecentLessonForStudent(
   `;
 
   if (!rows.length) {
-    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategory: null };
+    return { summary: [], categoryLabel: 'レッスン復習集', practiceCategories: [] };
   }
-
-  const categoryLabel = formatCategoryLabel(rows[0].created_at);
 
   // チャンクIDでグループ化（同一チャンク内の複数パターンを1アイテムに）
   const chunkMap = new Map<number, Record<string, any>[]>();
@@ -118,17 +118,35 @@ export async function fetchRecentLessonForStudent(
     return db2 - da;
   });
 
-  const cards = rows.map((r: Record<string, any>) =>
-    practiceCardFromPattern(r, r.chunk_title_en || '')
-  );
+  const monthBuckets = new Map<string, Record<string, any>[]>();
+  const orderedKeys: string[] = [];
+  for (const r of rows as Record<string, any>[]) {
+    const key = jstMonthKey(r.created_at) ?? 'unknown';
+    if (!monthBuckets.has(key)) {
+      monthBuckets.set(key, []);
+      orderedKeys.push(key);
+    }
+    monthBuckets.get(key)!.push(r);
+  }
+  const sortedKeys = [
+    ...orderedKeys.filter(k => k !== 'unknown').sort((a, b) => (a < b ? 1 : a > b ? -1 : 0)),
+    ...(orderedKeys.includes('unknown') ? ['unknown'] : []),
+  ];
+  const practiceCategories = sortedKeys.map(key => ({
+    category: key === 'unknown' ? 'レッスン復習集' : (() => {
+      const [y, m] = key.split('-');
+      return `${Number(y)}年${Number(m)}月復習集`;
+    })(),
+    icon: 'message' as const,
+    cards: monthBuckets.get(key)!.map((r: Record<string, any>) =>
+      practiceCardFromPattern(r, r.chunk_title_en || '')
+    ),
+  }));
+  const categoryLabel = practiceCategories[0]?.category ?? 'レッスン復習集';
 
   return {
     summary,
     categoryLabel,
-    practiceCategory: {
-      category: categoryLabel,
-      icon: 'message',
-      cards,
-    },
+    practiceCategories,
   };
 }

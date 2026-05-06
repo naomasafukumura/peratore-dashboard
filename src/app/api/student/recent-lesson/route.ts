@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const studentName = queryStudent || sessionStudent;
 
   if (!studentName) {
-    return NextResponse.json({ summary: [], practiceCategory: null });
+    return NextResponse.json({ summary: [], practiceCategories: [] });
   }
 
   try {

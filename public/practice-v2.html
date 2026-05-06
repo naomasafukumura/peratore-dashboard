@@ -1223,11 +1223,16 @@ async function loadDataFromAPI() {
     const rres = await fetch(rurl, { credentials: 'include' });
     if (!rres.ok) return;
     const recent = await rres.json();
-    const pc = recent && recent.practiceCategory;
-    if (!pc || !pc.cards || !pc.cards.length) return;
-    const pinIds = new Set(pc.cards.map((c) => c.id).filter(Boolean));
+    const pcs = (recent && Array.isArray(recent.practiceCategories)) ? recent.practiceCategories : [];
+    if (!pcs.length) return;
+    const pinIds = new Set();
+    for (const pc of pcs) {
+      for (const c of (pc.cards || [])) {
+        if (c && c.id) pinIds.add(c.id);
+      }
+    }
     DATA = stripCardIdsFromPracticeData(DATA, pinIds);
-    DATA = [pc, ...DATA];
+    DATA = [...pcs, ...DATA];
   } catch (e) {
     console.log('recent-lesson skip:', e && e.message);
   }
