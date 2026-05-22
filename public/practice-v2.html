@@ -1254,8 +1254,9 @@ let cards = [];
 let currentIdx = 0;
 let round = 1; // 1 = Turn 1, 2 = Turn 2
 let hwQueueMode = false; // キューから起動した埋め込み練習: 実践モードをスキップ
+let __hwResumeIdx = 0; // 宿題の途中再開で開始するindex（0なら最初から）
 
-// ===== 宿題の途中保存（localStorage・チャンク型再開用） =====
+// ===== 宿題の途中保存（localStorage） =====
 function hwProgressKey() {
   const sp = new URLSearchParams(location.search).get('student') || '_';
   return 'pp-hw-progress-' + sp;
@@ -1263,6 +1264,22 @@ function hwProgressKey() {
 // 順序非依存の署名（保存はlive cards、復元はhwCardsから計算するため、id集合で一致判定）
 function hwCardsSignature(cardsArr) {
   return (cardsArr || []).map(c => String(c && c.id != null ? c.id : (c && c.trigger) || '')).sort().join('|');
+}
+function saveHwProgress(idx) {
+  try {
+    if (!cards.length || idx <= 0 || idx >= cards.length) return; // 0問目・完了は保存しない
+    localStorage.setItem(hwProgressKey(), JSON.stringify({ sig: hwCardsSignature(cards), idx: idx, total: cards.length }));
+  } catch (e) {}
+}
+function loadHwProgress(cardsArr) {
+  try {
+    const raw = localStorage.getItem(hwProgressKey());
+    if (!raw) return 0;
+    const p = JSON.parse(raw);
+    if (!p || p.sig !== hwCardsSignature(cardsArr)) return 0; // 宿題が差し替わっていれば無視
+    if (typeof p.idx !== 'number' || p.idx <= 0 || p.idx >= cardsArr.length) return 0;
+    return p.idx;
+  } catch (e) { return 0; }
 }
 function clearHwProgress() { try { localStorage.removeItem(hwProgressKey()); } catch (e) {} }
 function readHwProgress() { try { const raw = localStorage.getItem(hwProgressKey()); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
@@ -1737,6 +1754,8 @@ $startBtn.addEventListener('click', () => {
   }
 
   currentIdx = 0;
+  if (__hwResumeIdx > 0 && __hwResumeIdx < cards.length) currentIdx = __hwResumeIdx;
+  __hwResumeIdx = 0;
   stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
   responseTimes = [];
   cardTurnResults = [];
@@ -2500,6 +2519,7 @@ function loadCard() {
   if (mobileChunkEl) mobileChunkEl.textContent = s.label;
   if (mobileSitEl) mobileSitEl.textContent = s.situation;
   showActionPhase('actionStart');
+  if (new URLSearchParams(location.search).get('homework') === '1') saveHwProgress(currentIdx);
 }
 
 // ===== Listen Flow (聞くだけモード) =====
@@ -3688,6 +3708,7 @@ function showPracticeResult(card, userAnswer, onDone) {
     bar.classList.remove('show');
     $chatThread.style.paddingBottom = '';
     if (isHomework && isLastCard) {
+      clearHwProgress();
       const s = new URLSearchParams(window.location.search).get('student');
       window.location.href = 'homework.html' + (s ? '?student=' + encodeURIComponent(s) : '');
       return;
@@ -4577,7 +4598,16 @@ loadDataFromAPI().then(() => {
             startBtn.disabled = false;
             $cover.classList.add('hide');
             const begin = () => setTimeout(() => startBtn.click(), 50);
-            begin();
+            const savedIdx = loadHwProgress(hwCards);
+            if (savedIdx > 0) {
+              promptHwResume((savedIdx + 1) + ' 問目から再開できます（全 ' + hwCards.length + ' 問）。', '続きから（' + (savedIdx + 1) + '問目）').then((resume) => {
+                __hwResumeIdx = resume ? savedIdx : 0;
+                if (!resume) clearHwProgress();
+                begin();
+              });
+            } else {
+              begin();
+            }
           };
 
           // チャンク（会話）型の途中再開
