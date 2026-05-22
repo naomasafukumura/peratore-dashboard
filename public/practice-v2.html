@@ -1254,6 +1254,51 @@ let cards = [];
 let currentIdx = 0;
 let round = 1; // 1 = Turn 1, 2 = Turn 2
 let hwQueueMode = false; // キューから起動した埋め込み練習: 実践モードをスキップ
+let __hwResumeIdx = 0; // 宿題の途中再開で開始するindex（0なら最初から）
+
+// ===== 宿題の途中保存（localStorage） =====
+function hwProgressKey() {
+  const sp = new URLSearchParams(location.search).get('student') || '_';
+  return 'pp-hw-progress-' + sp;
+}
+// 順序非依存の署名（保存はlive cards、復元はhwCardsから計算するため、id集合で一致判定）
+function hwCardsSignature(cardsArr) {
+  return (cardsArr || []).map(c => String(c && c.id != null ? c.id : (c && c.trigger) || '')).sort().join('|');
+}
+function saveHwProgress(idx) {
+  try {
+    if (!cards.length || idx <= 0 || idx >= cards.length) return; // 0問目・完了は保存しない
+    localStorage.setItem(hwProgressKey(), JSON.stringify({ sig: hwCardsSignature(cards), idx: idx, total: cards.length }));
+  } catch (e) {}
+}
+function loadHwProgress(cardsArr) {
+  try {
+    const raw = localStorage.getItem(hwProgressKey());
+    if (!raw) return 0;
+    const p = JSON.parse(raw);
+    if (!p || p.sig !== hwCardsSignature(cardsArr)) return 0; // 宿題が差し替わっていれば無視
+    if (typeof p.idx !== 'number' || p.idx <= 0 || p.idx >= cardsArr.length) return 0;
+    return p.idx;
+  } catch (e) { return 0; }
+}
+function clearHwProgress() { try { localStorage.removeItem(hwProgressKey()); } catch (e) {} }
+
+// 「続きから / 最初から」モーダル（Promise<boolean> resolve: true=続きから）
+function promptHwResume(savedIdx, total) {
+  return new Promise((resolve) => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.innerHTML = '<div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:\'Hiragino Sans\',\'Noto Sans JP\',sans-serif">'
+      + '<div style="font-size:17px;font-weight:700;color:#1a2e2b;margin-bottom:8px">前回の続きから始めますか？</div>'
+      + '<div style="font-size:13px;color:#4a6b66;line-height:1.7;margin-bottom:20px">' + (savedIdx + 1) + ' 問目から再開できます（全 ' + total + ' 問）。</div>'
+      + '<button id="hwResumeYes" style="width:100%;padding:14px;background:#E9852D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">続きから（' + (savedIdx + 1) + '問目）</button>'
+      + '<button id="hwResumeNo" style="width:100%;padding:12px;margin-top:10px;background:#f0f4f3;color:#4a6b66;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">最初から</button>'
+      + '</div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#hwResumeYes').addEventListener('click', () => { ov.remove(); resolve(true); });
+    ov.querySelector('#hwResumeNo').addEventListener('click', () => { ov.remove(); resolve(false); });
+  });
+}
 let currentPhase = 'idle';
 let recognizedText = '';
 let thinkTimer = null;
@@ -1707,6 +1752,8 @@ $startBtn.addEventListener('click', () => {
   }
 
   currentIdx = 0;
+  if (__hwResumeIdx > 0 && __hwResumeIdx < cards.length) currentIdx = __hwResumeIdx;
+  __hwResumeIdx = 0;
   stats = { perfect: 0, great: 0, good: 0, almost: 0, retry: 0 };
   responseTimes = [];
   cardTurnResults = [];
@@ -2470,6 +2517,7 @@ function loadCard() {
   if (mobileChunkEl) mobileChunkEl.textContent = s.label;
   if (mobileSitEl) mobileSitEl.textContent = s.situation;
   showActionPhase('actionStart');
+  if (new URLSearchParams(location.search).get('homework') === '1') saveHwProgress(currentIdx);
 }
 
 // ===== Listen Flow (聞くだけモード) =====
@@ -3658,6 +3706,7 @@ function showPracticeResult(card, userAnswer, onDone) {
     bar.classList.remove('show');
     $chatThread.style.paddingBottom = '';
     if (isHomework && isLastCard) {
+      clearHwProgress();
       const s = new URLSearchParams(window.location.search).get('student');
       window.location.href = 'homework.html' + (s ? '?student=' + encodeURIComponent(s) : '');
       return;
@@ -3702,6 +3751,7 @@ async function fetchPracticeCheck(userAnswer, question, targetPattern, situation
 
 function showComplete() {
   hwQueueMode = false; // フラグをリセット
+  if (new URLSearchParams(location.search).get('homework') === '1') clearHwProgress();
   // 複数チャンク練習: DB chunk側で積算したstatsを埋め込み分に合算
   const accRaw = sessionStorage.getItem('hwAccStats');
   if (accRaw) {
@@ -4542,7 +4592,17 @@ loadDataFromAPI().then(() => {
           startBtn.disabled = false;
           // カバー画面を即時非表示にしてラグ解消
           $cover.classList.add('hide');
-          setTimeout(() => startBtn.click(), 50);
+          const begin = () => setTimeout(() => startBtn.click(), 50);
+          const savedIdx = loadHwProgress(hwCards);
+          if (savedIdx > 0) {
+            promptHwResume(savedIdx, hwCards.length).then((resume) => {
+              __hwResumeIdx = resume ? savedIdx : 0;
+              if (!resume) clearHwProgress();
+              begin();
+            });
+          } else {
+            begin();
+          }
         }
       } catch(e) { console.error('hw autostart:', e); }
     }
