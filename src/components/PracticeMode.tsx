@@ -163,6 +163,10 @@ function buildExampleGroups(ps: Pattern[]): Pattern[][] {
   return [ps];
 }
 
+function hwProgressKey(student: string) {
+  return 'pp-hw-progress-' + (student || '_');
+}
+
 // ===== Main Component =====
 export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework }: Props) {
   const [index, setIndex] = useState(0);
@@ -267,6 +271,30 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   useEffect(() => { localStorage.setItem('pp-inputMode', inputMode); }, [inputMode]);
   useEffect(() => { localStorage.setItem('pp-speakLimit', String(speakLimitSec)); }, [speakLimitSec]);
   useEffect(() => { localStorage.setItem('pp-turn2Mode', turn2Mode); }, [turn2Mode]);
+
+  // 宿題（チャンク型）の途中保存: チャンク表示ごとに現在位置を localStorage に記録
+  useEffect(() => {
+    if (!isHomework) return;
+    try {
+      const qRaw = sessionStorage.getItem('hwChunkQueue');
+      if (!qRaw) return;
+      const q = JSON.parse(qRaw);
+      if (!q || !q.sig) return;
+      const leadId = patterns[0]?.id;
+      if (leadId == null) return;
+      const sp = q.student || new URLSearchParams(window.location.search).get('student') || '';
+      localStorage.setItem(hwProgressKey(sp), JSON.stringify({
+        v: 2,
+        sig: q.sig,
+        leadId,
+        queueIds: Array.isArray(q.ids) ? q.ids : [],
+        embeddedCards: q.embeddedCards,
+        student: sp,
+        homework: '1',
+      }));
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- 宿題チャンク継続 × 聞くだけモード: hwresume=1 のとき START 待たず自動再生 ----
   // 最初のチャンクは必ず START ボタンを表示（ユーザーが設定を変更できるように）
@@ -1168,6 +1196,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     } else {
       sessionStorage.removeItem('hwChunkQueue');
       sessionStorage.removeItem('hwAccStats');
+      try {
+        const sp = (queue && queue.student) || new URLSearchParams(window.location.search).get('student') || '';
+        localStorage.removeItem(hwProgressKey(sp));
+      } catch { /* ignore */ }
       setFinalStats(acc);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -1282,16 +1282,17 @@ function loadHwProgress(cardsArr) {
   } catch (e) { return 0; }
 }
 function clearHwProgress() { try { localStorage.removeItem(hwProgressKey()); } catch (e) {} }
+function readHwProgress() { try { const raw = localStorage.getItem(hwProgressKey()); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
 
 // 「続きから / 最初から」モーダル（Promise<boolean> resolve: true=続きから）
-function promptHwResume(savedIdx, total) {
+function promptHwResume(detailText, yesLabel) {
   return new Promise((resolve) => {
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
     ov.innerHTML = '<div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:\'Hiragino Sans\',\'Noto Sans JP\',sans-serif">'
       + '<div style="font-size:17px;font-weight:700;color:#1a2e2b;margin-bottom:8px">前回の続きから始めますか？</div>'
-      + '<div style="font-size:13px;color:#4a6b66;line-height:1.7;margin-bottom:20px">' + (savedIdx + 1) + ' 問目から再開できます（全 ' + total + ' 問）。</div>'
-      + '<button id="hwResumeYes" style="width:100%;padding:14px;background:#E9852D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">続きから（' + (savedIdx + 1) + '問目）</button>'
+      + '<div style="font-size:13px;color:#4a6b66;line-height:1.7;margin-bottom:20px">' + detailText + '</div>'
+      + '<button id="hwResumeYes" style="width:100%;padding:14px;background:#E9852D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">' + yesLabel + '</button>'
       + '<button id="hwResumeNo" style="width:100%;padding:12px;margin-top:10px;background:#f0f4f3;color:#4a6b66;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">最初から</button>'
       + '</div>';
     document.body.appendChild(ov);
@@ -1744,7 +1745,8 @@ $startBtn.addEventListener('click', () => {
       ids: chunkFirstIds.slice(1),
       embeddedCards: embeddedCards.length ? embeddedCards : undefined,
       student: studentParam,
-      homework: isHomework ? '1' : ''
+      homework: isHomework ? '1' : '',
+      sig: hwCardsSignature(cards)
     }));
     const suffix = (isHomework ? '?homework=1' : '?') + (studentParam ? (isHomework ? '&' : '') + 'student=' + encodeURIComponent(studentParam) : '');
     window.location.href = '/practice/pattern/' + chunkFirstIds[0] + suffix;
@@ -4580,28 +4582,61 @@ loadDataFromAPI().then(() => {
         const hwCards = JSON.parse(hwRaw);
         sessionStorage.removeItem('hwCards');
         if (hwCards && hwCards.length) {
-          const hwCat = { category: '宿題', icon: 'message', cards: hwCards };
-          DATA = [hwCat, ...DATA.filter(c => c.category !== '宿題')];
-          initCover();
-          // Select homework category (index 0) and start
-          const catIdx = 0;
-          selectedCats.add(catIdx);
-          const subSet = new Set(hwCards.map(c => c.section || (c.states && c.states[0] ? c.states[0].label : '')));
-          selectedSubs.set(catIdx, subSet);
-          const startBtn = document.getElementById('startBtn');
-          startBtn.disabled = false;
-          // カバー画面を即時非表示にしてラグ解消
-          $cover.classList.add('hide');
-          const begin = () => setTimeout(() => startBtn.click(), 50);
-          const savedIdx = loadHwProgress(hwCards);
-          if (savedIdx > 0) {
-            promptHwResume(savedIdx, hwCards.length).then((resume) => {
-              __hwResumeIdx = resume ? savedIdx : 0;
-              if (!resume) clearHwProgress();
+          const sig = hwCardsSignature(hwCards);
+          const saved = readHwProgress();
+
+          // 通常開始（DATA構築 → flat宿題なら問単位再開 → START）
+          const normalStart = () => {
+            const hwCat = { category: '宿題', icon: 'message', cards: hwCards };
+            DATA = [hwCat, ...DATA.filter(c => c.category !== '宿題')];
+            initCover();
+            const catIdx = 0;
+            selectedCats.add(catIdx);
+            const subSet = new Set(hwCards.map(c => c.section || (c.states && c.states[0] ? c.states[0].label : '')));
+            selectedSubs.set(catIdx, subSet);
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = false;
+            $cover.classList.add('hide');
+            const begin = () => setTimeout(() => startBtn.click(), 50);
+            const savedIdx = loadHwProgress(hwCards);
+            if (savedIdx > 0) {
+              promptHwResume((savedIdx + 1) + ' 問目から再開できます（全 ' + hwCards.length + ' 問）。', '続きから（' + (savedIdx + 1) + '問目）').then((resume) => {
+                __hwResumeIdx = resume ? savedIdx : 0;
+                if (!resume) clearHwProgress();
+                begin();
+              });
+            } else {
               begin();
+            }
+          };
+
+          // チャンク（会話）型の途中再開
+          if (saved && saved.leadId && saved.sig === sig) {
+            const sp = params.get('student') || saved.student || '';
+            const remain = (Array.isArray(saved.queueIds) ? saved.queueIds.length : 0) + 1
+              + (saved.embeddedCards && saved.embeddedCards.length ? 1 : 0);
+            $cover.classList.add('hide');
+            promptHwResume('やりかけの会話から再開します（残り ' + remain + ' 会話）。', '続きから').then((resume) => {
+              if (resume) {
+                sessionStorage.setItem('hwChunkQueue', JSON.stringify({
+                  ids: Array.isArray(saved.queueIds) ? saved.queueIds : [],
+                  embeddedCards: saved.embeddedCards,
+                  student: sp,
+                  homework: '1',
+                  sig: sig
+                }));
+                sessionStorage.removeItem('hwAccStats');
+                const parts = ['homework=1'];
+                if (sp) parts.push('student=' + encodeURIComponent(sp));
+                window.location.href = '/practice/pattern/' + saved.leadId + '?' + parts.join('&');
+              } else {
+                clearHwProgress();
+                normalStart();
+              }
             });
           } else {
-            begin();
+            if (saved && saved.sig !== sig) clearHwProgress(); // 宿題差し替え→古い保存を破棄
+            normalStart();
           }
         }
       } catch(e) { console.error('hw autostart:', e); }
