@@ -2528,7 +2528,8 @@ function startListenFlow() {
   hidePostReplayBar();
   stopAudio();
   console.log('[startListenFlow] cards.length=' + cards.length, cards.map(c => c.id || c.trigger));
-  playListenCard(0);
+  // 宿題の途中再開: currentIdx が復元されていればその位置から聞き直す
+  playListenCard((typeof currentIdx === 'number' && currentIdx > 0 && currentIdx < cards.length) ? currentIdx : 0);
 }
 
 function buildListenLines(card) {
@@ -2579,6 +2580,7 @@ function playListenCard(idx) {
     if (mobileSitEl) mobileSitEl.textContent = s0.situation || '';
   }
   currentIdx = idx;
+  if (new URLSearchParams(location.search).get('homework') === '1') saveHwProgress(idx);
   updateProgress();
   const lines = buildListenLines(c);
   showActionPhase(null);
