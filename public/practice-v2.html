@@ -4578,70 +4578,80 @@ loadDataFromAPI().then(() => {
 
   // Homework autostart
   if (params.get('homework') === '1') {
+    const proceedHomework = (hwCards) => {
+      if (!hwCards || !hwCards.length) return;
+      const sig = hwCardsSignature(hwCards);
+      const saved = readHwProgress();
+
+      // 通常開始（DATA構築 → flat宿題なら問単位再開 → START）
+      const normalStart = () => {
+        const hwCat = { category: '宿題', icon: 'message', cards: hwCards };
+        DATA = [hwCat, ...DATA.filter(c => c.category !== '宿題')];
+        initCover();
+        const catIdx = 0;
+        selectedCats.add(catIdx);
+        const subSet = new Set(hwCards.map(c => c.section || (c.states && c.states[0] ? c.states[0].label : '')));
+        selectedSubs.set(catIdx, subSet);
+        const startBtn = document.getElementById('startBtn');
+        startBtn.disabled = false;
+        $cover.classList.add('hide');
+        const begin = () => setTimeout(() => startBtn.click(), 50);
+        const savedIdx = loadHwProgress(hwCards);
+        if (savedIdx > 0) {
+          promptHwResume((savedIdx + 1) + ' 問目から再開できます（全 ' + hwCards.length + ' 問）。', '続きから（' + (savedIdx + 1) + '問目）').then((resume) => {
+            __hwResumeIdx = resume ? savedIdx : 0;
+            if (!resume) clearHwProgress();
+            begin();
+          });
+        } else {
+          begin();
+        }
+      };
+
+      // チャンク（会話）型の途中再開
+      if (saved && saved.leadId && saved.sig === sig) {
+        const sp = params.get('student') || saved.student || '';
+        const remain = (Array.isArray(saved.queueIds) ? saved.queueIds.length : 0) + 1
+          + (saved.embeddedCards && saved.embeddedCards.length ? 1 : 0);
+        $cover.classList.add('hide');
+        promptHwResume('やりかけの会話から再開します（残り ' + remain + ' 会話）。', '続きから').then((resume) => {
+          if (resume) {
+            sessionStorage.setItem('hwChunkQueue', JSON.stringify({
+              ids: Array.isArray(saved.queueIds) ? saved.queueIds : [],
+              embeddedCards: saved.embeddedCards,
+              student: sp,
+              homework: '1',
+              sig: sig
+            }));
+            sessionStorage.removeItem('hwAccStats');
+            const parts = ['homework=1'];
+            if (sp) parts.push('student=' + encodeURIComponent(sp));
+            window.location.href = '/practice/pattern/' + saved.leadId + '?' + parts.join('&');
+          } else {
+            clearHwProgress();
+            normalStart();
+          }
+        });
+      } else {
+        if (saved && saved.sig !== sig) clearHwProgress(); // 宿題差し替え→古い保存を破棄
+        normalStart();
+      }
+    };
+
     const hwRaw = sessionStorage.getItem('hwCards');
     if (hwRaw) {
       try {
-        const hwCards = JSON.parse(hwRaw);
         sessionStorage.removeItem('hwCards');
-        if (hwCards && hwCards.length) {
-          const sig = hwCardsSignature(hwCards);
-          const saved = readHwProgress();
-
-          // 通常開始（DATA構築 → flat宿題なら問単位再開 → START）
-          const normalStart = () => {
-            const hwCat = { category: '宿題', icon: 'message', cards: hwCards };
-            DATA = [hwCat, ...DATA.filter(c => c.category !== '宿題')];
-            initCover();
-            const catIdx = 0;
-            selectedCats.add(catIdx);
-            const subSet = new Set(hwCards.map(c => c.section || (c.states && c.states[0] ? c.states[0].label : '')));
-            selectedSubs.set(catIdx, subSet);
-            const startBtn = document.getElementById('startBtn');
-            startBtn.disabled = false;
-            $cover.classList.add('hide');
-            const begin = () => setTimeout(() => startBtn.click(), 50);
-            const savedIdx = loadHwProgress(hwCards);
-            if (savedIdx > 0) {
-              promptHwResume((savedIdx + 1) + ' 問目から再開できます（全 ' + hwCards.length + ' 問）。', '続きから（' + (savedIdx + 1) + '問目）').then((resume) => {
-                __hwResumeIdx = resume ? savedIdx : 0;
-                if (!resume) clearHwProgress();
-                begin();
-              });
-            } else {
-              begin();
-            }
-          };
-
-          // チャンク（会話）型の途中再開
-          if (saved && saved.leadId && saved.sig === sig) {
-            const sp = params.get('student') || saved.student || '';
-            const remain = (Array.isArray(saved.queueIds) ? saved.queueIds.length : 0) + 1
-              + (saved.embeddedCards && saved.embeddedCards.length ? 1 : 0);
-            $cover.classList.add('hide');
-            promptHwResume('やりかけの会話から再開します（残り ' + remain + ' 会話）。', '続きから').then((resume) => {
-              if (resume) {
-                sessionStorage.setItem('hwChunkQueue', JSON.stringify({
-                  ids: Array.isArray(saved.queueIds) ? saved.queueIds : [],
-                  embeddedCards: saved.embeddedCards,
-                  student: sp,
-                  homework: '1',
-                  sig: sig
-                }));
-                sessionStorage.removeItem('hwAccStats');
-                const parts = ['homework=1'];
-                if (sp) parts.push('student=' + encodeURIComponent(sp));
-                window.location.href = '/practice/pattern/' + saved.leadId + '?' + parts.join('&');
-              } else {
-                clearHwProgress();
-                normalStart();
-              }
-            });
-          } else {
-            if (saved && saved.sig !== sig) clearHwProgress(); // 宿題差し替え→古い保存を破棄
-            normalStart();
-          }
-        }
+        proceedHomework(JSON.parse(hwRaw));
       } catch(e) { console.error('hw autostart:', e); }
+    } else {
+      // hwCards 無し（直接URL/再読込/閉じて再開）→ APIから宿題を取得して開始・再開判定
+      const sp = params.get('student') || '';
+      const apiUrl = sp ? '/api/homework?student=' + encodeURIComponent(sp) : '/api/homework';
+      fetch(apiUrl, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => proceedHomework(d && d.cards ? d.cards : []))
+        .catch(e => console.error('hw fetch:', e));
     }
   }
 });
