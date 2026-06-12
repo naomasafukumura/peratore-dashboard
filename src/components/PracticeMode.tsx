@@ -1184,17 +1184,19 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // ---- Review OK (Turn 1): proceed to Turn 2 or next pattern / full replay ----
   const handleReviewOk = useCallback(async () => {
     setShowReview(false);
-    if (hasTurn2) {
-      if (effectiveTarget === 'question') {
-        addBubble({
-          type: 'opponent',
-          text: pattern.spp,
-          textJp: pattern.spp_jp || undefined,
-        });
-        if (pattern.has_spp_audio) {
-          await playAudio(pattern.id, 'spp');
-        }
+    // 質問モード: 受講生の質問に対するAIの答え(SPP)を、フォロー質問の有無に関わらず必ず返す
+    // （hasTurn2=false のパターンでSPPが抜け、質問→質問と続いてしまうのを防ぐ）
+    if (effectiveTarget === 'question' && pattern.spp) {
+      addBubble({
+        type: 'opponent',
+        text: pattern.spp,
+        textJp: pattern.spp_jp || undefined,
+      });
+      if (pattern.has_spp_audio) {
+        await playAudio(pattern.id, 'spp');
       }
+    }
+    if (hasTurn2) {
       setPhase('continueFlow');
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
