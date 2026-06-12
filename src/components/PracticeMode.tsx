@@ -167,6 +167,29 @@ function hwProgressKey(student: string) {
   return 'pp-hw-progress-' + (student || '_');
 }
 
+// ---- Translation cache & helper ----
+const translationCache: Record<string, string> = {};
+
+async function fetchTranslation(text: string): Promise<string> {
+  if (!text) return '';
+  if (translationCache[text] !== undefined) return translationCache[text];
+  try {
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) { translationCache[text] = ''; return ''; }
+    const data = await res.json();
+    const t = data.translation || '';
+    translationCache[text] = t;
+    return t;
+  } catch {
+    translationCache[text] = '';
+    return '';
+  }
+}
+
 // ===== Main Component =====
 export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework }: Props) {
   const [index, setIndex] = useState(0);
@@ -178,6 +201,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
   const [speakLimitSec, setSpeakLimitSec] = useState(7);
   const [turn2Mode, setTurn2Mode] = useState<'listen' | 'speak'>('listen');
+  const [practiceTarget, setPracticeTarget] = useState<'answer' | 'question'>('answer');
 
   // Recording state
   const [speakTimer, setSpeakTimer] = useState(7);
@@ -197,10 +221,13 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // Turn 1 results
   const [userAnswer1, setUserAnswer1] = useState('');
   const [scoreLevel, setScoreLevel] = useState<ScoreLevel>('good');
+  const [scoreLevel2, setScoreLevel2] = useState<ScoreLevel>('good');
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
   // Turn 2 results
   const [userAnswer2, setUserAnswer2] = useState('');
+
+  const effectiveTarget = practiceTarget;
 
   // Review overlay
   const [showReview, setShowReview] = useState(false);
@@ -265,12 +292,15 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     if (sl) { const n = parseInt(sl); if (n >= 5 && n <= 20) setSpeakLimitSec(n); }
     const t2 = localStorage.getItem('pp-turn2Mode');
     if (t2 === 'listen' || t2 === 'speak') setTurn2Mode(t2);
+    const pt = localStorage.getItem('pp-practiceTarget');
+    if (pt === 'answer' || pt === 'question') setPracticeTarget(pt);
     setAutoStartChecked(true);
   }, []);
 
   useEffect(() => { localStorage.setItem('pp-inputMode', inputMode); }, [inputMode]);
   useEffect(() => { localStorage.setItem('pp-speakLimit', String(speakLimitSec)); }, [speakLimitSec]);
   useEffect(() => { localStorage.setItem('pp-turn2Mode', turn2Mode); }, [turn2Mode]);
+  useEffect(() => { localStorage.setItem('pp-practiceTarget', practiceTarget); }, [practiceTarget]);
 
   // 宿題（チャンク型）の途中保存: チャンク表示ごとに現在位置を localStorage に記録
   useEffect(() => {
@@ -380,31 +410,44 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     setPhase('listen1');
 
-    // Show typing indicator
-    addBubble({ type: 'typing', text: '' });
+    if (effectiveTarget === 'question') {
+      // 質問モード: 日本語で出題（英語音声・英語バブルは出さない）
+      addBubble({ type: 'typing', text: '' });
+      const jaText = (await fetchTranslation(pattern.fpp_question)) || pattern.situation || pattern.fpp_question;
+      await new Promise(r => setTimeout(r, 600));
+      setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+      addBubble({
+        type: 'opponent',
+        text: '日本語の意味を英語で質問してみよう: ' + jaText,
+      });
+    } else {
+      // 答えモード: 従来通り
+      // Show typing indicator
+      addBubble({ type: 'typing', text: '' });
 
-    // Play intro audio if exists
-    if (pattern.fpp_intro && pattern.has_fpp_intro_audio) {
-      await playAudio(pattern.id, 'fpp_intro');
-    }
+      // Play intro audio if exists
+      if (pattern.fpp_intro && pattern.has_fpp_intro_audio) {
+        await playAudio(pattern.id, 'fpp_intro');
+      }
 
-    // Small delay for typing indicator
-    await new Promise(r => setTimeout(r, 600));
+      // Small delay for typing indicator
+      await new Promise(r => setTimeout(r, 600));
 
-    // Remove typing, add opponent bubble
-    setBubbles(prev => prev.filter(b => b.type !== 'typing'));
-    addBubble({
-      type: 'opponent',
-      text: pattern.fpp_question,
-      textJp: pattern.situation || undefined,
-      showEq: pattern.has_fpp_question_audio,
-      audioType: 'fpp_question',
-      patternId: pattern.id,
-    });
+      // Remove typing, add opponent bubble
+      setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+      addBubble({
+        type: 'opponent',
+        text: pattern.fpp_question,
+        textJp: pattern.situation || undefined,
+        showEq: pattern.has_fpp_question_audio,
+        audioType: 'fpp_question',
+        patternId: pattern.id,
+      });
 
-    // Play question audio
-    if (pattern.has_fpp_question_audio) {
-      await playAudio(pattern.id, 'fpp_question');
+      // Play question audio
+      if (pattern.has_fpp_question_audio) {
+        await playAudio(pattern.id, 'fpp_question');
+      }
     }
 
     // 最初のSPPは設定に関わらず常に録音
@@ -415,7 +458,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       setPhase('micReady1');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pattern, addBubble, playAudio, inputMode, turn2Mode]);
+  }, [pattern, addBubble, playAudio, inputMode, turn2Mode, effectiveTarget]);
 
   // ---- Recording ----
   const clearSpeakTimers = useCallback(() => {
@@ -602,31 +645,34 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const scoreTurn1 = useCallback(async () => {
     if (!pattern) return;
 
-    // Get userAnswer1 from the latest state
     const currentAnswer = userAnswer1;
+    const isQuestion = effectiveTarget === 'question';
+    const exampleAnswer = isQuestion ? pattern.fpp_question : pattern.spp;
     let level: ScoreLevel;
 
     try {
+      const body: Record<string, unknown> = {
+        userAnswer: currentAnswer,
+        question: pattern.fpp_question,
+        targetChunk: chunkTitle,
+        exampleAnswer,
+        turn: 1,
+      };
+      if (isQuestion) body.scoreMode = 'question';
       const res = await fetch('/api/score-answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userAnswer: currentAnswer,
-          question: pattern.fpp_question,
-          targetChunk: chunkTitle,
-          exampleAnswer: pattern.spp,
-          turn: 1,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.fallback || !data.level) {
-        const local = scoreTurn1Local(currentAnswer, pattern.spp, chunkTitle);
+        const local = scoreTurn1Local(currentAnswer, exampleAnswer, isQuestion ? pattern.fpp_question : chunkTitle);
         level = local.level;
       } else {
         level = data.level as ScoreLevel;
       }
     } catch {
-      const local = scoreTurn1Local(currentAnswer, pattern.spp, chunkTitle);
+      const local = scoreTurn1Local(currentAnswer, exampleAnswer, isQuestion ? pattern.fpp_question : chunkTitle);
       level = local.level;
     }
 
@@ -648,7 +694,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setAiFeedback(null);
     setShowReview(true);
     setPhase('result1');
-  }, [pattern, userAnswer1, chunkTitle]);
+  }, [pattern, userAnswer1, chunkTitle, effectiveTarget]);
 
   scoreTurn1Ref.current = scoreTurn1;
 
@@ -668,7 +714,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setReviewShowFeedback(true);
     try {
       const userReply = reviewTurn === 1 ? userAnswer1 : userAnswer2;
-      const naturalReply = reviewTurn === 1 ? pattern.spp : (pattern.followup_answer || '');
+      const isQuestion = effectiveTarget === 'question';
+      const naturalReply = reviewTurn === 1
+        ? (isQuestion ? pattern.fpp_question : pattern.spp)
+        : (isQuestion ? (pattern.followup_question || '') : (pattern.followup_answer || ''));
       const question = reviewTurn === 1 ? pattern.fpp_question : (pattern.followup_question || '');
       const res = await fetch('/api/explain-answer', {
         method: 'POST',
@@ -683,7 +732,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       setReviewFeedbackText('');
     }
     setReviewFeedbackLoading(false);
-  }, [pattern, reviewTurn, userAnswer1, userAnswer2]);
+  }, [pattern, reviewTurn, userAnswer1, userAnswer2, effectiveTarget]);
 
   // ---- Review Re-record (Turn 1) ----
   const handleReviewRerecord = useCallback(() => {
@@ -715,25 +764,37 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     setPhase('listen1');
 
-    addBubble({ type: 'typing', text: '' });
-    await new Promise(r => setTimeout(r, 600));
+    if (effectiveTarget === 'question') {
+      // 質問モード: 日本語で出題
+      addBubble({ type: 'typing', text: '' });
+      const jaText = (await fetchTranslation(nextPattern.fpp_question)) || nextPattern.situation || nextPattern.fpp_question;
+      await new Promise(r => setTimeout(r, 600));
+      setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+      addBubble({
+        type: 'opponent',
+        text: '日本語の意味を英語で質問してみよう: ' + jaText,
+      });
+    } else {
+      addBubble({ type: 'typing', text: '' });
+      await new Promise(r => setTimeout(r, 600));
 
-    setBubbles(prev => prev.filter(b => b.type !== 'typing'));
-    addBubble({
-      type: 'opponent',
-      text: nextPattern.fpp_question,
-      textJp: nextPattern.situation || undefined,
-      showEq: nextPattern.has_fpp_question_audio,
-      audioType: 'fpp_question',
-      patternId: nextPattern.id,
-    });
+      setBubbles(prev => prev.filter(b => b.type !== 'typing'));
+      addBubble({
+        type: 'opponent',
+        text: nextPattern.fpp_question,
+        textJp: nextPattern.situation || undefined,
+        showEq: nextPattern.has_fpp_question_audio,
+        audioType: 'fpp_question',
+        patternId: nextPattern.id,
+      });
 
-    if (nextPattern.has_fpp_question_audio) {
-      await playAudio(nextPattern.id, 'fpp_question');
+      if (nextPattern.has_fpp_question_audio) {
+        await playAudio(nextPattern.id, 'fpp_question');
+      }
     }
 
-    if (turn2Mode === 'listen') {
-      // 聞くだけモード: SPP を表示して自動再生し、次パターンへ or fullReplay
+    if (turn2Mode === 'listen' && effectiveTarget !== 'question') {
+      // 聞くだけモード（答えモード時のみ）: SPP を表示して自動再生し、次パターンへ or fullReplay
       addBubble({
         type: 'user',
         text: nextPattern.spp,
@@ -760,7 +821,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addBubble, playAudio, inputMode, turn2Mode, patterns, total]);
+  }, [addBubble, playAudio, inputMode, turn2Mode, patterns, total, effectiveTarget]);
 
   // pendingNextIndexRef が設定されたら startNextPatternTurn1 を発火
   useEffect(() => {
@@ -784,56 +845,115 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
     // Remove typing, add followup question
     setBubbles(prev => prev.filter(b => b.type !== 'typing'));
-    addBubble({
-      type: 'opponent',
-      text: pattern.followup_question,
-      showEq: pattern.has_followup_audio,
-      audioType: 'followup_question',
-      patternId: pattern.id,
-    });
 
-    setPhase('listen2');
-
-    // Play followup audio
-    if (pattern.has_followup_audio) {
-      await playAudio(pattern.id, 'followup_question');
-    }
-
-    if (turn2Mode === 'listen') {
-      // Listen-only mode: show model answer and proceed
-      if (pattern.followup_answer) {
-        addBubble({
-          type: 'opponent',
-          text: pattern.followup_answer,
-          textJp: pattern.followup_answer_jp || undefined,
-        });
-      }
-      await new Promise(r => setTimeout(r, 1500));
-      goToFullReplay();
-    } else {
-      // Speak mode
+    if (effectiveTarget === 'question') {
+      // 質問モード: 日本語で出題（followup_question 音声・英語バブルは出さない）
+      const jaText = (await fetchTranslation(pattern.followup_question)) || pattern.followup_question;
+      addBubble({
+        type: 'opponent',
+        text: '日本語の意味を英語で質問してみよう: ' + jaText,
+      });
+      setPhase('listen2');
+      // listen/speak に関わらず能動フロー（録音）
       if (inputMode === 'text') {
         setPhase('micReady2');
         setTimeout(() => textInputRef.current?.focus(), 100);
       } else {
         setPhase('micReady2');
       }
-    }
-  }, [pattern, addBubble, playAudio, turn2Mode, inputMode]);
+    } else {
+      // 答えモード: 従来通り
+      addBubble({
+        type: 'opponent',
+        text: pattern.followup_question,
+        showEq: pattern.has_followup_audio,
+        audioType: 'followup_question',
+        patternId: pattern.id,
+      });
 
-  // ---- Turn 2 review ----
-  const showTurn2Review = useCallback(async () => {
+      setPhase('listen2');
+
+      // Play followup audio
+      if (pattern.has_followup_audio) {
+        await playAudio(pattern.id, 'followup_question');
+      }
+
+      if (turn2Mode === 'listen') {
+        // Listen-only mode: show model answer and proceed
+        if (pattern.followup_answer) {
+          addBubble({
+            type: 'opponent',
+            text: pattern.followup_answer,
+            textJp: pattern.followup_answer_jp || undefined,
+          });
+        }
+        await new Promise(r => setTimeout(r, 1500));
+        goToFullReplay();
+      } else {
+        // Speak mode
+        if (inputMode === 'text') {
+          setPhase('micReady2');
+          setTimeout(() => textInputRef.current?.focus(), 100);
+        } else {
+          setPhase('micReady2');
+        }
+      }
+    }
+  }, [pattern, addBubble, playAudio, turn2Mode, inputMode, effectiveTarget]);
+
+  const scoreTurn2 = useCallback(async () => {
     if (!pattern) return;
+
+    const currentAnswer = userAnswer2;
+    const isQuestion = effectiveTarget === 'question';
+    const question = pattern.followup_question || '';
+    const exampleAnswer = isQuestion ? question : (pattern.followup_answer || '');
+    let level: ScoreLevel = 'good';
+
+    if (isQuestion) {
+      try {
+        const res = await fetch('/api/score-answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userAnswer: currentAnswer,
+            question,
+            targetChunk: '',
+            exampleAnswer,
+            turn: 2,
+            scoreMode: 'question',
+          }),
+        });
+        const data = await res.json();
+        if (data.fallback || !data.level) {
+          const local = scoreTurn1Local(currentAnswer, exampleAnswer, question);
+          level = local.level;
+        } else {
+          level = data.level as ScoreLevel;
+        }
+      } catch {
+        const local = scoreTurn1Local(currentAnswer, exampleAnswer, question);
+        level = local.level;
+      }
+      setScoreLevel2(level);
+      const texts = REACTIONS[level] || REACTIONS.good;
+      showReactionPopup(texts[Math.floor(Math.random() * texts.length)]);
+      if (level === 'perfect' || level === 'great') spawnConfetti();
+    }
+
     setReviewTurn(2);
     setReviewShowQJa(false);
     setReviewShowNatJa(false);
     setReviewShowFeedback(false);
     setReviewFeedbackText('');
-
-    // No API scoring for Turn 2, just show review
     setShowReview(true);
     setPhase('result2');
-  }, [pattern]);
+  }, [pattern, userAnswer2, effectiveTarget]);
+
+  // ---- Turn 2 review ----
+  const showTurn2Review = useCallback(async () => {
+    await scoreTurn2();
+  }, [scoreTurn2]);
 
   // Handle text submit for turn 2
   useEffect(() => {
@@ -1065,7 +1185,16 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const handleReviewOk = useCallback(async () => {
     setShowReview(false);
     if (hasTurn2) {
-      // Start Turn 2
+      if (effectiveTarget === 'question') {
+        addBubble({
+          type: 'opponent',
+          text: pattern.spp,
+          textJp: pattern.spp_jp || undefined,
+        });
+        if (pattern.has_spp_audio) {
+          await playAudio(pattern.id, 'spp');
+        }
+      }
       setPhase('continueFlow');
       await new Promise(r => setTimeout(r, 400));
       await startTurn2();
@@ -1080,7 +1209,29 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       // 最後のパターン: フルリプレイへ
       goToFullReplay();
     }
-  }, [hasTurn2, startTurn2, goToFullReplay, index, total, scoreLevel]);
+  }, [hasTurn2, startTurn2, goToFullReplay, index, total, scoreLevel, effectiveTarget, pattern, addBubble, playAudio]);
+
+  const handleT2ReviewOk = useCallback(async () => {
+    setShowReview(false);
+    if (effectiveTarget === 'question' && pattern.followup_answer) {
+      addBubble({
+        type: 'opponent',
+        text: pattern.followup_answer,
+        textJp: pattern.followup_answer_jp || undefined,
+      });
+      if (pattern.has_natural_audio) {
+        await playAudio(pattern.id, 'natural');
+      }
+    }
+    setStats(prev => ({ ...prev, [scoreLevel2]: prev[scoreLevel2] + 1 }));
+    if (index < total - 1) {
+      const nextIdx = index + 1;
+      pendingNextIndexRef.current = nextIdx;
+      setIndex(nextIdx);
+    } else {
+      goToFullReplay();
+    }
+  }, [effectiveTarget, pattern, addBubble, playAudio, scoreLevel2, index, total, goToFullReplay]);
 
   const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
     for (let i = 0; i < lines.length; i++) {
@@ -1242,10 +1393,15 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // ---- Diff for review ----
   const reviewUserReply = reviewTurn === 1 ? userAnswer1 : userAnswer2;
-  const reviewNaturalReply = reviewTurn === 1 ? pattern.spp : (pattern.followup_answer || '');
+  const isQuestionTarget = effectiveTarget === 'question';
+  const reviewNaturalReply = reviewTurn === 1
+    ? (isQuestionTarget ? pattern.fpp_question : pattern.spp)
+    : (isQuestionTarget ? (pattern.followup_question || '') : (pattern.followup_answer || ''));
   const reviewQuestionText = reviewTurn === 1 ? pattern.fpp_question : (pattern.followup_question || '');
   const reviewQuestionJa = reviewTurn === 1 ? (pattern.situation || '') : '';
-  const reviewNaturalJa = reviewTurn === 1 ? (pattern.spp_jp || '') : (pattern.followup_answer_jp || '');
+  const reviewNaturalJa = reviewTurn === 1
+    ? (isQuestionTarget ? (pattern.situation || '') : (pattern.spp_jp || ''))
+    : (isQuestionTarget ? '' : (pattern.followup_answer_jp || ''));
   const diff = highlightDiff(reviewUserReply, reviewNaturalReply);
 
   return (
@@ -1549,9 +1705,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
           <div className="review-card">
             <div className="review-hd-row">
               <div className="review-turn-label">Turn {reviewTurn}</div>
-              {reviewTurn === 1 && (
-                <div className={`review-score-badge score-${scoreLevel}`}>
-                  {SCORE_LABELS[scoreLevel]}
+              {(reviewTurn === 1 || (reviewTurn === 2 && isQuestionTarget)) && (
+                <div className={`review-score-badge score-${reviewTurn === 1 ? scoreLevel : scoreLevel2}`}>
+                  {SCORE_LABELS[reviewTurn === 1 ? scoreLevel : scoreLevel2]}
                 </div>
               )}
             </div>
@@ -1612,6 +1768,22 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
             <div className="review-btns">
               <button className="review-btn review-good" onClick={handleReviewOk}>OK</button>
               <button className="review-btn review-rerecord" onClick={handleReviewRerecord}>Re-record</button>
+            </div>
+          ) : isQuestionTarget ? (
+            <div className="review-btns">
+              <button className="review-btn review-good" onClick={handleT2ReviewOk}>OK</button>
+              <button className="review-btn review-rerecord" onClick={() => {
+                setShowReview(false);
+                setBubbles(prev => {
+                  const idx = [...prev].reverse().findIndex(b => b.type === 'user');
+                  if (idx === -1) return prev;
+                  const removeIdx = prev.length - 1 - idx;
+                  return prev.filter((_, i) => i !== removeIdx);
+                });
+                setUserAnswer2('');
+                setPhase('micReady2');
+                if (inputMode === 'text') setTimeout(() => textInputRef.current?.focus(), 100);
+              }}>Re-record</button>
             </div>
           ) : (
             <div className="review-btns">
@@ -1706,6 +1878,28 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                 </button>
               </div>
               <div className="settings-hint">Turn 2を聞くだけにするか、自分でも回答するか</div>
+            </div>
+            <div className="settings-section">
+              <div className="settings-label">練習する対象</div>
+              <div className="settings-toggle-group">
+                <button
+                  className={`settings-toggle ${practiceTarget === 'answer' ? 'active' : ''}`}
+                  onClick={() => setPracticeTarget('answer')}
+                >
+                  答えを練習
+                </button>
+                <button
+                  className={`settings-toggle ${practiceTarget === 'question' ? 'active' : ''}`}
+                  onClick={() => setPracticeTarget('question')}
+                >
+                  質問を練習
+                </button>
+              </div>
+              <div className="settings-hint">
+                {practiceTarget === 'question'
+                  ? '日本語で出題→英語で質問→AIが答えを返します'
+                  : '質問に対する英語の答えを練習します'}
+              </div>
             </div>
           </div>
         </div>

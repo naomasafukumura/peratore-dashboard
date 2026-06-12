@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { userAnswer, question, targetPattern, situation, isRetry } = await req.json();
+    const { userAnswer, question, targetPattern, situation, isRetry, scoreMode, exampleQuestion } = await req.json();
     if (!userAnswer || !question) {
       return NextResponse.json({ error: 'Missing userAnswer or question' }, { status: 400 });
     }
@@ -17,15 +17,58 @@ export async function POST(req: NextRequest) {
 受講生がもう一度挑戦した回答です。改善点のコメントは不要です。褒めだけにしてください。suggestionも不要です（空文字にしてください）。`
       : '';
 
-    const situationNote = situation
-      ? `\n場面設定: "${situation}"`
-      : '';
+    let prompt: string;
 
-    const patternNote = targetPattern
-      ? `\n練習ターゲットパターン: "${targetPattern}"`
-      : '';
+    if (scoreMode === 'question') {
+      // 質問モード採点プロンプト
+      const exQ = exampleQuestion || question;
+      prompt = `受講生は日本語の意図を英語の質問で表現する練習をしています。
 
-    const prompt = `受講生が英語で回答しました。文法的なミスがあるかチェックしてください。
+お手本の質問: "${exQ}"
+受講生の発話: "${userAnswer}"
+${retryNote}
+
+## チェック観点
+1. 英語の質問として通じるか（疑問文の形になっているか、語順・動詞の形など）
+2. お手本の意図（聞きたいこと）に合っているか
+3. 自然な英語の質問か
+
+## 評価レベル（実践モードなので寛容に）
+- perfect: 文法ミスなし。自然な英語の質問
+- great: 意図に合う英語の質問。言い回しが違っても伝わればgreat以上
+- good: 小さなミスがあるけど質問として伝わる
+- almost: ミスがあって質問として伝わりにくい
+- retry: 質問になっていない、または意図と無関係
+
+重要: 意図に合う自然な英語の質問なら、言い回しが違っても great 以上にする。retry は「質問の形になっていない/意図と全く無関係」のみ。
+
+## コメントのルール
+- 英語の質問として通じれば褒める（日本語1〜2文）
+- ミスがあれば「今の形だとこう聞こえる → こうするとこう伝わる」の形で1〜2文で説明
+- 「変」「間違い」「ダメ」「おかしい」「不自然」「誤り」「正しくは」「文法的には」等の否定語・講義調は禁止
+- 「〜ですよ」「〜ますよ」は使わない。「〜です!」「〜ます!」で終わる
+- 受講生の回答をオウム返しで繰り返さない
+- マークダウン禁止
+
+## suggestion（より自然な質問の言い方）
+- 受講生の発話が不自然な場合のみ、より自然な英語の質問文を提案する（英文のみ）
+- 十分自然なら空文字にする
+
+## 出力フォーマット（JSON）
+{"level": "great", "comment": "しっかり伝わります! ...", "suggestion": ""}
+
+必ずJSON形式で出力してください。`;
+    } else {
+      // 答えモード採点プロンプト（既存・完全維持）
+      const situationNote = situation
+        ? `\n場面設定: "${situation}"`
+        : '';
+
+      const patternNote = targetPattern
+        ? `\n練習ターゲットパターン: "${targetPattern}"`
+        : '';
+
+      prompt = `受講生が英語で回答しました。文法的なミスがあるかチェックしてください。
 
 質問: "${question}"
 受講生の回答: "${userAnswer}"${situationNote}${patternNote}
@@ -61,6 +104,7 @@ ${retryNote}
 {"level": "great", "comment": "しっかり伝わります! ...", "suggestion": ""}
 
 必ずJSON形式で出力してください。`;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

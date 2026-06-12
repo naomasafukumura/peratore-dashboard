@@ -7,9 +7,64 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { userAnswer, question, targetChunk, exampleAnswer, turn } = await req.json();
+    const { userAnswer, question, targetChunk, exampleAnswer, turn, scoreMode } = await req.json();
     if (!userAnswer || !question) {
       return NextResponse.json({ error: 'Missing userAnswer or question' }, { status: 400 });
+    }
+
+    // 質問モード: turn に関係なく質問再現プロンプトを使う
+    if (scoreMode === 'question') {
+      const questionPrompt = `お手本の質問文: "${exampleAnswer}"
+生徒の発話(文字起こし): "${userAnswer}"
+
+生徒はお手本の質問文をそのまま声に出して再現する練習をしています。
+どれだけ忠実に再現できたかを厳しめに評価してください。
+
+評価基準:
+- perfect: 語順・単語がお手本とほぼ完全一致（句読点・大文字小文字・gonna/going to等の口語表記揺れは無視）
+- great: 1語程度の軽微な違い（冠詞・時制の些細なズレ）はあるが質問として同一
+- good: 主要語は再現できているが語順や単語に複数の違いがある
+- almost: 一部しか再現できていない／意味は近いが文として崩れている
+- retry: 全く違う／無音
+
+注意: 意味が同じでも単語・語順が違えば great 以下にする（原文再現が目的）。
+JSON形式のみ出力: {"level":"perfect","chunkUsed":true}`;
+
+      const qResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: questionPrompt }],
+          max_tokens: 100,
+          temperature: 0.2,
+        }),
+      });
+
+      if (!qResponse.ok) {
+        const errText = await qResponse.text();
+        console.error('OpenAI API error (question mode):', qResponse.status, errText);
+        return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
+      }
+
+      const qData = await qResponse.json();
+      const qRaw = (qData.choices?.[0]?.message?.content || '').trim();
+      try {
+        const jsonMatch = qRaw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return NextResponse.json({
+            level: parsed.level || 'good',
+            chunkUsed: true,
+          });
+        }
+      } catch (e) {
+        console.error('JSON parse error (question mode):', e, 'raw:', qRaw);
+      }
+      return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
     }
 
     const isTurn2 = turn === 2;

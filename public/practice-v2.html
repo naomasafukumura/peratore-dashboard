@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -1037,6 +1037,14 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
       <div class="settings-hint">2ターン目を聞くだけにするか、自分でも回答するか</div>
     </div>
     <div class="settings-section">
+      <div class="settings-label">練習する対象</div>
+      <div class="settings-toggle-group">
+        <button class="settings-toggle active" id="practiceTargetAnswer" data-target="answer">答えを練習</button>
+        <button class="settings-toggle" id="practiceTargetQuestion" data-target="question">質問を練習</button>
+      </div>
+      <div class="settings-hint">お手本の質問文をそのまま声に出します</div>
+    </div>
+    <div class="settings-section">
       <div class="settings-label">文字サイズ</div>
       <div class="settings-slider-row">
         <input type="range" class="settings-slider" id="fontSizeSlider" min="12" max="22" value="15" step="1">
@@ -1315,6 +1323,7 @@ let inputMode = localStorage.getItem('pp-inputMode') || 'voice';
 let speakLimitSec = parseInt(localStorage.getItem('pp-speakLimit') || '7', 10);
 let turn2Mode = localStorage.getItem('pp-turn2Mode') || 'speak';
 let fontSize = parseInt(localStorage.getItem('pp-fontSize') || '15', 10);
+let practiceTarget = localStorage.getItem('pp-practiceTarget') || 'answer';
 document.documentElement.style.setProperty('--chat-font-size', fontSize + 'px');
 
 // Stats
@@ -2641,12 +2650,36 @@ function showListenEndBar() {
 // ===== Phase: Tap to Start → Listen =====
 document.getElementById('tapStartBtn').addEventListener('click', startListenPhase);
 
+// ===== 質問モード用ヘルパー: 英語の質問を日本語化して出題 → mic ready =====
+// 質問モードでは listen/speak 設定に関わらず、日本語で促して英語の質問を録音させる。
+// 英語の質問文を翻訳して日本語の出題文にする（DBカードは triggerJa が状況文/空のため翻訳を優先）。
+async function showJaQuestionCue(englishQuestion, jaHint, phaseKey) {
+  updatePhaseIndicator(phaseKey);
+  showActionPhase(null);
+  stopAudio();
+  removeTypingIndicator();
+  addTypingIndicator();
+  let jaCue = '';
+  try { jaCue = await fetchTranslation(englishQuestion || ''); } catch (e) {}
+  if (!jaCue) jaCue = jaHint || '';
+  if (!jaCue) jaCue = englishQuestion || '';
+  removeTypingIndicator();
+  addSystemMessage('日本語の意味を英語で質問してみよう: ' + jaCue, () => {
+    showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
+    const micPhaseKey = phaseKey === 'listen1' ? 'micReady1' : phaseKey;
+    updatePhaseIndicator(micPhaseKey);
+  });
+}
+
 function startListenPhase() {
+  const c = cards[currentIdx];
+  // 質問モード: listen/speak に関わらず日本語出題の能動フローを最優先
+  if (practiceTarget === 'question') { showJaQuestionCue(c.trigger, c.triggerJa, 'listen1'); return; }
   if (turn2Mode === 'listen') {
     startListenFlow();
     return;
   }
-  const c = cards[currentIdx];
+
   updatePhaseIndicator('listen1');
   removeTypingIndicator();
   addTypingIndicator();
@@ -2959,12 +2992,14 @@ function scoreTurn2Local(spoken, state) {
 }
 
 // API scoring via Gemini (意味判定)
-async function scoreViaAPI(userAnswer, question, targetChunk, exampleAnswer, turn) {
+async function scoreViaAPI(userAnswer, question, targetChunk, exampleAnswer, turn, scoreMode) {
   try {
+    const body = { userAnswer, question, targetChunk, exampleAnswer, turn };
+    if (scoreMode) body.scoreMode = scoreMode;
     const res = await fetch('/api/score-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userAnswer, question, targetChunk, exampleAnswer, turn })
+      body: JSON.stringify(body)
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -2980,18 +3015,53 @@ async function scoreViaAPI(userAnswer, question, targetChunk, exampleAnswer, tur
 async function scoreTurn1(spoken, card) {
   const s = card.states[0];
   const question = card.trigger || '';
-  const apiResult = await scoreViaAPI(spoken, question, s.label, s.conclusion, 1);
+  // 宿題でも practiceTarget を尊重（質問モードを許可）
+  const isHomework = new URLSearchParams(location.search).get('homework') === '1';
+  const effectiveTarget = practiceTarget;
+
+  let exampleAnswer, scoreModeArg;
+  if (effectiveTarget === 'question') {
+    exampleAnswer = card.trigger || '';
+    scoreModeArg = 'question';
+  } else {
+    exampleAnswer = s.conclusion || '';
+    scoreModeArg = undefined;
+  }
+
+  const apiResult = await scoreViaAPI(spoken, question, s.label, exampleAnswer, 1, scoreModeArg);
   if (apiResult) return apiResult;
   // Fallback to local fuzzy matching
+  if (effectiveTarget === 'question') {
+    // 質問モードフォールバック: 質問文を conclusion として渡す
+    const pseudoCard = { states: [{ conclusion: card.trigger || '', label: card.trigger || '', acceptableVariants: [] }] };
+    return scoreTurn1Local(spoken, pseudoCard);
+  }
   return scoreTurn1Local(spoken, card);
 }
 
 async function scoreTurn2(spoken, state) {
   const question = state.followup || '';
-  const exampleAnswer = (state.conclusion2Examples && state.conclusion2Examples[0]) || '';
-  const apiResult = await scoreViaAPI(spoken, question, '', exampleAnswer, 2);
+  // 宿題でも practiceTarget を尊重（質問モードを許可）
+  const isHomework = new URLSearchParams(location.search).get('homework') === '1';
+  const effectiveTarget = practiceTarget;
+
+  let exampleAnswer, scoreModeArg;
+  if (effectiveTarget === 'question') {
+    exampleAnswer = state.followup || '';
+    scoreModeArg = 'question';
+  } else {
+    exampleAnswer = (state.conclusion2Examples && state.conclusion2Examples[0]) || '';
+    scoreModeArg = undefined;
+  }
+
+  const apiResult = await scoreViaAPI(spoken, question, '', exampleAnswer, 2, scoreModeArg);
   if (apiResult) return apiResult;
   // Fallback to local fuzzy matching
+  if (effectiveTarget === 'question') {
+    // 質問モードフォールバック: フォローアップ質問文との類似度で評価
+    const pseudoCard = { states: [{ conclusion: state.followup || '', label: state.followup || '', acceptableVariants: [] }] };
+    return scoreTurn1Local(spoken, pseudoCard);
+  }
   return scoreTurn2Local(spoken, state);
 }
 
@@ -3036,11 +3106,15 @@ async function showResult() {
   try { stopAudio(); currentAudio = new Audio(reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
 
   // Show user's answer in chat, then after a beat show review card
+  // 質問モード時はレビューの照合先を質問文に切り替える
+  const _isHomeworkT1 = new URLSearchParams(location.search).get('homework') === '1';
+  const _effectiveTargetT1 = practiceTarget;
+  const _t1NaturalReply = _effectiveTargetT1 === 'question' ? (c.trigger || '') : (s.conclusion || '');
   setTimeout(() => {
     showReviewCard(
       'Turn 1',
       turn1RecognizedText,
-      s.conclusion,
+      _t1NaturalReply,
       null,
       resultType,
       (evalResult) => {
@@ -3060,11 +3134,24 @@ async function showResult() {
           if (turn1RecognizedText) {
             addUserBubble(turn1RecognizedText);
           }
-          if (s.followup) {
-            startTurn2Transition();
+          if (_effectiveTargetT1 === 'question') {
+            // 質問モード: AIの答えを表示・再生してから次へ
+            addOpponentBubble(s.conclusion || '', false);
+            playFollowupAudio(s.conclusionAudio, s.conclusion, () => {
+              if (s.followup) {
+                startTurn2Transition();
+              } else {
+                cardTurnResults.push({ ...currentCardResults });
+                nextCard();
+              }
+            });
           } else {
-            cardTurnResults.push({ ...currentCardResults });
-            nextCard();
+            if (s.followup) {
+              startTurn2Transition();
+            } else {
+              cardTurnResults.push({ ...currentCardResults });
+              nextCard();
+            }
           }
         }
       }
@@ -3095,18 +3182,31 @@ async function showTurn2Result() {
   }
 
   // After 0.6s余韻, show review card
+  // 質問モード時はレビューの照合先をフォローアップ質問文に切り替える
+  const _isHomeworkT2 = new URLSearchParams(location.search).get('homework') === '1';
+  const _effectiveTargetT2 = practiceTarget;
+  const _t2NaturalReply = _effectiveTargetT2 === 'question' ? (s.followup || '') : (s.conclusion2Examples[0] || '');
+  const _t2AltReplies = _effectiveTargetT2 === 'question' ? null : (s.conclusion2Examples.length > 1 ? s.conclusion2Examples.slice(1) : null);
   setTimeout(() => {
     showReviewCard(
       'Turn 2',
       recognizedText || '',
-      s.conclusion2Examples[0] || '',
-      s.conclusion2Examples.length > 1 ? s.conclusion2Examples.slice(1) : null,
+      _t2NaturalReply,
+      _t2AltReplies,
       t2ResultType,
       (evalResult) => {
         hideReviewOverlay();
         currentCardResults.turn2 = evalResult;
         cardTurnResults.push({ ...currentCardResults });
-        showFullConversationReplay(true);
+        if (_effectiveTargetT2 === 'question') {
+          // 質問モード: AIの答えを表示・再生してから全会話リプレイへ
+          addOpponentBubble(s.conclusion2Examples[0] || '', false);
+          playFollowupAudio(s.naturalAudio, s.conclusion2Examples[0], () => {
+            showFullConversationReplay(true);
+          });
+        } else {
+          showFullConversationReplay(true);
+        }
       }
     );
   }, 600);
@@ -3167,6 +3267,7 @@ function showReviewCard(turnLabel, userReply, naturalReply, altReplies, resultTy
   const c = cards[currentIdx];
   const s = c.states[0];
   const isTurn1Review = turnLabel === 'Turn 1';
+  const _rvIsQuestion = practiceTarget === 'question';
   const questionText = isTurn1Review ? c.trigger : (s.followup || '');
   const qTextEl = document.getElementById('reviewQText');
   const qJaEl = document.getElementById('reviewQJa');
@@ -3210,7 +3311,9 @@ function showReviewCard(turnLabel, userReply, naturalReply, altReplies, resultTy
   // Natural reply tap → toggle Japanese translation
   const natEl = document.getElementById('reviewNaturalReply');
   const natJaEl = document.getElementById('reviewNaturalJa');
-  const naturalJa = isTurn1Review ? (s.conclusionJa || '') : (s.conclusion2Ja || '');
+  const naturalJa = _rvIsQuestion
+    ? (isTurn1Review ? (c.triggerJa || '') : (s.followupJa || ''))
+    : (isTurn1Review ? (s.conclusionJa || '') : (s.conclusion2Ja || ''));
   natJaEl.style.display = 'none';
   natJaEl.textContent = naturalJa;
   natEl.onclick = () => {
@@ -3260,7 +3363,9 @@ function showReviewCard(turnLabel, userReply, naturalReply, altReplies, resultTy
   overlay.classList.add('show');
 
   // Play the natural reply audio once lightly
-  const audioToPlay = isTurn1 ? s.conclusionAudio : s.naturalAudio;
+  const audioToPlay = _rvIsQuestion
+    ? (isTurn1 ? c.triggerAudio : s.followupAudio)
+    : (isTurn1 ? s.conclusionAudio : s.naturalAudio);
   if (audioToPlay) {
     setTimeout(() => {
       stopAudio();
@@ -3525,6 +3630,9 @@ document.getElementById('t1OkBtn').addEventListener('click', () => {
 // ===== Turn 2 Transition =====
 function startTurn2Transition() {
   round = 2;
+  const s2 = cards[currentIdx].states[0];
+  // 質問モード: listen/speak に関わらずフォロー質問も日本語出題の能動フロー
+  if (practiceTarget === 'question') { showJaQuestionCue(s2.followup, s2.followupJa, 'micReady2'); return; }
   if (turn2Mode === 'listen') {
     startTurn2ListenOnly();
     return;
@@ -3549,6 +3657,7 @@ function startTurn2ListenOnly() {
 // ===== Continue Phase =====
 function startContinuePhase() {
   const s = cards[currentIdx].states[0];
+
   showActionPhase('actionContinue');
   const statusEl = document.getElementById('continueStatus');
   if (statusEl) statusEl.textContent = 'Playing response...';
@@ -3585,47 +3694,82 @@ function showPracticeMode(card, onDone) {
   practiceOnDone = onDone;
   $chatThread.innerHTML = '';
 
+  const isQ = practiceTarget === 'question';
+
   // Hide situation panel, show practice label instead
   const sitPanel = document.getElementById('mobileSituationPanel');
   if (sitPanel) {
     sitPanel.querySelector('.mobile-situation-chunk').textContent = '実践モード';
-    sitPanel.querySelector('.mobile-situation-text').textContent = 'あなたなりに答えてみよう!';
+    sitPanel.querySelector('.mobile-situation-text').textContent = isQ ? '日本語を見て、英語で質問してみよう!' : 'あなたなりに答えてみよう!';
   }
 
-  // Play trigger audio and show bubble (same as pattern practice)
-  addOpponentBubble(card.trigger, false);
-  stopAudio();
-  currentAudio = new Audio(card.triggerAudio);
-  currentAudio.play().catch(() => {});
+  if (isQ) {
+    // 質問モード: 英語の質問を日本語化して出題 → 入力待ち（英語音声・バブルなし）
+    let inputShown = false;
+    function showPracticeInputQ() {
+      if (inputShown) return;
+      inputShown = true;
+      const hintText = card.trigger || '';
+      if (hintText) {
+        const hintRow = document.createElement('div');
+        hintRow.className = 'practice-hint-row';
+        hintRow.innerHTML = `<button class="practice-hint-btn">ヒントを見る</button><div class="practice-hint-text" style="display:none">${escapeHtml(hintText)}</div>`;
+        hintRow.querySelector('.practice-hint-btn').addEventListener('click', () => {
+          const textEl = hintRow.querySelector('.practice-hint-text');
+          const btnEl = hintRow.querySelector('.practice-hint-btn');
+          textEl.style.display = '';
+          btnEl.style.display = 'none';
+        });
+        $chatThread.appendChild(hintRow);
+        scrollToBottom();
+      }
+      updatePhaseIndicator('micReady1');
+      showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
+    }
+    (async () => {
+      removeTypingIndicator();
+      addTypingIndicator();
+      let jaCue = '';
+      try { jaCue = await fetchTranslation(card.trigger || ''); } catch (e) {}
+      if (!jaCue) jaCue = card.triggerJa || '';
+      if (!jaCue) jaCue = card.trigger || '';
+      removeTypingIndicator();
+      addSystemMessage('日本語の意味を英語で質問してみよう: ' + jaCue, showPracticeInputQ);
+    })();
+  } else {
+    // 答えモード（または triggerJa 空のフォールバック）: 従来フロー
+    addOpponentBubble(card.trigger, false);
+    stopAudio();
+    currentAudio = new Audio(card.triggerAudio);
+    currentAudio.play().catch(() => {});
 
-  currentAudio.onended = showPracticeInput;
-  currentAudio.onerror = showPracticeInput;
-  setTimeout(showPracticeInput, 5000);
-  let inputShown = false;
+    let inputShown = false;
+    function showPracticeInput() {
+      if (inputShown) return;
+      inputShown = true;
 
-  function showPracticeInput() {
-    if (inputShown) return;
-    inputShown = true;
+      const hintText = card.states[0].label || card.section || '';
+      if (hintText) {
+        const hintRow = document.createElement('div');
+        hintRow.className = 'practice-hint-row';
+        hintRow.innerHTML = `<button class="practice-hint-btn">ヒントを見る</button><div class="practice-hint-text" style="display:none">${escapeHtml(hintText)}</div>`;
+        hintRow.querySelector('.practice-hint-btn').addEventListener('click', () => {
+          const textEl = hintRow.querySelector('.practice-hint-text');
+          const btnEl = hintRow.querySelector('.practice-hint-btn');
+          textEl.style.display = '';
+          btnEl.style.display = 'none';
+        });
+        $chatThread.appendChild(hintRow);
+        scrollToBottom();
+      }
 
-    // Add hint button to chat
-    const hintText = card.states[0].label || card.section || '';
-    if (hintText) {
-      const hintRow = document.createElement('div');
-      hintRow.className = 'practice-hint-row';
-      hintRow.innerHTML = `<button class="practice-hint-btn">ヒントを見る</button><div class="practice-hint-text" style="display:none">${escapeHtml(hintText)}</div>`;
-      hintRow.querySelector('.practice-hint-btn').addEventListener('click', () => {
-        const textEl = hintRow.querySelector('.practice-hint-text');
-        const btnEl = hintRow.querySelector('.practice-hint-btn');
-        textEl.style.display = '';
-        btnEl.style.display = 'none';
-      });
-      $chatThread.appendChild(hintRow);
-      scrollToBottom();
+      updatePhaseIndicator('micReady1');
+      showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
     }
 
-    // Use the same mic/text input as pattern practice
-    updatePhaseIndicator('micReady1');
-    showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
+    currentAudio.onended = showPracticeInput;
+    currentAudio.onerror = showPracticeInput;
+    setTimeout(showPracticeInput, 5000);
   }
 }
 
@@ -3678,7 +3822,8 @@ function showPracticeResult(card, userAnswer, onDone) {
     const isRetry = practiceRetryCount > 0;
     const targetPattern = s.label || card.section || '';
     const situation = s.situation || '';
-    fetchPracticeCheck(userAnswer, card.trigger, targetPattern, situation, badgeEl, commentEl, suggestionEl, suggestionTextEl, isRetry);
+    const _isQ = practiceTarget === 'question';
+    fetchPracticeCheck(userAnswer, card.trigger, targetPattern, situation, badgeEl, commentEl, suggestionEl, suggestionTextEl, isRetry, _isQ ? 'question' : 'answer', card.trigger);
   }
 
   // Retry button
@@ -3688,16 +3833,34 @@ function showPracticeResult(card, userAnswer, onDone) {
     $chatThread.style.paddingBottom = '';
     $chatThread.innerHTML = '';
     showActionPhase(null);
-    addOpponentBubble(card.trigger, false);
-    stopAudio();
-    currentAudio = new Audio(card.triggerAudio);
-    currentAudio.play().catch(() => {});
-    const showRetryInput = () => {
-      showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
-    };
-    currentAudio.onended = showRetryInput;
-    currentAudio.onerror = showRetryInput;
-    setTimeout(showRetryInput, 5000);
+    const _isQRetry = practiceTarget === 'question';
+    if (_isQRetry) {
+      // 質問モードリトライ: 英語の質問を日本語化して出題 → 入力待ち
+      (async () => {
+        removeTypingIndicator();
+        addTypingIndicator();
+        let _jaCueRetry = '';
+        try { _jaCueRetry = await fetchTranslation(card.trigger || ''); } catch (e) {}
+        if (!_jaCueRetry) _jaCueRetry = card.triggerJa || '';
+        if (!_jaCueRetry) _jaCueRetry = card.trigger || '';
+        removeTypingIndicator();
+        addSystemMessage('日本語の意味を英語で質問してみよう: ' + _jaCueRetry, () => {
+          showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
+        });
+      })();
+    } else {
+      // 答えモード（または triggerJa 空のフォールバック）: 従来フロー
+      addOpponentBubble(card.trigger, false);
+      stopAudio();
+      currentAudio = new Audio(card.triggerAudio);
+      currentAudio.play().catch(() => {});
+      const showRetryInput = () => {
+        showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
+      };
+      currentAudio.onended = showRetryInput;
+      currentAudio.onerror = showRetryInput;
+      setTimeout(showRetryInput, 5000);
+    }
   };
 
   // Next button
@@ -3719,12 +3882,17 @@ function showPracticeResult(card, userAnswer, onDone) {
   };
 }
 
-async function fetchPracticeCheck(userAnswer, question, targetPattern, situation, badgeEl, commentEl, suggestionEl, suggestionTextEl, isRetry) {
+async function fetchPracticeCheck(userAnswer, question, targetPattern, situation, badgeEl, commentEl, suggestionEl, suggestionTextEl, isRetry, scoreMode, exampleQuestion) {
   try {
+    const body = { userAnswer, question, targetPattern, situation, isRetry };
+    if (scoreMode === 'question') {
+      body.scoreMode = 'question';
+      body.exampleQuestion = exampleQuestion || question;
+    }
     const res = await fetch('/api/practice-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userAnswer, question, targetPattern, situation, isRetry })
+      body: JSON.stringify(body)
     });
     if (!res.ok) { commentEl.textContent = ''; return; }
     const data = await res.json();
@@ -3816,6 +3984,8 @@ function openSettings() {
   document.getElementById('speakLimitVal').textContent = speakLimitSec + '秒';
   document.getElementById('turn2ModeListenOnly').classList.toggle('active', turn2Mode === 'listen');
   document.getElementById('turn2ModeSpeak').classList.toggle('active', turn2Mode === 'speak');
+  document.getElementById('practiceTargetAnswer').classList.toggle('active', practiceTarget === 'answer');
+  document.getElementById('practiceTargetQuestion').classList.toggle('active', practiceTarget === 'question');
   document.getElementById('fontSizeSlider').value = fontSize;
   document.getElementById('fontSizeVal').textContent = fontSize + 'px';
   document.getElementById('settingsOverlay').classList.add('show');
@@ -3938,6 +4108,12 @@ document.querySelectorAll('.settings-toggle').forEach(btn => {
       localStorage.setItem('pp-turn2Mode', turn2Mode);
       document.getElementById('turn2ModeListenOnly').classList.toggle('active', turn2Mode === 'listen');
       document.getElementById('turn2ModeSpeak').classList.toggle('active', turn2Mode === 'speak');
+    }
+    if (btn.dataset.target) {
+      practiceTarget = btn.dataset.target;
+      localStorage.setItem('pp-practiceTarget', practiceTarget);
+      document.getElementById('practiceTargetAnswer').classList.toggle('active', practiceTarget === 'answer');
+      document.getElementById('practiceTargetQuestion').classList.toggle('active', practiceTarget === 'question');
     }
   });
 });
