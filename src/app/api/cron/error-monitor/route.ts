@@ -37,6 +37,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // --- テスト送信モード（?test=1）: Slack 疎通確認用にサンプル1通を送る ---
+  if (req.nextUrl.searchParams.get('test') === '1') {
+    try {
+      await sendSlack({
+        text: '✅ peratore-dashboard 監視テスト: Slack 疎通OK',
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: '✅ *監視テスト*\nこれはエラー監視cronのSlack疎通確認メッセージです。届いていれば設定は正常です。',
+            },
+          },
+        ],
+      });
+      return NextResponse.json({ ok: true, note: 'test slack sent' });
+    } catch (e) {
+      console.error('[error-monitor] テスト送信失敗:', e);
+      return NextResponse.json(
+        { error: 'test slack failed', detail: (e as Error).message },
+        { status: 500 },
+      );
+    }
+  }
+
   // --- 環境変数取得 ---
   const vercelToken =
     process.env.VERCEL_API_TOKEN ?? readEnvValueFromFiles('VERCEL_API_TOKEN');
