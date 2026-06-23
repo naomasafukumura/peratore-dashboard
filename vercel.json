@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/cron/error-monitor", "schedule": "0 23 * * *" }
+  ]
+}
