@@ -129,6 +129,23 @@ async function setup() {
     `;
   }
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS error_logs (
+      id BIGSERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      source TEXT NOT NULL,
+      level TEXT NOT NULL DEFAULT 'error',
+      message TEXT NOT NULL,
+      stack TEXT,
+      status INTEGER,
+      student_name TEXT,
+      context JSONB,
+      env TEXT NOT NULL DEFAULT 'production'
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs (created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_error_logs_source ON error_logs (source)`;
+
   console.log('All tables created successfully!');
 }
 

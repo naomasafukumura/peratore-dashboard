@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/error-log';
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ translation });
   } catch (e) {
     console.error('Translate error:', e);
+    await logError('translate', e, { status: 500 });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

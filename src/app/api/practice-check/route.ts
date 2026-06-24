@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/error-log';
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -146,6 +147,7 @@ ${retryNote}
     return NextResponse.json({ level: 'good', comment: raw, suggestion: '' });
   } catch (e) {
     console.error('Practice check error:', e);
+    await logError('practice-check', e, { status: 500 });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

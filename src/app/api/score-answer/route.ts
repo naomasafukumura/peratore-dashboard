@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/error-log';
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -159,6 +160,7 @@ JSON形式のみ出力（説明不要）: {"level": "perfect", "chunkUsed": true
     return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
   } catch (e) {
     console.error('Score answer error:', e);
+    await logError('score-answer', e, { status: 500 });
     return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
   }
 }

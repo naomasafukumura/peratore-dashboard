@@ -1,4 +1,5 @@
 import { sql } from '@/lib/db';
+import { logError } from '@/lib/error-log';
 import { synthesizeMp3, upsertPatternAudio } from '@/lib/elevenlabs-tts';
 import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
 import { getVoicePair } from '@/lib/voices';
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
       results[audioType] = true;
     } catch (error) {
       console.error(`Failed to generate ${audioType} for pattern ${patternId}:`, error);
+      await logError('audio/generate', error, { status: 500, context: { patternId, audioType } });
       results[audioType] = false;
     }
   }
