@@ -48,6 +48,10 @@ JSON形式のみ出力: {"level":"perfect","chunkUsed":true}`;
       if (!qResponse.ok) {
         const errText = await qResponse.text();
         console.error('OpenAI API error (question mode):', qResponse.status, errText);
+        await logError('score-answer', new Error(`OpenAI ${qResponse.status}: ${errText.slice(0, 500)}`), {
+          status: qResponse.status,
+          context: { phase: 'openai:question', model: 'gpt-4o-mini' },
+        });
         return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
       }
 
@@ -138,6 +142,10 @@ JSON形式のみ出力（説明不要）: {"level": "perfect", "chunkUsed": true
     if (!response.ok) {
       const errText = await response.text();
       console.error('OpenAI API error:', response.status, errText);
+      await logError('score-answer', new Error(`OpenAI ${response.status}: ${errText.slice(0, 500)}`), {
+        status: response.status,
+        context: { phase: 'openai:score', model: 'gpt-4o-mini' },
+      });
       return NextResponse.json({ level: null, chunkUsed: null, fallback: true });
     }
 

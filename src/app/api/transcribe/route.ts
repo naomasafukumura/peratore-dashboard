@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errText = await response.text();
       console.error('Whisper API error:', response.status, errText);
+      await logError('transcribe', new Error(`OpenAI ${response.status}: ${errText.slice(0, 500)}`), {
+        status: response.status,
+        context: { phase: 'openai', model: 'whisper-1' },
+      });
       return NextResponse.json({ error: errText }, { status: response.status });
     }
 

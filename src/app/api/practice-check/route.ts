@@ -124,6 +124,10 @@ ${retryNote}
     if (!response.ok) {
       const errText = await response.text();
       console.error('OpenAI API error:', response.status, errText);
+      await logError('practice-check', new Error(`OpenAI ${response.status}: ${errText.slice(0, 500)}`), {
+        status: response.status,
+        context: { phase: 'openai', model: 'gpt-4o-mini' },
+      });
       return NextResponse.json({ error: errText }, { status: response.status });
     }
 
