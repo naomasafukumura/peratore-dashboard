@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
+import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     console.error('Assignments GET error:', e);
+    await logError('assignments', e, { status: 500, studentName: studentName ?? undefined, context: { method: 'GET' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
@@ -49,8 +51,11 @@ export async function POST(req: NextRequest) {
   const denied = await unauthorizedIfNotTeacher(req);
   if (denied) return denied;
 
+  let studentName: string | undefined;
   try {
-    const { studentName, chunkIds } = await req.json();
+    const body = await req.json();
+    studentName = body.studentName || undefined;
+    const chunkIds = body.chunkIds;
     if (!studentName || !chunkIds?.length) {
       return NextResponse.json({ error: 'Missing studentName or chunkIds' }, { status: 400 });
     }
@@ -66,6 +71,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, added: chunkIds.length });
   } catch (e) {
     console.error('Assignments POST error:', e);
+    await logError('assignments', e, { status: 500, studentName, context: { method: 'POST' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
@@ -78,8 +84,11 @@ export async function DELETE(req: NextRequest) {
   const denied = await unauthorizedIfNotTeacher(req);
   if (denied) return denied;
 
+  let studentName: string | undefined;
   try {
-    const { studentName, chunkIds } = await req.json();
+    const body = await req.json();
+    studentName = body.studentName || undefined;
+    const chunkIds = body.chunkIds;
     if (!studentName) {
       return NextResponse.json({ error: 'Missing studentName' }, { status: 400 });
     }
@@ -98,6 +107,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('Assignments DELETE error:', e);
+    await logError('assignments', e, { status: 500, studentName, context: { method: 'DELETE' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

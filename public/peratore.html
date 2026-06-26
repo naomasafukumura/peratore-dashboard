@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pattern Practice</title>
+<script src="/client-error-report.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -2001,6 +2002,10 @@ function startRecognition(statusEl) {
     })
     .catch(err => {
       console.log('Microphone error:', err);
+      window.reportClientError('client:mic', err, {
+        studentName: new URLSearchParams(location.search).get('student') || undefined,
+        context: { page: 'peratore' }
+      });
       if (statusEl) statusEl.textContent = 'Microphone access needed';
     });
 }
@@ -2018,6 +2023,10 @@ function stopRecognition() {
         console.log('Max volume:', maxVolume, 'mimeType:', recordingMimeType);
         if (maxVolume < 10) {
           console.log('No speech detected (volume too low), skipping Whisper');
+          window.reportClientError('client:speech', new Error('no-speech'), {
+            studentName: new URLSearchParams(location.search).get('student') || undefined,
+            context: { page: 'peratore', maxVolume: maxVolume }
+          });
           resolve('');
           return;
         }
@@ -2044,6 +2053,14 @@ async function transcribeWithWhisper(blob) {
     const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
     if (!res.ok) {
       console.log('Transcribe API error:', res.status, await res.text());
+      // 5xx はサーバ側 logError に委ねる。非5xxのみ送信
+      if (res.status < 500) {
+        window.reportClientError('client:transcribe', new Error('transcribe-api-' + res.status), {
+          studentName: new URLSearchParams(location.search).get('student') || undefined,
+          status: res.status,
+          context: { page: 'peratore' }
+        });
+      }
       return '';
     }
     const data = await res.json();
@@ -2059,6 +2076,11 @@ async function transcribeWithWhisper(blob) {
     return rawText;
   } catch (e) {
     console.log('Transcribe request failed:', e);
+    // ネットワーク例外: fetch が throw した場合
+    window.reportClientError('client:transcribe', e, {
+      studentName: new URLSearchParams(location.search).get('student') || undefined,
+      context: { page: 'peratore' }
+    });
     return '';
   }
 }
@@ -2163,6 +2185,11 @@ async function scoreViaAPI(userAnswer, question, targetChunk, exampleAnswer, tur
     return data.level;
   } catch (e) {
     console.error('Score API error:', e);
+    // ネットワーク例外のみ送信
+    window.reportClientError('client:answer', e, {
+      studentName: new URLSearchParams(location.search).get('student') || undefined,
+      context: { page: 'peratore', turn: turn }
+    });
     return null;
   }
 }
@@ -2491,6 +2518,11 @@ async function fetchYourReplyFeedback(userReply, question, naturalReply, targetE
     else { targetEl.textContent = ''; targetEl.parentElement.style.display = 'none'; }
   } catch (e) {
     console.error('Your reply feedback error:', e);
+    // ネットワーク例外のみ送信
+    window.reportClientError('client:answer', e, {
+      studentName: new URLSearchParams(location.search).get('student') || undefined,
+      context: { page: 'peratore', phase: 'explain-answer' }
+    });
     targetEl.textContent = ''; targetEl.parentElement.style.display = 'none';
   }
 }

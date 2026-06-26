@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ cards: rows[0].cards_json, displayName });
   } catch (e) {
     console.error('homework GET:', e);
+    await logError('homework', e, { status: 500, studentName: studentName ?? undefined, context: { method: 'GET' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  let studentName: string | undefined;
   try {
     const body = await req.json();
-    const studentName: string = body.studentName?.trim();
+    studentName = body.studentName?.trim() || undefined;
     const cards = body.cards || [];
 
     if (!studentName) return NextResponse.json({ error: 'studentName required' }, { status: 400 });
@@ -64,6 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('homework POST:', e);
+    await logError('homework', e, { status: 500, studentName, context: { method: 'POST' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchRecentLessonForStudent } from '@/lib/student-recent-lesson';
+import { logError } from '@/lib/error-log';
 
 /**
  * GET /api/student/recent-lesson
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(payload);
   } catch (e) {
     console.error('recent-lesson:', e);
+    await logError('student-recent-lesson', e, { status: 500, studentName: studentName ?? undefined, context: { method: 'GET' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

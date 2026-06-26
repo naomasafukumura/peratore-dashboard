@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hasDatabaseUrl, sql } from '@/lib/db';
 import { persistTeacherLesson, persistConversationLesson, findSimilarPatterns, SimilarPattern } from '@/lib/lesson-persist';
 import { PRACTICE_V2_EMBEDDED_CATEGORY_NAMES } from '@/lib/practice-v2-embedded-categories';
+import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -375,8 +376,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const intent = body.intent ?? 'submit-preview';
-  const studentName = body.studentName?.trim();
+  let intent: string = 'submit-preview';
+  let studentName: string | undefined;
+
+  try {
+  intent = body.intent ?? 'submit-preview';
+  studentName = body.studentName?.trim() || undefined;
 
   if (!studentName) {
     return NextResponse.json({ error: '受講生を選択してください' }, { status: 400 });
@@ -540,6 +545,7 @@ export async function POST(req: NextRequest) {
         saved: { similarPatterns: [] },
       });
     } catch (e) {
+      await logError('lesson-submission', e, { status: 500, studentName, context: { intent, phase: 'persistConversationLesson' } });
       return NextResponse.json({ error: (e as Error).message }, { status: 500 });
     }
   }
@@ -583,4 +589,9 @@ export async function POST(req: NextRequest) {
     message,
     saved: { similarPatterns: allSimilar },
   });
+
+  } catch (e) {
+    await logError('lesson-submission', e, { status: 500, studentName, context: { intent } });
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  }
 }

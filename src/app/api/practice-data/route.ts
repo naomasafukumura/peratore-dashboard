@@ -2,6 +2,7 @@ import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { practiceCardFromPattern } from '@/lib/practice-v2-card';
+import { logError } from '@/lib/error-log';
 
 /**
  * GET /api/practice-data
@@ -103,6 +104,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data, displayName });
   } catch (e) {
     console.error('Practice data error:', e);
+    await logError('practice-data', e, { status: 500, studentName: studentName ?? undefined, context: { method: 'GET' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }

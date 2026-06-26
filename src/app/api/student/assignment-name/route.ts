@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { sql } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     `;
   } catch (e) {
     console.error('assignment-name update:', e);
+    await logError('student-assignment-name', e, { status: 500, studentName: trimmed || undefined, context: { method: 'POST' } });
     return NextResponse.json({ error: '保存に失敗しました' }, { status: 500 });
   }
 

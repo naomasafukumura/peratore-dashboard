@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { scoreTurn1Local, type ScoreLevel } from '@/lib/scoring';
+import { reportClientError } from '@/lib/report-client-error';
 
 /* ================================================================
    PracticeMode - Faithful port of practice-v2.html into React
@@ -491,6 +492,14 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       const data = await res.json();
       const text = data.text || '';
 
+      // no-speech: 音声が拾えなかった場合を記録
+      if (!text) {
+        reportClientError('client:speech', new Error('no-speech'), {
+          studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+          context: { turn },
+        });
+      }
+
       if (turn === 1) {
         setUserAnswer1(text || '(No speech detected)');
         addBubble({ type: 'user', text: text || '(No speech detected)' });
@@ -500,6 +509,11 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       }
     } catch (err) {
       console.error('[PracticeMode] transcribe failed:', err);
+      // ネットワーク例外のみ送信（5xxはサーバ側logErrorに委ねる）
+      reportClientError('client:transcribe', err, {
+        studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+        context: { turn },
+      });
       if (turn === 1) {
         setUserAnswer1('(Recognition error)');
         addBubble({ type: 'user', text: '(Recognition error)' });
@@ -517,6 +531,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   const startRecording = useCallback(async (turn: 1 | 2) => {
     if (!navigator.mediaDevices?.getUserMedia) {
+      reportClientError('client:mic', new Error('getUserMedia-not-supported'), {
+        studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+        context: { turn, chunk: chunkTitle },
+      });
       setMicError('このブラウザではマイク機能が利用できません。\nChrome等の標準ブラウザで開き直してください（HTTPS接続が必要です）。');
       setInputMode('text');
       setPhase(turn === 1 ? 'micReady1' : 'micReady2');
@@ -602,6 +620,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       }, speakLimitSec * 1000);
     } catch (err) {
       console.error('[PracticeMode] getUserMedia failed:', err);
+      reportClientError('client:mic', err, {
+        studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+        context: { turn, chunk: chunkTitle },
+      });
       const name = err instanceof DOMException ? err.name : '';
       let msg: string;
       if (name === 'NotAllowedError' || name === 'SecurityError') {
@@ -671,7 +693,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       } else {
         level = data.level as ScoreLevel;
       }
-    } catch {
+    } catch (err) {
+      // ネットワーク例外のみ送信（5xxはサーバ側logErrorに委ねる）
+      reportClientError('client:answer', err, {
+        studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+        context: { turn: 1, patternId: pattern.id, chunk: chunkTitle },
+      });
       const local = scoreTurn1Local(currentAnswer, exampleAnswer, isQuestion ? pattern.fpp_question : chunkTitle);
       level = local.level;
     }
@@ -728,7 +755,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         const data = await res.json();
         setReviewFeedbackText(data.feedback || '');
       }
-    } catch {
+    } catch (err) {
+      // ネットワーク例外のみ送信（5xxはサーバ側logErrorに委ねる）
+      reportClientError('client:answer', err, {
+        studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+        context: { patternId: pattern.id, phase: 'explain-answer' },
+      });
       setReviewFeedbackText('');
     }
     setReviewFeedbackLoading(false);
@@ -931,7 +963,12 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
         } else {
           level = data.level as ScoreLevel;
         }
-      } catch {
+      } catch (err) {
+        // ネットワーク例外のみ送信（5xxはサーバ側logErrorに委ねる）
+        reportClientError('client:answer', err, {
+          studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+          context: { turn: 2, patternId: pattern.id, chunk: chunkTitle },
+        });
         const local = scoreTurn1Local(currentAnswer, exampleAnswer, question);
         level = local.level;
       }
@@ -948,7 +985,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setReviewFeedbackText('');
     setShowReview(true);
     setPhase('result2');
-  }, [pattern, userAnswer2, effectiveTarget]);
+  }, [pattern, userAnswer2, effectiveTarget, chunkTitle]);
 
   // ---- Turn 2 review ----
   const showTurn2Review = useCallback(async () => {

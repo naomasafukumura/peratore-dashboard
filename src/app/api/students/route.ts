@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { unauthorizedIfNotTeacher } from '@/lib/require-teacher-session';
+import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ students: all });
   } catch (e) {
     console.error('students GET:', e);
+    await logError('students', e, { status: 500, context: { method: 'GET', note: 'returns 200' } });
     return NextResponse.json({ students: [], error: (e as Error).message });
   }
 }
@@ -95,9 +97,11 @@ export async function POST(req: NextRequest) {
   const denied = await unauthorizedIfNotTeacher(req);
   if (denied) return denied;
 
+  let studentName: string | undefined;
   try {
     const { name, yomi, displayName } = await req.json();
     const trimmed = typeof name === 'string' ? name.trim() : '';
+    studentName = trimmed || undefined;
     const trimmedYomi = typeof yomi === 'string' ? yomi.trim() : '';
     const trimmedDisplay = typeof displayName === 'string' ? displayName.trim() : '';
     if (!trimmed) return NextResponse.json({ error: '受講生名を入力してください' }, { status: 400 });
@@ -125,6 +129,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('students POST:', e);
+    await logError('students', e, { status: 500, studentName, context: { method: 'POST' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
@@ -154,6 +159,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('students PATCH:', e);
+    await logError('students', e, { status: 500, context: { method: 'PATCH' } });
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
