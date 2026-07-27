@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logError } from '@/lib/error-log';
 
+export const maxDuration = 30;
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -34,18 +36,59 @@ export async function POST(req: NextRequest) {
       whisperHeaders['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: whisperHeaders,
-      body: whisperBody as BodyInit,
-    });
+    // OpenAI の一過性 5xx / ネットワーク断を吸収するリトライ。
+    // 4xx（400 invalid file format / 401 キー無効 / 429 残高不足）は再送しても同じなのでリトライしない。
+    // 全体は DEADLINE_MS 内に収める（maxDuration=30 を超えると Vercel 側で 504 になる）。
+    const DEADLINE_MS = 27000;
+    const ATTEMPT_TIMEOUT_MS = 14000;
+    const BACKOFF_MS = [400];
+    const startedAt = Date.now();
+    const remaining = () => DEADLINE_MS - (Date.now() - startedAt);
+
+    let response: Response | null = null;
+    let lastErr: unknown = null;
+    let attempt = 0;
+
+    for (;;) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.min(ATTEMPT_TIMEOUT_MS, remaining()));
+      try {
+        response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: whisperHeaders,
+          body: whisperBody as BodyInit,
+          signal: controller.signal,
+        });
+        lastErr = null;
+      } catch (err) {
+        response = null;
+        lastErr = err;
+      } finally {
+        clearTimeout(timer);
+      }
+
+      const retriable = response === null || response.status >= 500;
+      const backoff = BACKOFF_MS[attempt];
+      // 次の試行（バックオフ + 最低限の実行時間）が締切に収まる場合のみリトライ
+      if (!retriable || backoff === undefined || remaining() < backoff + 4000) break;
+
+      console.warn('[transcribe] retry', attempt + 1, response ? response.status : String(lastErr));
+      await new Promise((r) => setTimeout(r, backoff));
+      attempt++;
+    }
+
+    const attempts = attempt + 1;
+
+    if (response === null) {
+      throw lastErr ?? new Error('transcribe: no response');
+    }
 
     if (!response.ok) {
       const errText = await response.text();
       console.error('Whisper API error:', response.status, errText);
       await logError('transcribe', new Error(`OpenAI ${response.status}: ${errText.slice(0, 500)}`), {
         status: response.status,
-        context: { phase: 'openai', model: 'whisper-1' },
+        context: { phase: 'openai', model: 'whisper-1', attempts },
       });
       return NextResponse.json({ error: errText }, { status: response.status });
     }
