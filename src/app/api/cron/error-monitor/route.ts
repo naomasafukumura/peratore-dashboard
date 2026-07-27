@@ -21,6 +21,15 @@ interface ErrorLog {
   env: string;
 }
 
+/**
+ * source からアプリ名を判定する。
+ * パターンプラクティスは自前DBを持たないため、`patternpractice:` 接頭辞付きで
+ * このアプリの error_logs に相乗りしている（peratore-dashboard/src/app/api/client-error）。
+ */
+function appOf(source: string): string {
+  return source.startsWith('patternpractice:') ? 'パターンプラクティス' : 'ペラトレ';
+}
+
 /** UTC → JST の表示文字列（例: "06/23 08:12"） */
 function toJst(isoStr: string): string {
   const d = new Date(isoStr);
@@ -100,15 +109,26 @@ export async function GET(req: NextRequest) {
 
   const count = logs.length;
 
-  // --- source 別件数の集計 ---
+  // --- source 別 / アプリ別件数の集計 ---
   const sourceCounts: Record<string, number> = {};
+  const appCounts: Record<string, number> = {};
   for (const log of logs) {
     sourceCounts[log.source] = (sourceCounts[log.source] ?? 0) + 1;
+    const app = appOf(log.source);
+    appCounts[app] = (appCounts[app] ?? 0) + 1;
   }
   const sourceCountText = Object.entries(sourceCounts)
     .sort((a, b) => b[1] - a[1])
     .map(([src, n]) => `• ${src}: ${n}件`)
     .join('\n');
+  const appCountText = Object.entries(appCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([app, n]) => `• ${app}: ${n}件`)
+    .join('\n');
+  const appCountInline = Object.entries(appCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([app, n]) => `${app} ${n}`)
+    .join(' / ');
 
   // --- 詳細一覧（最大15件） ---
   const MAX_DETAIL = 15;
@@ -131,8 +151,10 @@ export async function GET(req: NextRequest) {
 
   const aiSummaryInput = {
     totalCount: count,
+    appCounts,
     sourceCounts,
     sampleMessages: logs.slice(0, 10).map((l) => ({
+      app: appOf(l.source),
       source: l.source,
       message: l.message,
       status: l.status,
@@ -157,11 +179,11 @@ export async function GET(req: NextRequest) {
           {
             role: 'system',
             content:
-              'アプリ実行時エラーのダイジェストを日本語・簡潔・箇条書きで作成してください。source別件数・傾向・緊急度(高/中/低)を記述してください。',
+              'アプリ実行時エラーのダイジェストを日本語・簡潔・箇条書きで作成してください。アプリ別件数・source別件数・傾向・緊急度(高/中/低)を記述してください。',
           },
           {
             role: 'user',
-            content: `以下は peratore-dashboard の直近24時間のアプリ実行時エラー集計です。要約してください:\n\n${JSON.stringify(aiSummaryInput, null, 2)}`,
+            content: `以下は「ペラトレ」と「パターンプラクティス」2アプリの直近24時間の実行時エラー集計です。source が patternpractice: で始まるものがパターンプラクティス、それ以外がペラトレです。要約してください:\n\n${JSON.stringify(aiSummaryInput, null, 2)}`,
           },
         ],
       }),
@@ -192,7 +214,7 @@ export async function GET(req: NextRequest) {
       type: 'header',
       text: {
         type: 'plain_text',
-        text: `⚠️ ペラトレ 前日のエラー ${count}件`,
+        text: `⚠️ 前日のエラー ${count}件（${appCountInline}）`,
         emoji: true,
       },
     },
@@ -204,6 +226,14 @@ export async function GET(req: NextRequest) {
         text: summaryFailed
           ? `*要約*\n${summary}`
           : `*AI 要約*\n${summary}`,
+      },
+    },
+    // アプリ別件数
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*アプリ別件数*\n${appCountText}`,
       },
     },
     // source 別件数
@@ -229,7 +259,7 @@ export async function GET(req: NextRequest) {
       elements: [
         {
           type: 'mrkdwn',
-          text: `対象: production / 直近24時間 / 合計${count}件`,
+          text: `対象: production / 直近24時間 / 合計${count}件（${appCountInline}）\n※ パターンプラクティスは匿名利用のため受講生の特定はできません`,
         },
       ],
     },
@@ -238,7 +268,7 @@ export async function GET(req: NextRequest) {
   // --- Slack 送信 ---
   try {
     await sendSlack({
-      text: `⚠️ ペラトレ で前日 ${count}件のエラー`,
+      text: `⚠️ 前日 ${count}件のエラー（${appCountInline}）`,
       blocks,
     });
   } catch (e) {

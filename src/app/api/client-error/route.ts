@@ -7,6 +7,21 @@ export const dynamic = 'force-dynamic';
 /** client:* source の許可リスト */
 const ALLOWED_SOURCES = new Set(['client:mic', 'client:speech', 'client:transcribe', 'client:answer']);
 
+/**
+ * 別アプリ（パターンプラクティス）からの転送を許可する接頭辞。
+ * イベント種別が増えても許可リストの更新が要らないよう、接頭辞＋書式で検証する。
+ */
+const FORWARD_PREFIXES = ['patternpractice:'];
+
+function isAllowedSource(raw: string): boolean {
+  if (ALLOWED_SOURCES.has(raw)) return true;
+  return (
+    raw.length <= 100 &&
+    /^[a-z0-9:_-]+$/i.test(raw) &&
+    FORWARD_PREFIXES.some((p) => raw.startsWith(p) && raw.length > p.length)
+  );
+}
+
 /** 文字列を maxLen 文字に切り詰める */
 function truncate(s: unknown, maxLen: number): string | undefined {
   if (typeof s !== 'string') return undefined;
@@ -36,7 +51,7 @@ export async function POST(req: NextRequest) {
 
   // source 検証
   const rawSource = typeof body.source === 'string' ? body.source : '';
-  const source = ALLOWED_SOURCES.has(rawSource) ? rawSource : 'client:unknown';
+  const source = isAllowedSource(rawSource) ? rawSource : 'client:unknown';
 
   // サニタイズ
   const message = truncate(body.message, 500) ?? '(no message)';
