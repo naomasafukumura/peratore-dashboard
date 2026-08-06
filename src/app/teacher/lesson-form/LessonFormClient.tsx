@@ -14,6 +14,8 @@ type SimilarPattern = { trigger: string; similarityPct: number };
 
 type ExtractedPattern = {
   situation_ja: string;
+  title_en?: string;
+  title_jp?: string;
   fpp_question: string;
   spp: string;
   followup_question: string;
@@ -441,6 +443,12 @@ export default function LessonFormClient() {
                             </p>
                           ))}
                         </div>
+                      )}
+                      {p.title_en && (
+                        <p className="text-xs font-semibold text-text-dark mb-1">
+                          {p.title_en}
+                          {p.title_jp && <span className="font-normal text-text-muted ml-1">（{p.title_jp}）</span>}
+                        </p>
                       )}
                       {p.situation_ja && (
                         <p className="text-[11px] text-text-muted mb-2 italic">{p.situation_ja}</p>

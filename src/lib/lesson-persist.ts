@@ -5,6 +5,10 @@ import { getVoicePair } from '@/lib/voices';
 export type TeacherLessonPersistInput = {
   studentName: string;
   situation: string;
+  /** AI が付けたチャンク見出し（練習する型）。空なら trigger を代用 */
+  titleEn?: string;
+  /** AI が付けた見出しの和訳。空なら situation を代用 */
+  titleJp?: string;
   suggestedCategory: string;
   character: string;
   trigger: string;
@@ -13,6 +17,21 @@ export type TeacherLessonPersistInput = {
   followupAnswer: string;
   rawMemo?: string;
 };
+
+/**
+ * カテゴリ名の表記ゆれを吸収する比較キー。
+ * AI は「（調整中）」の脱落・半角括弧・全角/半角ゆれをよく起こし、そのたびに
+ * 同じ意味のカテゴリが重複作成されていた（例:「2. 主観：好み」と「2. 主観：好み（調整中）」）。
+ * 括弧・「調整中」・空白を落として比較し、既存カテゴリがあればそちらに寄せる。
+ */
+function categoryMatchKey(name: string): string {
+  return name
+    .normalize('NFKC')            // 全角括弧・全角コロン等を半角に統一
+    .replace(/調整中/g, '')
+    .replace(/[()［\]【】]/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+}
 
 async function findOrCreateCategory(suggestedName: string): Promise<number> {
   const fallbackName = 'レッスン追加';
@@ -26,6 +45,14 @@ async function findOrCreateCategory(suggestedName: string): Promise<number> {
   `;
   const hit = rows[0] as { id: number } | undefined;
   if (hit) return hit.id;
+
+  // 完全一致しなければ表記ゆれとみなして既存カテゴリに寄せる（新規作成を避ける）
+  const key = categoryMatchKey(searchName);
+  if (key) {
+    const all = (await sql`SELECT id, name FROM categories`) as { id: number; name: string }[];
+    const fuzzy = all.find(c => categoryMatchKey(c.name ?? '') === key);
+    if (fuzzy) return fuzzy.id;
+  }
 
   const [maxOrder] = await sql`
     SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order FROM categories
@@ -286,7 +313,13 @@ export async function persistTeacherLesson(input: TeacherLessonPersistInput): Pr
   const similarPatterns = await findSimilarPatterns(input.trigger);
 
   const categoryId = await findOrCreateCategory(input.suggestedCategory);
-  const chunk = await createChunk(categoryId, input.trigger, input.situation, input.rawMemo);
+  // 見出しは AI が付けた「練習する型」を優先。無ければ従来どおり FPP 文で代用する。
+  const chunk = await createChunk(
+    categoryId,
+    input.titleEn?.trim() || input.trigger,
+    input.titleJp?.trim() || input.situation,
+    input.rawMemo,
+  );
   const pattern = await createPattern(chunk.id, input);
   await ensureAssignment(input.studentName.trim(), chunk.id);
 

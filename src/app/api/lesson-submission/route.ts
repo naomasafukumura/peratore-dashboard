@@ -14,6 +14,10 @@ const LESSON_AI_MODEL = process.env.OPENAI_MODEL_LESSON || 'gpt-4o-mini';
 
 type ExtractedPattern = {
   situation_ja: string;
+  /** チャンクのタイトル（練習する型。例: "I'm gonna ~"）。空なら FPP 文で代用される */
+  title_en: string;
+  /** チャンクのタイトル和訳（例: "〜するつもり"）。空なら situation_ja で代用される */
+  title_jp: string;
   fpp_question: string;
   spp: string;
   followup_question: string;
@@ -53,6 +57,8 @@ type AnalyzeResult =
 function normalizePattern(parsed: Record<string, unknown>): ExtractedPattern {
   return {
     situation_ja: String(parsed.situation_ja ?? '').trim(),
+    title_en: String(parsed.title_en ?? '').trim(),
+    title_jp: String(parsed.title_jp ?? '').trim(),
     fpp_question: String(parsed.fpp_question ?? '').trim(),
     spp: String(parsed.spp ?? '').trim(),
     followup_question: String(parsed.followup_question ?? '').trim(),
@@ -70,7 +76,13 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], direc
 
   const catBlock =
     categoryNames.length > 0
-      ? `次の一覧は practice-v2 教材（埋め込み DATA）と DB のカテゴリ名です。suggested_category には**この一覧から意味が最も近い1つを選び、可能なら文字列をそのまま（完全一致で）入れてください**。どれも明らかに不適切なときだけ、新しいカテゴリ名を1つ付けてください。**新規名は既存区分に揃え、可能なら「数字. 大項目：細目（調整中）」のような形式**（例: 「1. 返答：未来」「6. 返答：招待」）にしてください。：\n${categoryNames.join('、')}`
+      ? `次の一覧から意味が最も近いものを1つ選び、**1文字も変えずにそのままコピーして** suggested_category に入れてください。
+**「（調整中）」が付いている項目は「（調整中）」ごとコピーすること。括弧は全角（）のまま。勝手に省略・変換しないこと。**
+**大項目（「1. 返答」「2. 主観」「3. 短返答」「4. リアクション」「5. 質問返し」）と細目の組み合わせは、一覧にある組み合わせだけを使うこと。**
+一覧に無い組み合わせを新たに作らないでください（例: 一覧に「1. 返答：習慣」があるのに「2. 主観：習慣」を作るのは誤り。必ず一覧の「1. 返答：習慣」を選ぶ）。
+一覧のどれにも当てはまらないときだけ、新しい名前を「数字. 大項目：細目」形式で付けてください。
+【選べる一覧】
+${categoryNames.map(n => `- ${n}`).join('\n')}`
       : `suggested_category には、practice-v2 の区分に近い形式（「数字. 大項目：細目」）で付けてください。`;
 
   const isMulti = directStyle === 'multi';
@@ -221,19 +233,28 @@ ${isMulti
 - 前置詞ゆれは慣用的に自然な方を優先（例: important for → important to / good in → good at / married with → married to / different than → different from / interested on → interested in）
 
 【各キーの定義】
-  - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）${isMulti ? '。会話モードでは全要素に同じ文字列を入れる。' : ''}
+  - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）。**話題の人物を必ず具体的に書くこと。「彼が」「彼女が」と書くのは禁止。**
+      メモが he / she でも、FPP で your son / your husband と特定したなら situation_ja も「息子さんが」「ご主人が」と書く。受講生自身の話なら「自分が」と書く。
+      例:「息子さんが動物園へ遠足に行った話を聞かれる場面」${isMulti ? '。会話モードでは全要素に同じ文字列を入れる。' : ''}
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
   - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'SPP に自然につながるフォロー質問。**必ず相づち・反応から始める**（【会話ルール】3）。SPP と同じ人物・同じ主語について尋ねること（【会話ルール】1）'}
   - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答。**「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）。主語は SPP と揃えること（【会話ルール】1）'}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
-  - suggested_category … ${catBlock.replace(/\n/g, ' ')}
+  - title_en … **そのチャンクで練習する「型」**を短く書く（教材の見出しになる。英文をそのまま入れないこと）。
+      形は「主語＋キーとなる語＋ ~」。例:「I'm gonna ~」「He went to ~」「I usually ~」「I don't really ~」「Was he ~?」
+      SPP の骨組みから作る。長い文をそのまま入れたり、FPP を丸写ししたりしない（**最大30文字程度**）。
+  - title_jp … title_en の短い和訳（例:「〜するつもり」「〜へ行った」「たいてい〜する」。**最大20文字程度**）
+  - suggested_category … 下記【カテゴリの選び方】に従う
+
+【カテゴリの選び方】
+${catBlock}
 
 ${isMulti
   ? `JSON の例（Q→Aが3ペアの会話なら patterns は3要素。FQ/FAは必ず ""）:
-{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`
+{"patterns":[{"situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`
   : `JSON の例（Q→Aが4つある場合は4要素）:
-{"patterns":[{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."},{"situation_ja":"...","fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","character":"友人","suggested_category":"..."}]}`}`;
+{"patterns":[{"situation_ja":"息子さんが動物園へ遠足に行った話を聞かれる場面","title_en":"He went on ~","title_jp":"〜に行った","fpp_question":"Where is your son today?","spp":"He went on a field trip to the zoo.","followup_question":"Oh, nice! Was he excited this morning?","followup_answer":"Super excited! He couldn't stop talking about it.","character":"友人","suggested_category":"1. 返答：過去"}]}`}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -318,6 +339,8 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
       if (fpp && spp) {
         patterns.push({
           situation_ja: '',
+          title_en: '',
+          title_jp: '',
           fpp_question: fpp,
           spp,
           followup_question: '',
@@ -346,6 +369,8 @@ async function analyzeDirectText(rawText: string, categoryNames: string[], style
       if (fpp && spp) {
         patterns.push({
           situation_ja: '',
+          title_en: '',
+          title_jp: '',
           fpp_question: fpp,
           spp,
           followup_question: '',
@@ -582,6 +607,8 @@ export async function POST(req: NextRequest) {
         const saved = await persistTeacherLesson({
           studentName,
           situation: p.situation_ja ?? '',
+          titleEn: p.title_en ?? '',
+          titleJp: p.title_jp ?? '',
           suggestedCategory: p.suggested_category ?? '',
           character: p.character ?? '友人',
           trigger,
