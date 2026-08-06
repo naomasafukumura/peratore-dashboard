@@ -6,6 +6,12 @@ import { logError } from '@/lib/error-log';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * レッスンメモ解析に使うモデル。品質を上げたいときは環境変数 OPENAI_MODEL_LESSON に
+ * gpt-4o 等を設定する（コード変更・再デプロイ不要）。未設定なら従来どおり gpt-4o-mini。
+ */
+const LESSON_AI_MODEL = process.env.OPENAI_MODEL_LESSON || 'gpt-4o-mini';
+
 type ExtractedPattern = {
   situation_ja: string;
   fpp_question: string;
@@ -73,6 +79,98 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], direc
     ? `**メモ全体を「1つの会話」として扱ってください。** トピックが複数あっても**分割せず、すべてのQ→Aペアを1チャンク内のペアとして順番通りに並べて抽出**してください。**重複統合（主動詞が同じペアの統合）も適用しないでください**。メモに登場するすべてのQ→Aペアを欠落なく抽出すること。`
     : `**Q→Aのペアを1つずつ独立したチャンクとして抽出してください。** ただし、**FPPで使われる主動詞が同じパターンのチャンクは重複とみなし、最も代表的な1つだけを残してください。**（例：「What are you going to eat?」「Where are you going to eat?」「What time are you going to eat?」はすべて "be going to" で同じ構造なので1チャンクのみ抽出する）`;
 
+  const conversationRule = isMulti
+    ? `【会話ルール（【添削ルール】より優先）】
+## 人称の一貫性（最重要）
+- 抽出したペアは「ひとつながりの会話」です。**話題の主語を途中で入れ替えないこと。**
+- **メモの主語をそのまま保持すること。勝手に人称を変換してはならない。**
+  - メモが一人称（I / my ~）なら、すべてのペアで受講生自身の話にする。
+  - メモが三人称（he / she / my son / my husband など）なら、すべてのペアでその人物の話にする。受講生自身（I / you）の話にすり替えてはならない。
+
+## メモの語を活かす
+- メモに出てくる語（例: field trip, zoo）は原則すべて会話内で使う。勝手に捨てて別の内容に置き換えない。
+
+## 単語えらび
+- 中学英語で言えることは、必ず中学英語で言う。会話でふつう使わない硬い動詞・書き言葉（commute, reside, consume, attend, obtain, purchase, participate など）は使わない。
+- 日本語の熟語を辞書的な1語に置き換えない（❌ I commute by bike. → ⭕️ I go to work by bike.）。`
+    : `【会話ルール（【添削ルール】より優先）】
+## 1. 人称の一貫性（最重要）
+- FPP / SPP / FQ / FA の4行は「ひとつながりの1つの会話」です。**話題の主語を途中で入れ替えてはならない。**
+- **メモの主語をそのまま保持すること。勝手に人称を変換してはならない。**
+  - メモが一人称（I / my ~）なら、**4行とも受講生自身の話**にする。三人称（he / she）に置き換えるのは重大な誤りです。
+  - メモが三人称（he / she / my son / my husband など）なら、**4行ともその人物の話**にする。受講生自身（I / you）にすり替えるのは重大な誤りです。
+- 悪い例A（三人称の話に I / you が混入・禁止）:
+  SPP「He went to the zoo.」→ FQ「What did you see there?」→ FA「I saw lions and tigers.」
+- 悪い例B（一人称メモを三人称に変換・禁止）:
+  メモ「I started going to the gym.」→ SPP「He started going to the gym.」
+
+## 2. 会話の入り口
+- **メモの主語が三人称のときのみ**、FPP は「その人物が誰なのか」が分かる質問にすること。
+  - 悪い例（禁止）:「Where did he go on a field trip?」（he が誰か分からず、実際の会話として成立しない）
+  - 良い例:「Where is your son today?」「What did your son do today?」
+- **メモの主語が一人称のときは**、受講生本人に向けた通常の質問にすること。例:「What do you do to stay in shape?」
+
+## 3. 口語マーカー（必須）
+- FQ は相づち・反応から始める。例:「Oh, nice! ~?」「Really? ~?」「Oh yeah? ~?」「That sounds fun! ~?」「Wow! ~?」「Oh, ~ or something?」
+- **相づちは毎回同じ語を使わず、話の内容に合った反応を選ぶこと。**「Oh, nice!」ばかりにしない。
+- FA は「短い反応 ＋ 補足」の2段構えにする。例:「Super excited! He couldn't stop talking about it.」
+- 教科書の設問・模範解答調は禁止。禁止例:「What did you see there?」「I saw lions and tigers.」
+
+## 4. メモの語を活かす
+- メモに出てくる語（例: field trip, zoo）は原則すべて会話内で使う。勝手に捨てて別の内容を創作しない。
+
+## 5. 補完してよい範囲
+- FQ / FA はメモに無くても補完してよい。ただし上記 1〜4 をすべて満たすこと。
+- 補完する内容は、メモに出てくる人物・場面から自然に続くものに限る。無関係な話題を持ち込まない。
+
+## 6. 単語えらび（ここを外すと台無し）
+- 中学英語で言えることは、必ず中学英語で言う。日本語の熟語を辞書的な1語に置き換えない。
+  - ❌ I commute by bike. → ⭕️ I go to work by bike. / I ride my bike to work.
+  - ❌ I purchase clothes online. → ⭕️ I buy clothes online.
+  - ❌ I participate in a meeting. → ⭕️ I join a meeting.
+- 会話でふつう使わない硬い動詞・書き言葉（commute, reside, consume, attend, obtain, purchase, participate など）は使わない。
+- 迷ったら「中学生が知っている単語だけで言えるか」で選ぶ。言えるならそちらにする。
+- **メモ本文に硬い語が書かれていても、平易な語に置き換えること**（意味は変えないので【添削ルール】の「意味変更禁止」には反しない）。
+  例: メモ「I commute to my office by train.」→ SPP「I go to my office by train.」
+
+## 7. 教科書反転の禁止（ただし噛み合わせが最優先）
+- **大前提: FPP は「SPP がその答えとして自然に成立する」質問であること。** 時制と観点（過去の出来事か／習慣か／好みか）を必ず SPP に合わせる。噛み合っていない質問は最悪の失敗です。
+  - ❌ FPP「What do you like to watch?」（好み・現在）→ SPP「I watched a movie last night.」（過去の出来事）＝答えになっていない
+  - ❌ FPP「What does your husband do for work?」（職業）→ SPP「My husband went to Osaka for work.」（出張）＝答えになっていない
+  - ⭕️ FPP「What did you do last night?」→ SPP「I watched a movie last night.」
+- **そのうえで**、FPP を SPP の語順をそのまま裏返しただけの質問にしない。少しずらした自然な入り口にすること。
+  - ❌ SPP「He went on a field trip to the zoo.」に対して FPP「Where did he go on a field trip?」（語をそのまま裏返しただけ）
+  - ⭕️ SPP「He went on a field trip to the zoo.」に対して FPP「Where is your son today?」（自然な入り口で、かつ答えとして成立する）
+- 骨だけの短文を並べない。内容同士の関係（具体化 / 理由 / 頻度 / 対比 / 感想）でつなぐ。
+  - ❌ I like sushi. I like salmon. I eat it twice a month.
+  - ⭕️ I love sushi, especially salmon. I have it about twice a month.
+
+## 8. 型に寄せない
+- つなぎ方・相づち・書き出しを固定しない。**毎回同じ型・同じ書き出しに寄せないこと。**
+- 上に挙げた表現はあくまで例。同じ語ばかり使わず、話の内容に合ったものを毎回選ぶ。
+
+【お手本1: メモの主語が三人称のとき】
+メモ:
+He went on a field trip.
+zoo
+
+出力すべき4行（4行とも he のまま）:
+- fpp_question: Where is your son today?
+- spp: He went on a field trip to the zoo.
+- followup_question: Oh, nice! Was he excited this morning?
+- followup_answer: Super excited! He couldn't stop talking about it.
+
+【お手本2: メモの主語が一人称のとき】
+メモ:
+I started going to the gym.
+three times a week
+
+出力すべき4行（4行とも I / you のまま。he にしないこと）:
+- fpp_question: What do you do to stay in shape?
+- spp: I started going to the gym.
+- followup_question: Really? How often do you go?
+- followup_answer: Three times a week. I'm trying to keep it up.`;
+
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
 ${chunkRule}
@@ -91,6 +189,8 @@ ${isMulti
   : `- patterns は配列。メモ内の Q→A ペアの数だけ要素を作ること。
 - 各パターンのキーはすべて必須（空文字 "" は不可）。英語のセリフ（fpp_question / spp / followup_question / followup_answer）は下記【添削ルール】に従って整えること:`}
 
+${conversationRule}
+
 【添削ルール】
 # ROLE
 あなたはプロの英会話講師。目的は「日本人中級者がそのまま口に出せる自然な口語英語」に最小修正で整えること。
@@ -106,7 +206,7 @@ ${isMulti
 # RULES（英文を「整形」する際の厳守事項）
 - 入力英文の修正は最大2箇所まで
 - 入力英文の語順変更は1回まで
-- 入力英文の意味変更・情報追加は禁止
+- **メモに実在する英文**の意味変更・情報追加は禁止（メモに無い FQ / FA の新規補完はこの制限の対象外。【会話ルール】に従うこと）
 - 大幅な書き換え禁止
 - 「既に自然」とは**ネイティブが日常会話で実際に使う語法**を指す。文法的に通じるだけでは「自然」とみなさない
 
@@ -124,8 +224,8 @@ ${isMulti
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）${isMulti ? '。会話モードでは全要素に同じ文字列を入れる。' : ''}
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
-  - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'そのFPPに自然につながるフォロー質問（メモの別の交換を使ってもよいし、AIが補完してもよい）'}
-  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答（**1文のみ・短く簡潔に**）'}
+  - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'SPP に自然につながるフォロー質問。**必ず相づち・反応から始める**（【会話ルール】3）。SPP と同じ人物・同じ主語について尋ねること（【会話ルール】1）'}
+  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答。**「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）。主語は SPP と揃えること（【会話ルール】1）'}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - suggested_category … ${catBlock.replace(/\n/g, ' ')}
 
@@ -142,7 +242,7 @@ ${isMulti
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: LESSON_AI_MODEL,
       messages: [
         {
           role: 'system',
@@ -152,7 +252,7 @@ ${isMulti
         { role: 'user', content: userPrompt },
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.2,
+      temperature: 0.45,
       max_tokens: 4000,
     }),
   });
@@ -313,7 +413,7 @@ JSON例（話題が3つあれば3要素）: {"patterns":[{"situation_ja":"...","
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: LESSON_AI_MODEL,
       messages: [
         {
           role: 'system',
