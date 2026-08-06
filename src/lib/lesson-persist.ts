@@ -33,6 +33,13 @@ function categoryMatchKey(name: string): string {
     .toLowerCase();
 }
 
+/** 「1. 返答：習慣」→「習慣」。細目だけを取り出す（大項目の取り違えを吸収するため） */
+function categorySubKey(name: string): string {
+  const k = categoryMatchKey(name);
+  const i = k.lastIndexOf(':');
+  return i >= 0 ? k.slice(i + 1) : '';
+}
+
 async function findOrCreateCategory(suggestedName: string): Promise<number> {
   const fallbackName = 'レッスン追加';
   const searchName = suggestedName.trim() || fallbackName;
@@ -52,6 +59,16 @@ async function findOrCreateCategory(suggestedName: string): Promise<number> {
     const all = (await sql`SELECT id, name FROM categories`) as { id: number; name: string }[];
     const fuzzy = all.find(c => categoryMatchKey(c.name ?? '') === key);
     if (fuzzy) return fuzzy.id;
+
+    // それでも一致しなければ細目（「：」以降）だけで探す。
+    // AI は大項目の番号・名前を取り違えることが多く（例:「1. 返答：習慣」があるのに
+    // 「2. 主観：習慣」を作る）、そのたびに同義カテゴリが増えていた。
+    // 細目は既存一覧内で一意なので、一意に決まるときだけ寄せる。
+    const sub = categorySubKey(searchName);
+    if (sub) {
+      const subHits = all.filter(c => categorySubKey(c.name ?? '') === sub);
+      if (subHits.length === 1) return subHits[0].id;
+    }
   }
 
   const [maxOrder] = await sql`

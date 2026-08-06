@@ -242,8 +242,12 @@ ${isMulti
   - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答。**「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）。主語は SPP と揃えること（【会話ルール】1）'}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - title_en … **そのチャンクで練習する「型」**を短く書く（教材の見出しになる。英文をそのまま入れないこと）。
-      形は「主語＋キーとなる語＋ ~」。例:「I'm gonna ~」「He went to ~」「I usually ~」「I don't really ~」「Was he ~?」
-      SPP の骨組みから作る。長い文をそのまま入れたり、FPP を丸写ししたりしない（**最大30文字程度**）。
+      **必ず SPP（受講生が言う側）の骨組みから作ること。** 形は「主語＋キーとなる語＋ ~」。
+      例: SPP「I usually cook breakfast.」→「I usually ~」／ SPP「I don't really run.」→「I don't really ~」
+      **禁止:** FPP（相手の質問）から作ること。FA から作ること。疑問文を見出しにすること。
+      - ❌ SPP「Yes, we do have it in triple XL.」に対して title_en「Do you have ~」（FPP から取っている）
+      - ⭕️ 同じ SPP に対して title_en「Yes, we do have ~」
+      長い文をそのまま入れない（**最大30文字程度**）。
   - title_jp … title_en の短い和訳（例:「〜するつもり」「〜へ行った」「たいてい〜する」。**最大20文字程度**）
   - suggested_category … 下記【カテゴリの選び方】に従う
 
