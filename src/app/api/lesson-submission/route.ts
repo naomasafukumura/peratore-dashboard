@@ -75,22 +75,33 @@ function normalizePattern(parsed: Record<string, unknown>): ExtractedPattern {
   };
 }
 
-/** FA が一人称トークンを含むか（topic_person が third のときの違反検出用） */
-const FIRST_PERSON_TOKEN_RE = /\b(I|I'm|I['’]m|I've|I['’]ve|I['’]d|I['’]ll|my|me|mine)\b/i;
+/** FQ に三人称代名詞（she/he/him/her/his）が含まれているか */
+const THIRD_PARTY_PRONOUN_RE = /\b(she|he|him|her|his)\b/i;
+/**
+ * FA の文頭主語が一人称（I / I'm / I've / I'd / I'll）かどうか。
+ * FA は「短い相づち＋補足」の形（例: "Oh, I love that movie!"）で始まることが多いため、
+ * 先頭の相づち（単語＋区切り記号）を最大3個までスキップしてから主語を判定する。
+ */
+const FIRST_PERSON_SUBJECT_START_RE = /^(?:[a-zA-Z]+[,!.\s]+){0,3}(I['’]m|I['’]ve|I['’]d|I['’]ll|I)\b/i;
 
+/**
+ * FQ↔FA の局所整合性チェック。FQ が三人称代名詞で誰かについて尋ねているのに、
+ * FA が一人称で答えてしまっている（人称のすり替わり）ケースだけを違反とみなす。
+ * SPP の話題（topic_person）から FQ が「あなたは？」に転換するのは自然な会話なので対象外。
+ */
 function hasFirstPersonViolation(p: ExtractedPattern): boolean {
-  if (p.topic_person !== 'third') return false;
-  if (!p.followup_answer) return false;
-  return FIRST_PERSON_TOKEN_RE.test(p.followup_answer);
+  if (!p.followup_question || !p.followup_answer) return false;
+  if (!THIRD_PARTY_PRONOUN_RE.test(p.followup_question)) return false;
+  return FIRST_PERSON_SUBJECT_START_RE.test(p.followup_answer);
 }
 
-/** 人称不一致（FQ=三人称なのにFAが一人称）を検出したパターンだけ FQ/FA を1回だけ書き直す */
+/** 人称不一致（FQ=三人称なのにFAが一人称）を検出したパターンだけ FA を1回だけ書き直す（FQ は教師メモ由来の可能性があるため変更しない） */
 async function fixPersonMismatch(
   apiKey: string,
   pattern: ExtractedPattern
 ): Promise<ExtractedPattern> {
-  const prompt = `次の英会話の FQ（followup_question）と FA（followup_answer）を、話題の人物（${pattern.topic_pronoun || 'the third person'}）を保ったまま書き直してください。
-FA が一人称（I / my / me など）になってしまっている誤りを直すのが目的です。fpp_question と spp は変更しないでください。
+  const prompt = `次の英会話の FA（followup_answer）を、FQ（followup_question）が尋ねている人物（${pattern.topic_pronoun || 'the third person'}）に合わせて書き直してください。
+FQ は she/he などでその人物について尋ねているのに、FA が一人称（I / my / me など）で答えてしまっている誤りを直すのが目的です。fpp_question・spp・followup_question は変更しないでください。
 
 【現在の内容】
 FPP: ${pattern.fpp_question}
@@ -99,7 +110,7 @@ FQ: ${pattern.followup_question}
 FA: ${pattern.followup_answer}
 
 【出力】
-{"followup_question":"...","followup_answer":"..."} のJSONのみを返してください。FQ・FAとも話題の人物（${pattern.topic_pronoun || 'third person'}）のまま、一人称（I / my / me）を主語にしないこと。`;
+{"followup_answer":"..."} のJSONのみを返してください。FA は FQ が尋ねている人物（${pattern.topic_pronoun || 'third person'}）について、一人称（I / my / me）を主語にせず答えること。`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -130,10 +141,9 @@ FA: ${pattern.followup_answer}
     const content = data.choices?.[0]?.message?.content;
     if (!content || typeof content !== 'string') return pattern;
     const fixed = JSON.parse(content) as Record<string, unknown>;
-    const followup_question = String(fixed.followup_question ?? '').trim();
     const followup_answer = String(fixed.followup_answer ?? '').trim();
-    if (!followup_question || !followup_answer) return pattern;
-    return { ...pattern, followup_question, followup_answer };
+    if (!followup_answer) return pattern;
+    return { ...pattern, followup_answer };
   } catch (err) {
     console.error('fixPersonMismatch failed:', err);
     return pattern;
@@ -289,9 +299,15 @@ The movie motivated her.
 - spp: The movie motivated her.
 - followup_question: Wow! What did she say about it?
 - followup_answer: She loved it. She said it was so inspiring.
+
+**なお、SPP→FQ で話題を「あなたはどう？」と受講生自身に転換するのは自然な会話であり許可される。その場合 FA は I で答えて良い（FQ 自体が誰について聞いているかに合わせること）。**
 悪い例（禁止。FQ は she について聞いているのに FA が I になっている）:
+- followup_question: Wow! What did she think about it?
+- followup_answer: Oh, I love that movie! It's so inspiring! ← FQ は she について聞いているのに FA が I にすり替わっている。誤り。
+
+良い例（OK。SPP は娘の話でも、FQ が「あなたは？」に話題転換すれば FA は I でよい）:
 - followup_question: Do you like the movie as well?
-- followup_answer: Oh, I love that movie! It's so inspiring! ← FA が受講生自身の一人称にすり替わっている。誤り。`;
+- followup_answer: Oh, I love that movie! It's so inspiring! ← FQ 自体が「あなた」について聞いているので、FA が I なのは正しい。`;
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
@@ -353,7 +369,7 @@ ${isMulti
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
   - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'SPP に自然につながるフォロー質問。**必ず相づち・反応から始める**（【会話ルール】3）。SPP と同じ人物・同じ主語について尋ねること（【会話ルール】1）'}
-  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : `**FQ が尋ねている人物について答えること。** topic_person が third なら、FA 内で I / my / me / I'm / I've を主語・所有格として使ってはならない（${isMulti ? '' : 'topic_pronoun の代名詞のまま答える'}）。「主語を SPP に揃える」のではなく「FQ が誰について聞いているか」に揃えること。
+  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : `**FQ が尋ねている対象（話題転換後の対象も含む）に合わせて答えること。** topic_person / topic_pronoun は FPP/SPP の一貫性の目安であり、FQ で「あなたは？」に話題転換した場合はその対象（受講生自身）に合わせて I で答えてよい。「主語を SPP に揃える」のではなく「FQ が誰について聞いているか」に揃えること。
       **メモに既に FQ/FA が書かれておりそれを添削する場合も、話題の人称・対象人物を変更してはならない。**（是正してよいのは文法・口語化のみ。質問や返答が「誰について」かという意味を変えるのは【添削ルール】違反）
       **「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）`}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
