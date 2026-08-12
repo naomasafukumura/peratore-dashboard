@@ -18,6 +18,10 @@ type ExtractedPattern = {
   title_en: string;
   /** チャンクのタイトル和訳（例: "〜するつもり"）。空なら situation_ja で代用される */
   title_jp: string;
+  /** 話題の主体が受講生自身か第三者か。AIに4行を書く前に確定させるためのトークン */
+  topic_person?: 'self' | 'third';
+  /** topic_person が third のときの代名詞（例: "she / her"）。self なら空文字 */
+  topic_pronoun?: string;
   fpp_question: string;
   spp: string;
   followup_question: string;
@@ -55,10 +59,13 @@ type AnalyzeResult =
   | { ok: false; error: string; status: number };
 
 function normalizePattern(parsed: Record<string, unknown>): ExtractedPattern {
+  const topicPersonRaw = String(parsed.topic_person ?? '').trim().toLowerCase();
   return {
     situation_ja: String(parsed.situation_ja ?? '').trim(),
     title_en: String(parsed.title_en ?? '').trim(),
     title_jp: String(parsed.title_jp ?? '').trim(),
+    topic_person: topicPersonRaw === 'third' ? 'third' : topicPersonRaw === 'self' ? 'self' : undefined,
+    topic_pronoun: String(parsed.topic_pronoun ?? '').trim(),
     fpp_question: String(parsed.fpp_question ?? '').trim(),
     spp: String(parsed.spp ?? '').trim(),
     followup_question: String(parsed.followup_question ?? '').trim(),
@@ -66,6 +73,95 @@ function normalizePattern(parsed: Record<string, unknown>): ExtractedPattern {
     character: String(parsed.character ?? '友人').trim() || '友人',
     suggested_category: String(parsed.suggested_category ?? '').trim(),
   };
+}
+
+/** FA が一人称トークンを含むか（topic_person が third のときの違反検出用） */
+const FIRST_PERSON_TOKEN_RE = /\b(I|I'm|I['’]m|I've|I['’]ve|I['’]d|I['’]ll|my|me|mine)\b/i;
+
+function hasFirstPersonViolation(p: ExtractedPattern): boolean {
+  if (p.topic_person !== 'third') return false;
+  if (!p.followup_answer) return false;
+  return FIRST_PERSON_TOKEN_RE.test(p.followup_answer);
+}
+
+/** 人称不一致（FQ=三人称なのにFAが一人称）を検出したパターンだけ FQ/FA を1回だけ書き直す */
+async function fixPersonMismatch(
+  apiKey: string,
+  pattern: ExtractedPattern
+): Promise<ExtractedPattern> {
+  const prompt = `次の英会話の FQ（followup_question）と FA（followup_answer）を、話題の人物（${pattern.topic_pronoun || 'the third person'}）を保ったまま書き直してください。
+FA が一人称（I / my / me など）になってしまっている誤りを直すのが目的です。fpp_question と spp は変更しないでください。
+
+【現在の内容】
+FPP: ${pattern.fpp_question}
+SPP: ${pattern.spp}
+FQ: ${pattern.followup_question}
+FA: ${pattern.followup_answer}
+
+【出力】
+{"followup_question":"...","followup_answer":"..."} のJSONのみを返してください。FQ・FAとも話題の人物（${pattern.topic_pronoun || 'third person'}）のまま、一人称（I / my / me）を主語にしないこと。`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LESSON_AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You fix person-agreement errors in short English dialogue. Reply with a single valid JSON object only, no markdown fences.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: 500,
+      }),
+    });
+    if (!response.ok) {
+      console.error('OpenAI fixPersonMismatch:', response.status, await response.text());
+      return pattern;
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') return pattern;
+    const fixed = JSON.parse(content) as Record<string, unknown>;
+    const followup_question = String(fixed.followup_question ?? '').trim();
+    const followup_answer = String(fixed.followup_answer ?? '').trim();
+    if (!followup_question || !followup_answer) return pattern;
+    return { ...pattern, followup_question, followup_answer };
+  } catch (err) {
+    console.error('fixPersonMismatch failed:', err);
+    return pattern;
+  }
+}
+
+/** 人称不一致パターンを検出し、違反したものだけ最大1回リトライして書き直す */
+async function reconcilePersonMismatches(patterns: ExtractedPattern[], apiKey: string): Promise<ExtractedPattern[]> {
+  const violations = patterns.filter(hasFirstPersonViolation);
+  if (violations.length === 0) return patterns;
+
+  console.warn(`[analyze-memo] 人称不一致を${violations.length}件検出。FQ/FAを再生成します。`);
+
+  const fixedMap = new Map<ExtractedPattern, ExtractedPattern>();
+  for (const p of violations) {
+    const fixed = await fixPersonMismatch(apiKey, p);
+    fixedMap.set(p, fixed);
+    if (hasFirstPersonViolation(fixed)) {
+      console.warn('[analyze-memo] 再生成後も人称不一致が残存:', {
+        fpp: fixed.fpp_question,
+        spp: fixed.spp,
+        followup_question: fixed.followup_question,
+        followup_answer: fixed.followup_answer,
+      });
+    }
+  }
+
+  return patterns.map(p => fixedMap.get(p) ?? p);
 }
 
 async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], directStyle?: '1sentence' | 'multi' | 'pairs'): Promise<AnalyzeResult> {
@@ -181,7 +277,21 @@ three times a week
 - fpp_question: What do you do to stay in shape?
 - spp: I started going to the gym.
 - followup_question: Really? How often do you go?
-- followup_answer: Three times a week. I'm trying to keep it up.`;
+- followup_answer: Three times a week. I'm trying to keep it up.
+
+【お手本3: SPP の主語が無生物で、話題の人物が目的語のとき（最重要）】
+メモ:
+The movie motivated her.
+
+**このパターンでは SPP の文法上の主語は The movie だが、話題の人物は she（her）。FQ/FA は she のままにすること。「主語を SPP に揃える」と考えて I にしてはならない。**
+出力すべき4行（topic_person は third、topic_pronoun は "she / her"）:
+- fpp_question: What made your daughter study so hard?
+- spp: The movie motivated her.
+- followup_question: Wow! What did she say about it?
+- followup_answer: She loved it. She said it was so inspiring.
+悪い例（禁止。FQ は she について聞いているのに FA が I になっている）:
+- followup_question: Do you like the movie as well?
+- followup_answer: Oh, I love that movie! It's so inspiring! ← FA が受講生自身の一人称にすり替わっている。誤り。`;
 
   const userPrompt = `以下は英会話レッスン後の先生メモです（日本語・英語混在可）。パターンプラクティス教材用に構造化してください。
 
@@ -192,6 +302,7 @@ ${rawMemo}
 
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
+- **各パターンのJSONキーは topic_person, topic_pronoun を先頭に置き、その後で fpp_question 以降を書くこと。** 話題の主体を先に確定させてから4行を生成するため。
 ${isMulti
   ? `- **メモ内のQ→Aペア1つ = patterns 配列の1要素。** メモに3ペアあるなら patterns は3要素になる。**複数ペアを1要素にまとめないこと。**
 - 各パターンの fpp_question と spp は必須（空文字不可）。
@@ -233,13 +344,18 @@ ${isMulti
 - 前置詞ゆれは慣用的に自然な方を優先（例: important for → important to / good in → good at / married with → married to / different than → different from / interested on → interested in）
 
 【各キーの定義】
+  - topic_person … **必ず他のキーより先に決めること。** このチャンクの話題の主体が受講生自身なら "self"、第三者（息子・夫・友人など）なら "third"。
+      4行（fpp_question / spp / followup_question / followup_answer）を書く前に topic_person を確定させ、以降その人称を最後まで一貫させること。
+  - topic_pronoun … topic_person が "third" のときにその人物を指す代名詞（例: "she / her" "he / his"）。topic_person が "self" のときは空文字 ""。
   - situation_ja … 受講生向けの状況説明（日本語。そのFPPが飛んでくる場面が分かるように）。**話題の人物を必ず具体的に書くこと。「彼が」「彼女が」と書くのは禁止。**
       メモが he / she でも、FPP で your son / your husband と特定したなら situation_ja も「息子さんが」「ご主人が」と書く。受講生自身の話なら「自分が」と書く。
       例:「息子さんが動物園へ遠足に行った話を聞かれる場面」${isMulti ? '。会話モードでは全要素に同じ文字列を入れる。' : ''}
   - fpp_question … 相手（講師側）の質問
   - spp … 受講生の模範回答（**1文のみ・短く簡潔に**。メモに複数文あっても最初の1文だけ使うこと）
   - followup_question … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'SPP に自然につながるフォロー質問。**必ず相づち・反応から始める**（【会話ルール】3）。SPP と同じ人物・同じ主語について尋ねること（【会話ルール】1）'}
-  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : 'followup_question への受講生の返答。**「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）。主語は SPP と揃えること（【会話ルール】1）'}
+  - followup_answer … ${isMulti ? '**会話モードでは必ず空文字 ""**' : `**FQ が尋ねている人物について答えること。** topic_person が third なら、FA 内で I / my / me / I'm / I've を主語・所有格として使ってはならない（${isMulti ? '' : 'topic_pronoun の代名詞のまま答える'}）。「主語を SPP に揃える」のではなく「FQ が誰について聞いているか」に揃えること。
+      **メモに既に FQ/FA が書かれておりそれを添削する場合も、話題の人称・対象人物を変更してはならない。**（是正してよいのは文法・口語化のみ。質問や返答が「誰について」かという意味を変えるのは【添削ルール】違反）
+      **「短い反応 ＋ 補足」の2文構成**（【会話ルール】3）`}
   - character … 会話相手が「夫」なら "夫"、それ以外は "友人"
   - title_en … **そのチャンクで練習する「型」**を短く書く（教材の見出しになる。英文をそのまま入れないこと）。
       **必ず SPP（受講生が言う側）の骨組みから作ること。** 形は「主語＋キーとなる語＋ ~」。
@@ -256,9 +372,9 @@ ${catBlock}
 
 ${isMulti
   ? `JSON の例（Q→Aが3ペアの会話なら patterns は3要素。FQ/FAは必ず ""）:
-{"patterns":[{"situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`
+{"patterns":[{"topic_person":"self","topic_pronoun":"","situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."},{"topic_person":"self","topic_pronoun":"","situation_ja":"...","title_en":"...","title_jp":"...","fpp_question":"...","spp":"...","followup_question":"","followup_answer":"","character":"友人","suggested_category":"..."}]}`
   : `JSON の例（Q→Aが4つある場合は4要素）:
-{"patterns":[{"situation_ja":"息子さんが動物園へ遠足に行った話を聞かれる場面","title_en":"He went on ~","title_jp":"〜に行った","fpp_question":"Where is your son today?","spp":"He went on a field trip to the zoo.","followup_question":"Oh, nice! Was he excited this morning?","followup_answer":"Super excited! He couldn't stop talking about it.","character":"友人","suggested_category":"1. 返答：過去"}]}`}`;
+{"patterns":[{"topic_person":"third","topic_pronoun":"he / his","situation_ja":"息子さんが動物園へ遠足に行った話を聞かれる場面","title_en":"He went on ~","title_jp":"〜に行った","fpp_question":"Where is your son today?","spp":"He went on a field trip to the zoo.","followup_question":"Oh, nice! Was he excited this morning?","followup_answer":"Super excited! He couldn't stop talking about it.","character":"友人","suggested_category":"1. 返答：過去"}]}`}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -314,7 +430,10 @@ ${isMulti
     };
   }
 
-  return { ok: true, patterns };
+  // isMulti は FQ/FA が常に空文字のため対象外。人称不一致（third なのに FA が一人称）だけ検出して1回だけ書き直す。
+  const finalPatterns = isMulti ? patterns : await reconcilePersonMismatches(patterns, apiKey);
+
+  return { ok: true, patterns: finalPatterns };
 }
 
 /** 例文テキストをそのままチャンク分割（解釈より分割優先） */
