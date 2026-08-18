@@ -1314,6 +1314,7 @@ let recognizedText = '';
 let thinkTimer = null;
 let speakTimerInterval = null;
 let currentAudio = null;
+let listenSilentStreak = 0;
 let lvPlaybackRate = (() => {
   const v = parseFloat(localStorage.getItem('pp-listenRate') || '1');
   return Number.isFinite(v) && v >= 0.25 && v <= 2 ? v : 1;
@@ -1906,6 +1907,7 @@ function lvPlayCards(cards, repeat, onDone) {
   });
 
   let pi = 0;
+  let silentStreak = 0;
   function playNext() {
     if (state.cancel) return;
     if (pi >= playlist.length) {
@@ -1924,7 +1926,17 @@ function lvPlayCards(cards, repeat, onDone) {
     }
     const gap = item.isLast ? 800 : 600;
     let advanced = false; // 二重発火防止
-    const advance = () => { if (advanced) return; advanced = true; pi++; setTimeout(playNext, gap); };
+    let watchdog;
+    const advance = (ok) => {
+      if (advanced) return;
+      advanced = true;
+      clearTimeout(watchdog);
+      silentStreak = ok ? 0 : silentStreak + 1;
+      if (silentStreak >= 3) { lvStopAll(); if (onDone) onDone(); return; }
+      pi++; setTimeout(playNext, gap);
+    };
+    watchdog = setTimeout(() => advance(false), 8000);
+    if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
     currentAudio = new Audio(item.line.audio);
     try {
       currentAudio.playbackRate = lvPlaybackRate;
@@ -1932,9 +1944,9 @@ function lvPlayCards(cards, repeat, onDone) {
       currentAudio.webkitPreservesPitch = true;
       currentAudio.mozPreservesPitch = true;
     } catch(_) {}
-    currentAudio.onended = advance;
-    currentAudio.onerror = advance;
-    currentAudio.play().catch(advance);
+    currentAudio.onended = () => advance(true);
+    currentAudio.onerror = () => advance(false);
+    currentAudio.play().catch(() => advance(false));
   }
 
   if (playlist.length === 0) { if (onDone) onDone(); return; }
@@ -2615,9 +2627,19 @@ function playListenCard(idx) {
       stopAudio();
       currentAudio = new Audio(line.audio);
       let advanced = false; // 二重発火防止
-      currentAudio.onended = () => { if (advanced) return; advanced = true; setTimeout(playNextLine, 600); };
-      currentAudio.onerror = () => { if (advanced) return; advanced = true; setTimeout(playNextLine, 600); };
-      currentAudio.play().catch(() => { if (advanced) return; advanced = true; setTimeout(playNextLine, 600); });
+      let watchdog;
+      const advance = (ok) => {
+        if (advanced) return;
+        advanced = true;
+        clearTimeout(watchdog);
+        listenSilentStreak = ok ? 0 : listenSilentStreak + 1;
+        if (listenSilentStreak >= 3) { stopAudio(); return; }
+        setTimeout(playNextLine, 600);
+      };
+      watchdog = setTimeout(() => advance(false), 8000);
+      currentAudio.onended = () => advance(true);
+      currentAudio.onerror = () => advance(false);
+      currentAudio.play().catch(() => advance(false));
     } else {
       setTimeout(playNextLine, 1200);
     }
@@ -3546,6 +3568,7 @@ function showFullConversationReplay(autoPlay) {
   if (autoPlay) {
     // Add bubbles one by one with audio, conversation-style tempo
     let seqIdx = 0;
+    let silentStreak = 0;
     function playSeqNext() {
       if (seqIdx >= lines.length) {
         setTimeout(() => { showPostReplayBar(); }, 800);
@@ -3553,11 +3576,22 @@ function showFullConversationReplay(autoPlay) {
       }
       const l = lines[seqIdx];
       addBubbleWithControls(l);
+      if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
       currentAudio = new Audio(l.audio);
       let advanced = false; // 二重発火防止
-      currentAudio.onended = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.onerror = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.play().catch(() => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); });
+      let watchdog;
+      const advance = (ok) => {
+        if (advanced) return;
+        advanced = true;
+        clearTimeout(watchdog);
+        silentStreak = ok ? 0 : silentStreak + 1;
+        if (silentStreak >= 3) { stopAudio(); return; }
+        seqIdx++; setTimeout(playSeqNext, 600);
+      };
+      watchdog = setTimeout(() => advance(false), 8000);
+      currentAudio.onended = () => advance(true);
+      currentAudio.onerror = () => advance(false);
+      currentAudio.play().catch(() => advance(false));
     }
     playSeqNext();
   } else {

@@ -1439,6 +1439,7 @@ function lvPlayCards(cards, repeat, onDone) {
   lvPlayState = { active: true, cancel: false };
   const state = lvPlayState;
   let ci = 0;
+  let silentStreak = 0;
   function playCard() {
     if (state.cancel || ci >= cards.length) {
       if (!state.cancel && repeat) { ci = 0; playCard(); return; }
@@ -1451,11 +1452,22 @@ function lvPlayCards(cards, repeat, onDone) {
     let li = 0;
     function playLine() {
       if (state.cancel || li >= lines.length) { ci++; setTimeout(playCard, 800); return; }
+      if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
       currentAudio = new Audio(lines[li].audio);
       let advanced = false; // 二重発火防止
-      currentAudio.onended = () => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); };
-      currentAudio.onerror = () => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); };
-      currentAudio.play().catch(() => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); });
+      let watchdog;
+      const advance = (ok) => {
+        if (advanced) return;
+        advanced = true;
+        clearTimeout(watchdog);
+        silentStreak = ok ? 0 : silentStreak + 1;
+        if (silentStreak >= 3) { lvStopAll(); if (onDone) onDone(); return; }
+        li++; setTimeout(playLine, 600);
+      };
+      watchdog = setTimeout(() => advance(false), 8000);
+      currentAudio.onended = () => advance(true);
+      currentAudio.onerror = () => advance(false);
+      currentAudio.play().catch(() => advance(false));
     }
     playLine();
   }
@@ -2631,6 +2643,7 @@ function showFullConversationReplay(autoPlay) {
   if (autoPlay) {
     // Add bubbles one by one with audio, conversation-style tempo
     let seqIdx = 0;
+    let silentStreak = 0;
     function playSeqNext() {
       if (seqIdx >= lines.length) {
         setTimeout(() => { showPostReplayBar(); }, 800);
@@ -2638,11 +2651,22 @@ function showFullConversationReplay(autoPlay) {
       }
       const l = lines[seqIdx];
       addBubbleWithControls(l);
+      if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
       currentAudio = new Audio(l.audio);
       let advanced = false; // 二重発火防止
-      currentAudio.onended = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.onerror = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.play().catch(() => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); });
+      let watchdog;
+      const advance = (ok) => {
+        if (advanced) return;
+        advanced = true;
+        clearTimeout(watchdog);
+        silentStreak = ok ? 0 : silentStreak + 1;
+        if (silentStreak >= 3) { stopAudio(); return; }
+        seqIdx++; setTimeout(playSeqNext, 600);
+      };
+      watchdog = setTimeout(() => advance(false), 8000);
+      currentAudio.onended = () => advance(true);
+      currentAudio.onerror = () => advance(false);
+      currentAudio.play().catch(() => advance(false));
     }
     playSeqNext();
   } else {
@@ -3045,6 +3069,7 @@ function stopAudio() {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.removeAttribute('src');
+    currentAudio.load();
     currentAudio = null;
   }
 }
