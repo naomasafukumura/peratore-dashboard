@@ -1452,9 +1452,10 @@ function lvPlayCards(cards, repeat, onDone) {
     function playLine() {
       if (state.cancel || li >= lines.length) { ci++; setTimeout(playCard, 800); return; }
       currentAudio = new Audio(lines[li].audio);
-      currentAudio.onended = () => { li++; setTimeout(playLine, 600); };
-      currentAudio.onerror = () => { li++; setTimeout(playLine, 600); };
-      currentAudio.play().catch(() => { li++; setTimeout(playLine, 600); });
+      let advanced = false; // 二重発火防止
+      currentAudio.onended = () => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); };
+      currentAudio.onerror = () => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); };
+      currentAudio.play().catch(() => { if (advanced) return; advanced = true; li++; setTimeout(playLine, 600); });
     }
     playLine();
   }
@@ -2638,9 +2639,10 @@ function showFullConversationReplay(autoPlay) {
       const l = lines[seqIdx];
       addBubbleWithControls(l);
       currentAudio = new Audio(l.audio);
-      currentAudio.onended = () => { seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.onerror = () => { seqIdx++; setTimeout(playSeqNext, 600); };
-      currentAudio.play().catch(() => { seqIdx++; setTimeout(playSeqNext, 600); });
+      let advanced = false; // 二重発火防止
+      currentAudio.onended = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
+      currentAudio.onerror = () => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); };
+      currentAudio.play().catch(() => { if (advanced) return; advanced = true; seqIdx++; setTimeout(playSeqNext, 600); });
     }
     playSeqNext();
   } else {
