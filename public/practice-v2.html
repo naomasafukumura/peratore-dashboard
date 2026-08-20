@@ -389,6 +389,7 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .lv-card-repeat svg{width:12px;height:12px}
 .lv-card-repeat:active{transform:scale(.9)}
 .lv-playing{border-color:var(--accent)!important;box-shadow:0 0 0 2px var(--accent-glow)}
+.lv-skip-badge{font-size:9px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:6px;padding:2px 6px;margin-left:6px}
 .lv-range-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border-lt);flex-wrap:wrap}
 .lv-range-bar select{padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);font-size:12px;font-family:var(--fja);color:var(--text);background:var(--surface);cursor:pointer;min-width:70px}
 .lv-range-bar select:focus{outline:none;border-color:var(--accent)}
@@ -1866,11 +1867,28 @@ let lvFromListView = false;
 function lvStopAll() {
   lvPlayState.cancel = true;
   lvPlayState.active = false;
+  if (lvPlayState.watchdogTimer) { clearTimeout(lvPlayState.watchdogTimer); lvPlayState.watchdogTimer = null; }
+  if (lvPlayState.gapTimer) { clearTimeout(lvPlayState.gapTimer); lvPlayState.gapTimer = null; }
   stopAudio();
   document.querySelectorAll('.lv-playing').forEach(el => el.classList.remove('lv-playing'));
   document.querySelectorAll('.lv-sec-play,.lv-play-all,.lv-all-play').forEach(btn => {
     if (btn._origHtml) { btn.innerHTML = btn._origHtml; btn._origHtml = null; }
   });
+}
+
+function lvShowSkipBadge(cardId) {
+  const phraseEl = document.querySelector(`[data-lv-card-id="${cardId}"]`);
+  const hdr = phraseEl && phraseEl.querySelector('.lv-phrase-hdr');
+  if (!hdr) return;
+  let badge = hdr.querySelector('.lv-skip-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'lv-skip-badge';
+    badge.textContent = '音声未生成のためスキップ';
+    hdr.appendChild(badge);
+  }
+  clearTimeout(badge._hideTimer);
+  badge._hideTimer = setTimeout(() => { badge.remove(); }, 2500);
 }
 
 function lvGetCardLines(card) {
@@ -1885,17 +1903,16 @@ function lvGetCardLines(card) {
     return lines;
   }
   const st = card.states[0];
-  const lines = [
-    { audio: card.triggerAudio, text: card.trigger },
-    { audio: st.conclusionAudio, text: st.conclusion },
-  ];
+  const lines = [];
+  if (card.triggerAudio) lines.push({ audio: card.triggerAudio, text: card.trigger });
+  if (st.conclusionAudio) lines.push({ audio: st.conclusionAudio, text: st.conclusion });
   if (st.followup && st.followupAudio) lines.push({ audio: st.followupAudio, text: st.followup });
   if (st.conclusion2Examples && st.conclusion2Examples[0] && st.naturalAudio) lines.push({ audio: st.naturalAudio, text: st.conclusion2Examples[0] });
   return lines;
 }
 
 function lvPlayCards(cards, repeat, onDone) {
-  lvPlayState = { active: true, cancel: false };
+  lvPlayState = { active: true, cancel: false, watchdogTimer: null, gapTimer: null };
   const state = lvPlayState;
 
   const playlist = [];
@@ -1907,7 +1924,7 @@ function lvPlayCards(cards, repeat, onDone) {
   });
 
   let pi = 0;
-  let silentStreak = 0;
+  let failStreak = 0; // 連続失敗数（無制限エラー時の安全停止用）
   function playNext() {
     if (state.cancel) return;
     if (pi >= playlist.length) {
@@ -1926,16 +1943,42 @@ function lvPlayCards(cards, repeat, onDone) {
     }
     const gap = item.isLast ? 800 : 600;
     let advanced = false; // 二重発火防止
-    let watchdog;
+    const armWatchdog = (ms) => {
+      if (state.cancel) return;
+      clearTimeout(state.watchdogTimer);
+      state.watchdogTimer = setTimeout(() => advance(false), ms);
+    };
+    const onLoadedMetadata = () => {
+      const dur = currentAudio && currentAudio.duration;
+      const rate = lvPlaybackRate || 1;
+      if (dur && isFinite(dur) && dur > 0) {
+        armWatchdog((dur / rate) * 1000 + 3000);
+      } else {
+        armWatchdog(15000);
+      }
+    };
+    const onTimeUpdate = onLoadedMetadata; // 再生が進んでいる間はwatchdogを都度延長
     const advance = (ok) => {
+      if (state.cancel) return;
       if (advanced) return;
       advanced = true;
-      clearTimeout(watchdog);
-      silentStreak = ok ? 0 : silentStreak + 1;
-      if (silentStreak >= 3) { lvStopAll(); if (onDone) onDone(); return; }
-      pi++; setTimeout(playNext, gap);
+      clearTimeout(state.watchdogTimer);
+      state.watchdogTimer = null;
+      if (currentAudio) {
+        currentAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
+        currentAudio.removeEventListener('timeupdate', onTimeUpdate);
+      }
+      if (ok) {
+        failStreak = 0;
+      } else {
+        failStreak++;
+        lvShowSkipBadge(item.card.id);
+        if (failStreak >= 10) { lvStopAll(); if (onDone) onDone(); return; }
+      }
+      pi++;
+      state.gapTimer = setTimeout(() => { state.gapTimer = null; playNext(); }, gap);
     };
-    watchdog = setTimeout(() => advance(false), 8000);
+    armWatchdog(10000); // 音声ロード待ちのタイムアウト（loadedmetadata取得前）
     if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
     currentAudio = new Audio(item.line.audio);
     try {
@@ -1944,6 +1987,8 @@ function lvPlayCards(cards, repeat, onDone) {
       currentAudio.webkitPreservesPitch = true;
       currentAudio.mozPreservesPitch = true;
     } catch(_) {}
+    currentAudio.addEventListener('loadedmetadata', onLoadedMetadata);
+    currentAudio.addEventListener('timeupdate', onTimeUpdate);
     currentAudio.onended = () => advance(true);
     currentAudio.onerror = () => advance(false);
     currentAudio.play().catch(() => advance(false));
