@@ -174,24 +174,196 @@ async function reconcilePersonMismatches(patterns: ExtractedPattern[], apiKey: s
   return patterns.map(p => fixedMap.get(p) ?? p);
 }
 
-async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], directStyle?: '1sentence' | 'multi' | 'pairs'): Promise<AnalyzeResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
-  }
-
-  const catBlock =
-    categoryNames.length > 0
-      ? `次の一覧から意味が最も近いものを1つ選び、**1文字も変えずにそのままコピーして** suggested_category に入れてください。
+/** カテゴリ選択用のプロンプト断片。analyzeLessonMemo・analyzeDialoguePairs 共通。 */
+function buildCategoryBlock(categoryNames: string[]): string {
+  return categoryNames.length > 0
+    ? `次の一覧から意味が最も近いものを1つ選び、**1文字も変えずにそのままコピーして** suggested_category に入れてください。
 **「（調整中）」が付いている項目は「（調整中）」ごとコピーすること。括弧は全角（）のまま。勝手に省略・変換しないこと。**
 **大項目（「1. 返答」「2. 主観」「3. 短返答」「4. リアクション」「5. 質問返し」）と細目の組み合わせは、一覧にある組み合わせだけを使うこと。**
 一覧に無い組み合わせを新たに作らないでください（例: 一覧に「1. 返答：習慣」があるのに「2. 主観：習慣」を作るのは誤り。必ず一覧の「1. 返答：習慣」を選ぶ）。
 一覧のどれにも当てはまらないときだけ、新しい名前を「数字. 大項目：細目」形式で付けてください。
 【選べる一覧】
 ${categoryNames.map(n => `- ${n}`).join('\n')}`
-      : `suggested_category には、practice-v2 の区分に近い形式（「数字. 大項目：細目」）で付けてください。`;
+    : `suggested_category には、practice-v2 の区分に近い形式（「数字. 大項目：細目」）で付けてください。`;
+}
+
+/**
+ * メモが A/B 対話形式（例: "A: ..." / "B: ..."）かどうかを判定し、そうであれば
+ * 話者を保ったまま機械的に A→FPP/FQ 候補・B→SPP/FA 候補としてペア化する。
+ * 対話形式でない（A/B行が過半数に満たない）場合は空配列を返す。
+ */
+function buildDialoguePairsFromMemo(rawMemo: string): { a: string; b: string }[] {
+  const lines = rawMemo.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return [];
+
+  const DIALOGUE_LINE_RE = /^(A|B)\s*[:：]\s*(.+)$/;
+  const turns: { speaker: 'A' | 'B'; text: string }[] = [];
+  let dialogueLineCount = 0;
+  for (const line of lines) {
+    const m = line.match(DIALOGUE_LINE_RE);
+    if (m) {
+      dialogueLineCount++;
+      turns.push({ speaker: m[1] as 'A' | 'B', text: m[2].trim() });
+    }
+  }
+  // A/B形式の行が過半数を占めないメモは対話形式とみなさない（通常の自由記述メモ）
+  if (dialogueLineCount < 2 || dialogueLineCount / lines.length < 0.6) return [];
+
+  const pairs: { a: string; b: string }[] = [];
+  let pendingA: string | null = null;
+  for (const t of turns) {
+    if (t.speaker === 'A') {
+      pendingA = t.text; // 連続してAが来た場合は直近のAで上書き
+    } else if (pendingA !== null) {
+      pairs.push({ a: pendingA, b: t.text });
+      pendingA = null;
+    }
+  }
+  return pairs;
+}
+
+/**
+ * 話者スロットが確定済みの4行（FPP/SPP/FQ/FA）を、意味・話者を変えずに文法・口語表現のみ
+ * 軽く添削し、situation_ja / title_en / title_jp / character / suggested_category を付与する。
+ * reconcilePersonMismatches と同様「検出→軽い補正」パターン。失敗時は未添削のスロットのまま返す。
+ */
+async function polishDialoguePattern(
+  apiKey: string,
+  slots: { fpp: string; spp: string; fq: string; fa: string },
+  catBlock: string
+): Promise<ExtractedPattern> {
+  const fallback: ExtractedPattern = {
+    situation_ja: '',
+    title_en: '',
+    title_jp: '',
+    fpp_question: slots.fpp,
+    spp: slots.spp,
+    followup_question: slots.fq,
+    followup_answer: slots.fa,
+    character: '友人',
+    suggested_category: '',
+  };
+
+  const prompt = `次の4行は先生メモのA/B対話から、話者（A=相手役, B=受講生）を保ったまま機械的に抽出した会話です。
+このスロット割当は確定済みです。**意味・話者を変えず**、文法や口語らしさのみ添削してください。
+
+【厳守事項（絶対に避けること）】
+- 話者の入れ替え（FPP/FQ の内容と SPP/FA の内容を交換すること）
+- スロット間での文の移動（例: SPP の内容を FPP に移す）
+- 意味の変更・情報の追加・削除
+
+【確定スロット】
+FPP（相手の質問）: ${slots.fpp}
+SPP（受講生の回答）: ${slots.spp}
+FQ（相手のフォロー質問）: ${slots.fq || '(なし)'}
+FA（受講生の返答）: ${slots.fa || '(なし)'}
+
+上記4行を、意味・話者はそのまま保ちつつ、自然な口語英語になるよう最小限（各文2箇所まで）添削してください。FQ/FA が「(なし)」の場合は空文字のままにしてください（補完しない）。
+そのうえで、以下も生成してください:
+- situation_ja … 受講生向けの状況説明（日本語。話題の場面が分かるように）
+- title_en … 練習する型（SPPの骨組みから短く。最大30文字程度。FPPやFAから作らない）
+- title_jp … title_en の短い和訳（最大20文字程度）
+- character … 相手が「夫」なら "夫"、それ以外は "友人"
+- suggested_category … 下記【カテゴリの選び方】に従う
+
+【カテゴリの選び方】
+${catBlock}
+
+【出力】
+{"fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"...","situation_ja":"...","title_en":"...","title_jp":"...","character":"...","suggested_category":"..."} のJSONのみを返してください。`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LESSON_AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You lightly polish a pre-assigned English dialogue (speaker roles already fixed) without changing meaning or swapping speakers. Reply with a single valid JSON object only, no markdown fences.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: 800,
+      }),
+    });
+    if (!response.ok) {
+      console.error('OpenAI polishDialoguePattern:', response.status, await response.text());
+      return fallback;
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') return fallback;
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const polished = normalizePattern(parsed);
+    // フォールバック: AIがFPP/SPPを空にしてしまった場合は確定スロットを使う
+    if (!polished.fpp_question || !polished.spp) return fallback;
+    return polished;
+  } catch (err) {
+    console.error('polishDialoguePattern failed:', err);
+    return fallback;
+  }
+}
+
+/** A/B対話形式のメモを、話者を保ったまま確定スロット→軽い添削の順で解析する */
+async function analyzeDialoguePairs(
+  pairs: { a: string; b: string }[],
+  categoryNames: string[],
+  apiKey: string
+): Promise<AnalyzeResult> {
+  const catBlock = buildCategoryBlock(categoryNames);
+
+  // 2ペアずつまとめて1チャンク（FPP/SPP/FQ/FA）にする。奇数個余った最後の1ペアはFQ/FAを空にする。
+  const slotGroups: { fpp: string; spp: string; fq: string; fa: string }[] = [];
+  for (let i = 0; i < pairs.length; i += 2) {
+    const first = pairs[i];
+    const second = pairs[i + 1];
+    slotGroups.push({
+      fpp: first.a,
+      spp: first.b,
+      fq: second ? second.a : '',
+      fa: second ? second.b : '',
+    });
+  }
+
+  const patterns = await Promise.all(slotGroups.map(slots => polishDialoguePattern(apiKey, slots, catBlock)));
+  const validPatterns = patterns.filter(p => p.fpp_question && p.spp);
+
+  if (validPatterns.length === 0) {
+    return {
+      ok: false,
+      error: 'メモからパターンを抽出できませんでした。メモをもう少し具体的に書いてください。',
+      status: 422,
+    };
+  }
+
+  return { ok: true, patterns: validPatterns };
+}
+
+async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], directStyle?: '1sentence' | 'multi' | 'pairs'): Promise<AnalyzeResult> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return { ok: false, error: 'OPENAI_API_KEY が設定されていません', status: 500 };
+  }
 
   const isMulti = directStyle === 'multi';
+
+  // A/B対話形式のメモは、話者混同を防ぐため機械的なスロット確定→軽い添削で処理する（会話モードは対象外）
+  if (!isMulti) {
+    const dialoguePairs = buildDialoguePairsFromMemo(rawMemo);
+    if (dialoguePairs.length > 0) {
+      return analyzeDialoguePairs(dialoguePairs, categoryNames, apiKey);
+    }
+  }
+
+  const catBlock = buildCategoryBlock(categoryNames);
 
   const chunkRule = isMulti
     ? `**メモ全体を「1つの会話」として扱ってください。** トピックが複数あっても**分割せず、すべてのQ→Aペアを1チャンク内のペアとして順番通りに並べて抽出**してください。**重複統合（主動詞が同じペアの統合）も適用しないでください**。メモに登場するすべてのQ→Aペアを欠落なく抽出すること。`

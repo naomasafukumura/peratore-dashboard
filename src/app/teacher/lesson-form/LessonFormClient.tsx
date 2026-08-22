@@ -122,7 +122,7 @@ export default function LessonFormClient() {
           intent: 'analyze-memo',
           studentName: resolvedStudentName,
           rawLessonMemo: lessonMemo.trim(),
-          ...(isMultiMode ? { directStyle: 'multi' } : {}),
+          directStyle,
         }),
       });
       const data = await res.json();
