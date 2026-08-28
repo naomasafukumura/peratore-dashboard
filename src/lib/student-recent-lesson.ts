@@ -66,7 +66,8 @@ export async function fetchRecentLessonForStudent(
       EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'fpp_question') AS has_trigger_audio,
       EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'spp') AS has_spp_audio,
       EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'followup_question') AS has_followup_audio,
-      EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'natural') AS has_natural_audio
+      EXISTS(SELECT 1 FROM audio_files a WHERE a.pattern_id = p.id AND a.audio_type = 'natural') AS has_natural_audio,
+      (SELECT MAX(a.created_at) FROM audio_files a WHERE a.pattern_id = p.id) AS audio_version
     FROM patterns p
     JOIN chunks ch ON ch.id = p.chunk_id
     JOIN categories c ON c.id = ch.category_id
