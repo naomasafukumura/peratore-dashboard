@@ -203,6 +203,7 @@ export default function AdminClient() {
           <h1 className="text-base font-bold text-text-dark">管理者ページ</h1>
           <div className="flex items-center gap-3 text-xs">
             <a href="/teacher/students" className="text-primary font-medium">受講生一覧</a>
+            <a href="/teacher/admin/errors" className="text-primary font-medium">エラーログ</a>
             <a href="/teacher" className="text-primary font-medium">ダッシュボード</a>
             <a href="/api/admin-auth/logout" className="text-text-muted hover:text-text-dark">ログアウト</a>
           </div>
