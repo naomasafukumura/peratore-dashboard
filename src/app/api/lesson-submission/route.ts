@@ -174,6 +174,267 @@ async function reconcilePersonMismatches(patterns: ExtractedPattern[], apiKey: s
   return patterns.map(p => fixedMap.get(p) ?? p);
 }
 
+/** 正規表現の特殊文字をエスケープする */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * 「except for を練習したいからそこ変えないで」「rarely は変えないで」のように、
+ * 特定の語句（複数語のフレーズを含む）を変更しないよう指示している一文から、その語句を抜き出す。
+ * 「<英語フレーズ>は/を」の直後に続くパターンを優先し、フレーズ全体を1単位として抽出する。
+ * マッチしない場合のみ、従来通り単語単位でフォールバック抽出する。
+ */
+const KEEP_INSTRUCTION_RE = /変えないで|変更しないで|残して|そのままで/;
+const KEEP_PHRASE_RE = /([A-Za-z][A-Za-z0-9' ]*?)\s*(?:は|を)/;
+/**
+ * 正規表現ベースの旧ロジック。`extractKeepConstraints`（AIベース）のAPI失敗時フォールバックとして使う。
+ * フレーズパターンにマッチしない文は（誤爆源になるため）単語分解せずスキップする。
+ */
+function extractKeepPhrases(rawMemo: string): string[] {
+  const phrases = new Set<string>();
+  for (const sentence of rawMemo.split(/[。\n]/)) {
+    if (!KEEP_INSTRUCTION_RE.test(sentence)) continue;
+    const phraseMatch = sentence.match(KEEP_PHRASE_RE);
+    if (phraseMatch) {
+      const phrase = phraseMatch[1].trim().replace(/\s+/g, ' ');
+      if (phrase.length >= 2) {
+        phrases.add(phrase.toLowerCase());
+      }
+    }
+  }
+  return Array.from(phrases);
+}
+
+/**
+ * AIレスポンスの phrase 候補が幻覚でないことを検証する（実在性チェック）。
+ * 純関数として切り出し、`extractKeepConstraints` から利用する。
+ */
+function isValidKeepPhraseCandidate(phrase: string, rawMemo: string): boolean {
+  if (!phrase || phrase.length < 2) return false;
+  if (!/[A-Za-z]/.test(phrase)) return false;
+  if (phrase.trim().split(/\s+/).length > 6) return false;
+  return rawMemo.toLowerCase().includes(phrase.toLowerCase());
+}
+
+/**
+ * 講師メモから「特定の英語表現を変更しないでほしい」という指示を、自由な日本語の言い回し
+ * （禁止・キープ・維持・固定・そのまま等）から読み取る。KEEP_INSTRUCTION_RE の固定パターンでは
+ * 拾えない言い回しに対応するため、AIに抽出させたうえで実在性チェックで幻覚を弾く。
+ * 英字を含まないメモはAPI節約のため呼び出さない。例外時・レスポンス異常時は正規表現ベースの
+ * extractKeepPhrases にフォールバックする。
+ */
+async function extractKeepConstraints(apiKey: string, rawMemo: string): Promise<string[]> {
+  if (!/[A-Za-z]/.test(rawMemo)) return [];
+
+  const systemMsg =
+    'あなたは講師メモから『特定の英語表現を変更しないでほしい』という指示を読み取るアシスタント。表現は自由な日本語（禁止・キープ・維持・固定・そのまま等、言い回しは多様）。指示が無ければ空配列を返す。JSON以外は出力しない。';
+
+  const userPrompt = `次の講師メモ中に『この英語表現は変更しないでほしい』という趣旨の指示があれば、対象の英語語句を**メモに書かれている表記そのまま**（推測で言い換えない）抽出してください。無ければ空配列。
+
+【出力形式の例】
+{"keep_phrases":[{"phrase":"except for","evidence":"except for を練習したいからそこ変えないで"}]}
+
+【指示が無い場合の例】
+{"keep_phrases":[]}
+
+【講師メモ】
+${rawMemo}`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LESSON_AI_MODEL,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0,
+        max_tokens: 300,
+      }),
+    });
+    if (!response.ok) {
+      console.error('OpenAI extractKeepConstraints:', response.status, await response.text());
+      return extractKeepPhrases(rawMemo);
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') return extractKeepPhrases(rawMemo);
+
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const rawList = Array.isArray(parsed.keep_phrases) ? parsed.keep_phrases : [];
+
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const item of rawList as Record<string, unknown>[]) {
+      const phrase = String((item as Record<string, unknown>)?.phrase ?? '').trim();
+      if (!isValidKeepPhraseCandidate(phrase, rawMemo)) continue;
+      const key = phrase.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(phrase);
+      if (result.length >= 5) break;
+    }
+
+    if (result.length > 0) {
+      console.warn(`[analyze-memo] 保持指示を検出: ${result.join(', ')}`);
+    }
+    return result;
+  } catch (err) {
+    console.error('extractKeepConstraints failed:', err);
+    return extractKeepPhrases(rawMemo);
+  }
+}
+
+/** パターンの全フィールドを結合したテキストに、指定した語句（空白を含みうる・大小無視・単語境界）が含まれるか */
+function patternContainsPhrase(pattern: ExtractedPattern, phrase: string): boolean {
+  const combined = `${pattern.fpp_question} ${pattern.spp} ${pattern.followup_question} ${pattern.followup_answer}`;
+  return new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i').test(combined);
+}
+
+/** AI が「変えないで」指示を無視して類義語に置き換えてしまった語句を、元の語句に戻す1回だけの再生成 */
+async function fixMissingKeepWords(
+  apiKey: string,
+  pattern: ExtractedPattern,
+  missingWords: string[],
+  rawMemo: string
+): Promise<ExtractedPattern> {
+  const prompt = `先生メモの指示により、次の語句は絶対に変更せずそのまま使う必要があります: ${missingWords.join(', ')}
+しかし下記の【現在の内容】ではこれらの語句が類義語に置き換えられてしまっています。該当箇所を元の語句に戻してください。それ以外の内容・意味・文構造は変更しないこと。
+
+【先生メモ（参考。ここに元の単語が使われています）】
+${rawMemo}
+
+【現在の内容】
+FPP: ${pattern.fpp_question}
+SPP: ${pattern.spp}
+FQ: ${pattern.followup_question}
+FA: ${pattern.followup_answer}
+
+【出力】
+{"fpp_question":"...","spp":"...","followup_question":"...","followup_answer":"..."} のJSONのみ。指定された語句（${missingWords.join(', ')}）を必ずそのまま含めること。それ以外は最小限の変更に留めること。`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LESSON_AI_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You restore specific words a teacher asked to keep unchanged in short English dialogue. Reply with a single valid JSON object only, no markdown fences.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: 500,
+      }),
+    });
+    if (!response.ok) {
+      console.error('OpenAI fixMissingKeepWords:', response.status, await response.text());
+      return pattern;
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content || typeof content !== 'string') return pattern;
+    const fixed = JSON.parse(content) as Record<string, unknown>;
+    const fpp_question = String(fixed.fpp_question ?? '').trim();
+    const spp = String(fixed.spp ?? '').trim();
+    if (!fpp_question || !spp) return pattern;
+    return {
+      ...pattern,
+      fpp_question,
+      spp,
+      followup_question: String(fixed.followup_question ?? pattern.followup_question).trim(),
+      followup_answer: String(fixed.followup_answer ?? pattern.followup_answer).trim(),
+    };
+  } catch (err) {
+    console.error('fixMissingKeepWords failed:', err);
+    return pattern;
+  }
+}
+
+/** パターンの全フィールドを結合したテキストを小文字の単語集合にする */
+function patternWordSet(pattern: ExtractedPattern): Set<string> {
+  const combined = `${pattern.fpp_question} ${pattern.spp} ${pattern.followup_question} ${pattern.followup_answer}`;
+  return new Set((combined.toLowerCase().match(/[a-z0-9']+/g) ?? []));
+}
+
+/**
+ * rawMemo 内で指定語句を含む行を探し、その行とのトークン重複数が最大のパターンのインデックスを返す。
+ * 単純な実装（空白分割した単語集合の共通部分の個数で比較）。全パターンで重複が0なら 0（先頭）にフォールバックする。
+ */
+function findBestPatternIndexForWord(word: string, patterns: ExtractedPattern[], rawMemo: string): number {
+  const line = rawMemo.split(/\n/).find(l => l.toLowerCase().includes(word.toLowerCase())) ?? '';
+  const lineWords = new Set(line.toLowerCase().match(/[a-z0-9']+/g) ?? []);
+
+  let bestIndex = 0;
+  let bestOverlap = -1;
+  patterns.forEach((p, i) => {
+    const pWords = patternWordSet(p);
+    let overlap = 0;
+    for (const w of lineWords) {
+      if (pWords.has(w)) overlap++;
+    }
+    if (overlap > bestOverlap) {
+      bestOverlap = overlap;
+      bestIndex = i;
+    }
+  });
+  return bestOverlap > 0 ? bestIndex : 0;
+}
+
+/**
+ * 呼び出し元（analyzeLessonMemo）で抽出済みの keepPhrases（「変えないで」指示語句）が
+ * AI出力から消えていないか、全パターンを横断して検証する。どのパターンにも含まれていない
+ * 語句だけを欠落とみなし、語句ごとに最も関連しそうなパターン（メモ中の該当行とのトークン
+ * 重複が最大のもの）を1件選んで補修する（1パターンにつき1回のみ）。
+ */
+async function enforceKeepWords(
+  patterns: ExtractedPattern[],
+  keepPhrases: string[],
+  rawMemo: string,
+  apiKey: string
+): Promise<ExtractedPattern[]> {
+  if (keepPhrases.length === 0) return patterns;
+
+  const missingWords = keepPhrases.filter(w => !patterns.some(p => patternContainsPhrase(p, w)));
+  if (missingWords.length === 0) return patterns;
+
+  console.warn(`[analyze-memo] 「変えないで」指示語句がAI出力から欠落: ${missingWords.join(', ')}。再生成します。`);
+
+  // 欠落語句ごとに補修対象パターンを決め、パターンインデックスごとにグループ化する
+  const wordsByPatternIndex = new Map<number, string[]>();
+  for (const word of missingWords) {
+    const idx = findBestPatternIndexForWord(word, patterns, rawMemo);
+    const list = wordsByPatternIndex.get(idx) ?? [];
+    list.push(word);
+    wordsByPatternIndex.set(idx, list);
+  }
+
+  const result = [...patterns];
+  for (const [idx, words] of wordsByPatternIndex) {
+    const fixed = await fixMissingKeepWords(apiKey, patterns[idx], words, rawMemo);
+    result[idx] = fixed;
+    const stillMissing = words.filter(w => !patternContainsPhrase(fixed, w));
+    if (stillMissing.length > 0) {
+      console.warn(`[analyze-memo] 再生成後も欠落: ${stillMissing.join(', ')}`);
+    }
+  }
+  return result;
+}
+
 /** カテゴリ選択用のプロンプト断片。analyzeLessonMemo・analyzeDialoguePairs 共通。 */
 function buildCategoryBlock(categoryNames: string[]): string {
   return categoryNames.length > 0
@@ -230,7 +491,8 @@ function buildDialoguePairsFromMemo(rawMemo: string): { a: string; b: string }[]
 async function polishDialoguePattern(
   apiKey: string,
   slots: { fpp: string; spp: string; fq: string; fa: string },
-  catBlock: string
+  catBlock: string,
+  keepPhrases: string[]
 ): Promise<ExtractedPattern> {
   const fallback: ExtractedPattern = {
     situation_ja: '',
@@ -251,6 +513,12 @@ async function polishDialoguePattern(
 - 話者の入れ替え（FPP/FQ の内容と SPP/FA の内容を交換すること）
 - スロット間での文の移動（例: SPP の内容を FPP に移す）
 - 意味の変更・情報の追加・削除
+${keepPhrases.length > 0
+  ? `
+
+【必ず一字一句そのまま含める語句（類義語への置き換え禁止）】
+${keepPhrases.map(p => `"${p}"`).join(', ')}`
+  : ''}
 
 【確定スロット】
 FPP（相手の質問）: ${slots.fpp}
@@ -316,7 +584,8 @@ ${catBlock}
 async function analyzeDialoguePairs(
   pairs: { a: string; b: string }[],
   categoryNames: string[],
-  apiKey: string
+  apiKey: string,
+  keepPhrases: string[]
 ): Promise<AnalyzeResult> {
   const catBlock = buildCategoryBlock(categoryNames);
 
@@ -333,7 +602,7 @@ async function analyzeDialoguePairs(
     });
   }
 
-  const patterns = await Promise.all(slotGroups.map(slots => polishDialoguePattern(apiKey, slots, catBlock)));
+  const patterns = await Promise.all(slotGroups.map(slots => polishDialoguePattern(apiKey, slots, catBlock, keepPhrases)));
   const validPatterns = patterns.filter(p => p.fpp_question && p.spp);
 
   if (validPatterns.length === 0) {
@@ -355,11 +624,18 @@ async function analyzeLessonMemo(rawMemo: string, categoryNames: string[], direc
 
   const isMulti = directStyle === 'multi';
 
+  // 講師メモから「変えないで」等の保持指示を1回だけ抽出し、以降の両経路に渡す
+  const keepPhrases = await extractKeepConstraints(apiKey, rawMemo);
+
   // A/B対話形式のメモは、話者混同を防ぐため機械的なスロット確定→軽い添削で処理する（会話モードは対象外）
   if (!isMulti) {
     const dialoguePairs = buildDialoguePairsFromMemo(rawMemo);
     if (dialoguePairs.length > 0) {
-      return analyzeDialoguePairs(dialoguePairs, categoryNames, apiKey);
+      const result = await analyzeDialoguePairs(dialoguePairs, categoryNames, apiKey, keepPhrases);
+      if (!result.ok) return result;
+      // buildDialoguePairsFromMemo は A/B行以外（先生の自由記述の注記）を捨てているため、
+      // 「〜は変えないで」等の指示語が抜け落ちていないかここで検証・補修する。
+      return { ok: true, patterns: await enforceKeepWords(result.patterns, keepPhrases, rawMemo, apiKey) };
     }
   }
 
@@ -488,6 +764,12 @@ ${chunkRule}
 【先生メモ】
 ${rawMemo}
 
+**最優先・絶対厳守: 上記メモ内に「〜は変えないで」「〜のまま残して」等、特定の単語・フレーズを変更しない旨の記述がある場合、その単語・フレーズは一字一句そのまま出力すること。類義語や自然な言い換え（例: rarely → hardly ever）であっても絶対に置き換えてはならない。これは他のどの整形・添削ルールよりも優先する。**
+例: メモに「I seldom go there.」と「seldom の発音を練習したいから変えないで」の指示がある場合、出力の該当箇所は "I seldom go there." のまま（"rarely" 等の類義語への書き換え禁止）。
+${keepPhrases.length > 0
+  ? `**以下の語句は先生メモの指示により一字一句そのまま出力に含めること（類義語・言い換え禁止）: ${keepPhrases.map(p => `"${p}"`).join(', ')}**`
+  : ''}
+
 【出力ルール】
 - 返答は必ず {"patterns": [...]} 形式の JSON のみ。前後に説明文を書かない。
 - **各パターンのJSONキーは topic_person, topic_pronoun を先頭に置き、その後で fpp_question 以降を書くこと。** 話題の主体を先に確定させてから4行を生成するため。
@@ -520,6 +802,8 @@ ${conversationRule}
 - **メモに実在する英文**の意味変更・情報追加は禁止（メモに無い FQ / FA の新規補完はこの制限の対象外。【会話ルール】に従うこと）
 - 大幅な書き換え禁止
 - 「既に自然」とは**ネイティブが日常会話で実際に使う語法**を指す。文法的に通じるだけでは「自然」とみなさない
+- **メモ本文中に「◯◯は変えないで」「◯◯のまま残して」等、特定の語句を変更しない旨の指示がある場合は、それを最優先で遵守し、該当語句を絶対に変更しないこと**
+- **類義語・言い換えによる単語の差し替え（例: rarely → hardly ever、buy → purchase 等）は禁止。原文の語をそのまま使うこと。**（例外は「単語えらび」ルールに該当する「硬い語→平易な語」への置き換えのみ）
 
 ${isMulti
   ? '※ followup_question / followup_answer は補完しない（必ず空文字 "" にする）。'
@@ -579,6 +863,11 @@ ${isMulti
             'You extract structured English teaching material from teacher notes. Reply with a single valid JSON object only, no markdown fences.',
         },
         { role: 'user', content: userPrompt },
+        {
+          role: 'user',
+          content:
+            '重要な再確認: 先生メモ内に「〜は変えないで」「〜のまま残して」等の指示があれば、指定された単語・フレーズは一字一句そのまま出力に含めること。類義語への言い換え（例: rarely → hardly ever のような自然な言い換え）であっても絶対に行わないこと。他のどの整形ルールより優先する。',
+        },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.45,
@@ -619,7 +908,8 @@ ${isMulti
   }
 
   // isMulti は FQ/FA が常に空文字のため対象外。人称不一致（third なのに FA が一人称）だけ検出して1回だけ書き直す。
-  const finalPatterns = isMulti ? patterns : await reconcilePersonMismatches(patterns, apiKey);
+  const reconciledPatterns = isMulti ? patterns : await reconcilePersonMismatches(patterns, apiKey);
+  const finalPatterns = await enforceKeepWords(reconciledPatterns, keepPhrases, rawMemo, apiKey);
 
   return { ok: true, patterns: finalPatterns };
 }
