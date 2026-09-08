@@ -11,7 +11,7 @@ const ALLOWED_SOURCES = new Set(['client:mic', 'client:speech', 'client:transcri
  * 別アプリ（パターンプラクティス）からの転送を許可する接頭辞。
  * イベント種別が増えても許可リストの更新が要らないよう、接頭辞＋書式で検証する。
  */
-const FORWARD_PREFIXES = ['patternpractice:'];
+const FORWARD_PREFIXES = ['patternpractice:', 'material-gate:'];
 
 function isAllowedSource(raw: string): boolean {
   if (ALLOWED_SOURCES.has(raw)) return true;
