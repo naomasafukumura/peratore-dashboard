@@ -60,8 +60,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, note: 'no errors' });
   }
 
-  const { count, appCountText, sourceCountText, appCountInline, detailText, summary, summaryFailed } =
-    digest;
+  const {
+    count,
+    appCountText,
+    sourceCountText,
+    appCountInline,
+    detailText,
+    serverErrorBreakdownText,
+    summary,
+    summaryFailed,
+  } = digest;
 
   // --- Slack ブロック組み立て ---
   const blocks: object[] = [
@@ -100,6 +108,18 @@ export async function GET(req: NextRequest) {
         text: `*source 別件数*\n${sourceCountText}`,
       },
     },
+    // server_error の内訳（API/ステータス）
+    ...(serverErrorBreakdownText
+      ? [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `*server_errorの内訳（API/ステータス）*\n${serverErrorBreakdownText}`,
+            },
+          },
+        ]
+      : []),
     // 詳細一覧（生ログ相当）
     {
       type: 'section',

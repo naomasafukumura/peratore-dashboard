@@ -26,6 +26,7 @@ export interface ErrorDigest {
   appCountInline: string;
   detailLogs: ErrorLog[];
   detailText: string;
+  serverErrorBreakdownText: string;
   summary: string;
   summaryFailed: boolean;
 }
@@ -35,11 +36,38 @@ export const MAX_DETAIL = 15;
 
 /**
  * source からアプリ名を判定する。
- * パターンプラクティスは自前DBを持たないため、`patternpractice:` 接頭辞付きで
- * このアプリの error_logs に相乗りしている（peratore-dashboard/src/app/api/client-error）。
+ * パターンプラクティス・教材ゲートは自前DBを持たないため、`patternpractice:` /
+ * `material-gate:` 接頭辞付きでこのアプリの error_logs に相乗りしている
+ * （peratore-dashboard/src/app/api/client-error）。
  */
 export function appOf(source: string): string {
-  return source.startsWith('patternpractice:') ? 'パターンプラクティス' : 'ペラトレ';
+  if (source.startsWith('patternpractice:')) return 'パターンプラクティス';
+  if (source.startsWith('material-gate:')) return '教材ゲート';
+  return 'ペラトレ';
+}
+
+/**
+ * patternpractice:server_error のログを fn(status) 単位で内訳集計する。
+ * 9本のAPIが同一sourceで転送されるため、これが無いとどのAPI/ステータスが
+ * 多いか一切わからない。
+ */
+export function serverErrorBreakdown(logs: ErrorLog[]): string {
+  const target = logs.filter((l) => l.source === 'patternpractice:server_error');
+  if (target.length === 0) return '';
+
+  const counts: Record<string, number> = {};
+  for (const log of target) {
+    const ctx = (log.context ?? {}) as { fn?: unknown; status?: unknown };
+    const fn = typeof ctx.fn === 'string' && ctx.fn ? ctx.fn : 'unknown';
+    const status = typeof ctx.status === 'number' ? String(ctx.status) : 'unknown';
+    const key = `${fn}(${status})`;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, n]) => `• ${key}: ${n}件`)
+    .join('\n');
 }
 
 /** UTC → JST の表示文字列（例: "06/23 08:12"） */
@@ -93,6 +121,7 @@ export async function buildErrorDigest(): Promise<ErrorDigest> {
     .sort((a, b) => b[1] - a[1])
     .map(([app, n]) => `${app} ${n}`)
     .join(' / ');
+  const serverErrorBreakdownText = serverErrorBreakdown(logs);
 
   // --- 詳細一覧（最大 MAX_DETAIL 件） ---
   const detailLogs = logs.slice(0, MAX_DETAIL);
@@ -120,6 +149,7 @@ export async function buildErrorDigest(): Promise<ErrorDigest> {
       appCountInline,
       detailLogs,
       detailText,
+      serverErrorBreakdownText,
       summary: '',
       summaryFailed: false,
     };
@@ -166,7 +196,7 @@ export async function buildErrorDigest(): Promise<ErrorDigest> {
           },
           {
             role: 'user',
-            content: `以下は「ペラトレ」と「パターンプラクティス」2アプリの直近24時間の実行時エラー集計です。source が patternpractice: で始まるものがパターンプラクティス、それ以外がペラトレです。要約してください:\n\n${JSON.stringify(aiSummaryInput, null, 2)}`,
+            content: `以下は「ペラトレ」「パターンプラクティス」「教材ゲート」3アプリの直近24時間の実行時エラー集計です。source が patternpractice: で始まるものがパターンプラクティス、material-gate: で始まるものが教材ゲート、それ以外がペラトレです。要約してください:\n\n${JSON.stringify(aiSummaryInput, null, 2)}`,
           },
         ],
       }),
@@ -200,6 +230,7 @@ export async function buildErrorDigest(): Promise<ErrorDigest> {
     appCountInline,
     detailLogs,
     detailText,
+    serverErrorBreakdownText,
     summary,
     summaryFailed,
   };
