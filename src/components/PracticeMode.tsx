@@ -313,12 +313,16 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       if (!q || !q.sig) return;
       const leadId = patterns[0]?.id;
       if (leadId == null) return;
+      const queueIds: unknown[] = Array.isArray(q.ids) ? q.ids : [];
+      // 整合性チェック: 現在のチャンク(leadId)が残りキューにも含まれている等、
+      // 壊れた組み合わせは保存しない（stale/破損した hwChunkQueue からの上書き防止）
+      if (queueIds.some((qid: unknown) => String(qid) === String(leadId))) return;
       const sp = q.student || new URLSearchParams(window.location.search).get('student') || '';
       localStorage.setItem(hwProgressKey(sp), JSON.stringify({
         v: 2,
         sig: q.sig,
         leadId,
-        queueIds: Array.isArray(q.ids) ? q.ids : [],
+        queueIds,
         embeddedCards: q.embeddedCards,
         student: sp,
         homework: '1',
@@ -1379,6 +1383,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
       const isHw = isHomework || queue.homework === '1';
       const sp = queue.student || '';
+      // チャンク列は消化済み。進捗レコードは削除せず「埋め込みレッグ中」に更新し、
+      // leadId を再開不可能な値にしておく（次回再開時に壊れたleadIdへ飛ばないように）
+      try {
+        localStorage.setItem(hwProgressKey(sp), JSON.stringify({
+          v: 2,
+          sig: queue.sig,
+          leadId: null,
+          queueIds: [],
+          embeddedCards: queue.embeddedCards,
+          embeddedActive: true,
+          student: sp,
+          homework: isHw ? '1' : (queue.homework || ''),
+        }));
+      } catch { /* ignore */ }
       const parts: string[] = ['hwresume=1'];
       if (isHw) parts.push('homework=1');
       if (sp) parts.push('student=' + encodeURIComponent(sp));
