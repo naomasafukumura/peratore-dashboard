@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Pattern Practice</title>
 <script src="/client-error-report.js?v=1"></script>
+<script src="js/hw-grouping.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1301,22 +1302,9 @@ function isValidHwProgressRecord(p) {
 }
 // 会話チャンク（chunkId あり）のカード列から、チャンク順のID列を計算する
 // （$startBtn クリック時の初回構築と同じロジック。宿題再開時の整合性検証にも使う）
+// 実体は js/hw-grouping.js（homework.htmlと共有）
 function computeChunkOrder(cardsArr) {
-  const chunkOrder = [];
-  const seen = new Set();
-  for (const c of cardsArr) {
-    if (c.chunkId && !seen.has(c.chunkId)) {
-      seen.add(c.chunkId);
-      chunkOrder.push(c.chunkId);
-    }
-  }
-  const chunkFirstIds = chunkOrder.map(chunkId => {
-    const group = cardsArr.filter(c => c.chunkId === chunkId);
-    const sorted = group.sort((a, b) => (parseInt(String(a.id).replace('db-', '')) || 0) - (parseInt(String(b.id).replace('db-', '')) || 0));
-    return String(sorted[0].id).replace('db-', '');
-  });
-  const embeddedCards = cardsArr.filter(c => !c.chunkId);
-  return { chunkOrder, chunkFirstIds, embeddedCards };
+  return HwGrouping.computeChunkOrder(cardsArr);
 }
 
 // 「続きから / 最初から」モーダル（Promise<boolean> resolve: true=続きから）
@@ -2355,20 +2343,7 @@ document.getElementById('lvRangePractice').addEventListener('click', (e) => {
   if (rangeCards.some(c => c.chunkId)) {
     const isHomework = new URLSearchParams(location.search).get('homework') === '1';
     const studentParam = new URLSearchParams(location.search).get('student') || '';
-    const chunkOrder = [];
-    const seen = new Set();
-    for (const c of rangeCards) {
-      if (c.chunkId && !seen.has(c.chunkId)) {
-        seen.add(c.chunkId);
-        chunkOrder.push(c.chunkId);
-      }
-    }
-    const chunkFirstIds = chunkOrder.map(chunkId => {
-      const group = rangeCards.filter(c => c.chunkId === chunkId);
-      const sorted = group.sort((a, b) => (parseInt(String(a.id).replace('db-', '')) || 0) - (parseInt(String(b.id).replace('db-', '')) || 0));
-      return String(sorted[0].id).replace('db-', '');
-    });
-    const embeddedCards = rangeCards.filter(c => !c.chunkId);
+    const { chunkFirstIds, embeddedCards } = computeChunkOrder(rangeCards);
     sessionStorage.setItem('hwChunkQueue', JSON.stringify({
       ids: chunkFirstIds.slice(1),
       embeddedCards: embeddedCards.length ? embeddedCards : undefined,
@@ -4846,7 +4821,7 @@ loadDataFromAPI().then(() => {
           const isHw = queue.homework === '1';
           const studentSuffix = sp ? 'student=' + encodeURIComponent(sp) : '';
           const hwSuffix = isHw ? 'homework=1' : '';
-          const parts = [hwSuffix, studentSuffix].filter(Boolean);
+          const parts = ['hwresume=1', hwSuffix, studentSuffix].filter(Boolean);
           const suffix = parts.length ? '?' + parts.join('&') : '';
           window.location.href = '/practice/pattern/' + nextId + suffix;
           return;

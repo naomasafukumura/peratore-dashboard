@@ -10,6 +10,7 @@
     document.documentElement.classList.add('simple-flow');
   }
 </script>
+<script src="js/hw-grouping.js"></script>
 <style>
   html.simple-flow body > .hw-header, html.simple-flow body > .hw-body { visibility: hidden; }
   html.simple-flow { background: #f4f6f5; }
@@ -282,25 +283,9 @@ function gotoPractice() {
     return;
   }
 
-  // セクションごとにカードをグループ化（cards_jsonの順序＝先生の選択順を保持）
-  const secMap = new Map(); // secKey -> { firstCard, allCards, count }
-  cards.forEach(c => {
-    const sec = c._hwSection || c.chunkId || c.section || (c.states && c.states[0] && c.states[0].label) || c.trigger || '';
-    if (!secMap.has(sec)) { secMap.set(sec, { firstCard: c, allCards: [], count: 0 }); }
-    const entry = secMap.get(sec);
-    entry.allCards.push(c);
-    entry.count++;
-  });
-  // チャンク内のパターンをid ASCで並べる（チャンク間の順序はcards_json順を維持）
-  secMap.forEach(entry => {
-    entry.allCards.sort((a, b) => {
-      const aId = parseInt(String(a.id).replace('db-', '')) || 0;
-      const bId = parseInt(String(b.id).replace('db-', '')) || 0;
-      return aId - bId;
-    });
-    entry.firstCard = entry.allCards[0];
-  });
-  const displayItems = Array.from(secMap.values());
+  // セクション（会話グループ）ごとにカードをグループ化（cards_jsonの順序＝先生の選択順を保持）
+  // グルーピングロジックは js/hw-grouping.js（practice-v2.htmlと共有）
+  const displayItems = HwGrouping.buildHwGroups(cards).map(({ firstCard, cards: allCards, count }) => ({ firstCard, allCards, count }));
 
   // Render list
   let html = '<div class="hw-sec-title">宿題の例文 <span class="hw-badge">' + displayItems.length + '件</span></div>';
