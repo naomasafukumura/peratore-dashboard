@@ -4120,11 +4120,38 @@ function openSettings() {
       document.querySelectorAll('.cv-sub.hw-on').forEach(el => el.classList.remove('hw-on'));
       hwOrderedSubs = [];
       hwSaveBar.classList.remove('show');
+      // 宿題選択モード中にcv-cat-chkで付けた見た目(on)を、通常モードの実状態(selectedCats)に合わせて再同期
+      document.querySelectorAll('.cv-cat').forEach(catEl => {
+        catEl.classList.toggle('on', selectedCats.has(parseInt(catEl.dataset.idx)));
+      });
     }
   });
 
   document.addEventListener('click', (e) => {
     if (!document.body.classList.contains('hw-mode')) return;
+    const catChk = e.target.closest('.cv-cat-chk');
+    if (catChk) {
+      e.stopPropagation();
+      const catEl = catChk.closest('.cv-cat');
+      const subsEl = catEl && catEl.nextElementSibling;
+      if (!subsEl) return;
+      const subs = Array.from(subsEl.querySelectorAll('.cv-sub'));
+      const allOn = subs.length > 0 && subs.every(s => s.classList.contains('hw-on'));
+      subs.forEach(s => {
+        if (allOn) {
+          if (s.classList.contains('hw-on')) {
+            s.classList.remove('hw-on');
+            hwOrderedSubs = hwOrderedSubs.filter(x => x !== s);
+          }
+        } else if (!s.classList.contains('hw-on')) {
+          s.classList.add('hw-on');
+          hwOrderedSubs.push(s);
+        }
+      });
+      updateSaveBar();
+      catEl.classList.toggle('on', !allOn && subs.length > 0);
+      return;
+    }
     const sub = e.target.closest('.cv-sub');
     if (!sub) return;
     e.stopPropagation();
