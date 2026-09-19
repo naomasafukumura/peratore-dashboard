@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** client:* source の許可リスト */
-const ALLOWED_SOURCES = new Set(['client:mic', 'client:speech', 'client:transcribe', 'client:answer']);
+const ALLOWED_SOURCES = new Set(['client:mic', 'client:speech', 'client:transcribe', 'client:answer', 'client:audio']);
 
 /**
  * 別アプリ（パターンプラクティス）からの転送を許可する接頭辞。

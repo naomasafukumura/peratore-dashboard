@@ -9,10 +9,10 @@ export default async function PracticePatternPage({
   searchParams,
 }: {
   params: Promise<{ patternId: string }>;
-  searchParams: Promise<{ student?: string; homework?: string }>;
+  searchParams: Promise<{ student?: string; homework?: string; hwresume?: string }>;
 }) {
   const { patternId } = await params;
-  const { student, homework } = await searchParams;
+  const { student, homework, hwresume } = await searchParams;
   const isHomework = homework === '1';
   const backHref = isHomework
     ? (student ? `/homework.html?student=${encodeURIComponent(student)}` : '/homework.html')
@@ -66,11 +66,18 @@ export default async function PracticePatternPage({
 
   return (
     <PracticeMode
+      // チャンク(patternId)が変わるたびに PracticeMode を確実に作り直すための key。
+      // 宿題チャンク遷移は window.location.href ではなく router.replace による
+      // クライアントサイド遷移になったため、DOM上は同一ページのまま key の変化で
+      // コンポーネントの内部状態のみリセットされる（user activation は維持される）。
+      key={patternId}
       patterns={rows as any}
       chunkTitle={firstPattern.chunk_title_en || ''}
       chunkTitleJp={firstPattern.chunk_title_jp || ''}
       backHref={backHref}
       isHomework={isHomework}
+      student={student}
+      hwresume={hwresume === '1'}
     />
   );
 }

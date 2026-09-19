@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { scoreTurn1Local, type ScoreLevel } from '@/lib/scoring';
 import { reportClientError } from '@/lib/report-client-error';
+import { unlockAudio, playSharedAudio, stopSharedAudio, type AudioPlayResult } from '@/lib/audio-unlock';
 
 /* ================================================================
    PracticeMode - Faithful port of practice-v2.html into React
@@ -32,6 +34,12 @@ interface Props {
   chunkTitleJp: string;
   backHref?: string;
   isHomework?: boolean;
+  // 宿題チャンク継続時の student / hwresume クエリパラメータ。
+  // クライアントサイド遷移（router.replace）では window.location.search を
+  // レンダリング中/マウント直後に安全に読み直せないため、page.tsx の
+  // searchParams から props として渡す。
+  student?: string;
+  hwresume?: boolean;
 }
 
 type Phase =
@@ -192,7 +200,9 @@ async function fetchTranslation(text: string): Promise<string> {
 }
 
 // ===== Main Component =====
-export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework }: Props) {
+export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backHref, isHomework, student, hwresume }: Props) {
+  const router = useRouter();
+  const [isChunkTransitionPending, startChunkTransition] = useTransition();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>('idle');
   const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
@@ -256,8 +266,6 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   // 宿題モード: 最終結果画面用の累積stats
   const [finalStats, setFinalStats] = useState<Stats | null>(null);
 
-  // Audio
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatThreadRef = useRef<HTMLDivElement>(null);
 
   const pattern = patterns[index];
@@ -317,7 +325,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       // 整合性チェック: 現在のチャンク(leadId)が残りキューにも含まれている等、
       // 壊れた組み合わせは保存しない（stale/破損した hwChunkQueue からの上書き防止）
       if (queueIds.some((qid: unknown) => String(qid) === String(leadId))) return;
-      const sp = q.student || new URLSearchParams(window.location.search).get('student') || '';
+      const sp = q.student || student || '';
       localStorage.setItem(hwProgressKey(sp), JSON.stringify({
         v: 2,
         sig: q.sig,
@@ -338,12 +346,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     if (phase !== 'idle') return;
     if (turn2Mode !== 'listen') return;
     if (!pattern) return;
-    const isResume = typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('hwresume') === '1';
-    if (!isResume) return;
+    if (!hwresume) return;
     handleStart();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartChecked, turn2Mode, pattern]);
+  }, [autoStartChecked, turn2Mode, pattern, hwresume]);
 
   // ---- Auto-scroll chat ----
   useEffect(() => {
@@ -356,35 +362,66 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   }, [bubbles, phase, replayPlayingIdx, replayLines, showPostReplayBar]);
 
   // ---- Audio helpers ----
+  // unlock済みの単一 Audio 要素（src/lib/audio-unlock.ts）を使い回す。
+  // new Audio() を毎回作らないことで、宿題チャンク遷移をまたいでも
+  // iOS/LINE内蔵ブラウザでの autoplay ブロックを回避する。
   const stopAudio = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    }
+    stopSharedAudio();
   }, []);
 
-  const playAudio = useCallback((patternId: number, type: string): Promise<void> => {
-    stopAudio();
-    return new Promise<void>((resolve) => {
-      const audio = new Audio(`/api/audio/${patternId}?type=${type}`);
-      audioRef.current = audio;
-      audio.onended = () => resolve();
-      audio.onerror = () => resolve();
-      audio.play().catch(() => resolve());
-    });
-  }, [stopAudio]);
+  const playAudio = useCallback((patternId: number, type: string): Promise<AudioPlayResult> => {
+    return playSharedAudio(`/api/audio/${patternId}?type=${type}`);
+  }, []);
 
-  const playAudioUrl = useCallback((url: string): Promise<void> => {
-    stopAudio();
-    return new Promise<void>((resolve) => {
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => resolve();
-      audio.onerror = () => resolve();
-      audio.play().catch(() => resolve());
+  const playAudioUrl = useCallback((url: string): Promise<AudioPlayResult> => {
+    return playSharedAudio(url);
+  }, []);
+
+  // ---- 保険機能: 連続再生ループでの音声再生失敗検知 ----
+  // 2回連続で失敗したら再生を止め、タップで再開できるようにする。
+  const audioFailStreakRef = useRef(0);
+  const [audioResumeHandler, setAudioResumeHandler] = useState<(() => void) | null>(null);
+
+  const reportAudioFailure = useCallback((result: AudioPlayResult, patternId: number, audioType: string) => {
+    reportClientError('client:audio', new Error(`audio-play-failed:${result.reason ?? 'unknown'}`), {
+      studentName: new URLSearchParams(window.location.search).get('student') ?? undefined,
+      context: { patternId, audioType, reason: result.reason },
     });
-  }, [stopAudio]);
+  }, []);
+
+  // 連続再生ループ本体（保険機能）。startAt から lines を順に再生し、各行の直前に onIndex(i) を呼ぶ。
+  // 音声再生が2回連続で失敗したら停止し、audioResumeHandler にタップ再開用コールバックをセットする
+  // （失敗した行 i から再開する）。1回だけの失敗は1200ms待って次の行へ進む（会話の文脈を飛ばさないため）。
+  // 全行再生し終えたら onDone を呼ぶ。
+  const playLinesWithFailsafe = useCallback(
+    async (lines: ReplayLine[], startAt: number, onIndex: (i: number) => void, onDone: () => void) => {
+      for (let i = startAt; i < lines.length; i++) {
+        onIndex(i);
+        if (lines[i].hasAudio) {
+          const result = await playAudio(lines[i].patternId, lines[i].audioType);
+          if (!result.ok) {
+            reportAudioFailure(result, lines[i].patternId, lines[i].audioType);
+            audioFailStreakRef.current++;
+            if (audioFailStreakRef.current >= 2) {
+              audioFailStreakRef.current = 0;
+              setAudioResumeHandler(() => () => {
+                setAudioResumeHandler(null);
+                playLinesWithFailsafe(lines, i, onIndex, onDone);
+              });
+              return;
+            }
+            await new Promise(r => setTimeout(r, 1200));
+          } else {
+            audioFailStreakRef.current = 0;
+          }
+        } else {
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      }
+      onDone();
+    },
+    [playAudio, reportAudioFailure]
+  );
 
   // ---- Bubble helpers ----
   const addBubble = useCallback((bubble: Omit<ChatBubble, 'id'>) => {
@@ -1038,6 +1075,10 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     const group = examples[exampleIdx];
     if (!group || group.length === 0) return;
 
+    // 新しい例文の再生を開始するので、前回の失敗検知状態をクリアする
+    audioFailStreakRef.current = 0;
+    setAudioResumeHandler(null);
+
     // progress バー用に先頭 pattern の index を先に反映（setPhase より前）
     const firstPatternIdx = patterns.indexOf(group[0]);
     if (firstPatternIdx >= 0) setIndex(firstPatternIdx);
@@ -1114,42 +1155,41 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     setReplayLines([]);
     setReplayPlayingIdx(-1);
 
-    for (let i = 0; i < lines.length; i++) {
-      setReplayLines(lines.slice(0, i + 1));
-      setReplayPlayingIdx(i);
-      if (lines[i].hasAudio) {
-        await playAudio(lines[i].patternId, lines[i].audioType);
-      } else {
-        await new Promise(r => setTimeout(r, 1200));
-      }
-    }
-    setReplayPlayingIdx(-1);
+    // 全行再生完了後（保険機能で停止した場合は呼ばれない。resume で再開後に呼ばれる）
+    const finishExample = () => {
+      setReplayPlayingIdx(-1);
 
-    if (exampleIdx < examples.length - 1) {
-      // 次の例文へ: バブルクリア + 1秒休止
-      setReplayLines([]);
-      await new Promise(r => setTimeout(r, 1000));
-      startListenReplayRef.current?.(exampleIdx + 1);
-    } else {
-      // チャンク完了。宿題キューに残りがあれば 2択バーを出さず次チャンクへ自動遷移
-      const queueRaw = typeof window !== 'undefined' ? sessionStorage.getItem('hwChunkQueue') : null;
-      let hasMore = false;
-      if (queueRaw) {
-        try {
-          const q = JSON.parse(queueRaw);
-          if ((q.ids && q.ids.length > 0) || (q.embeddedCards && q.embeddedCards.length > 0)) {
-            hasMore = true;
-          }
-        } catch { /* ignore */ }
-      }
-      if (hasMore) {
-        setPhase('complete'); // L1098 の useEffect が次チャンクへリダイレクト
+      if (exampleIdx < examples.length - 1) {
+        // 次の例文へ: バブルクリア + 1秒休止
+        setReplayLines([]);
+        setTimeout(() => startListenReplayRef.current?.(exampleIdx + 1), 1000);
       } else {
-        setShowListenEndBar(true);
+        // チャンク完了。宿題キューに残りがあれば 2択バーを出さず次チャンクへ自動遷移
+        const queueRaw = typeof window !== 'undefined' ? sessionStorage.getItem('hwChunkQueue') : null;
+        let hasMore = false;
+        if (queueRaw) {
+          try {
+            const q = JSON.parse(queueRaw);
+            if ((q.ids && q.ids.length > 0) || (q.embeddedCards && q.embeddedCards.length > 0)) {
+              hasMore = true;
+            }
+          } catch { /* ignore */ }
+        }
+        if (hasMore) {
+          setPhase('complete'); // L1098 の useEffect が次チャンクへリダイレクト
+        } else {
+          setShowListenEndBar(true);
+        }
       }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patterns, playAudio]);
+    };
+
+    playLinesWithFailsafe(
+      lines,
+      0,
+      (i) => { setReplayLines(lines.slice(0, i + 1)); setReplayPlayingIdx(i); },
+      finishExample
+    );
+  }, [patterns, playLinesWithFailsafe]);
 
   startListenReplayRef.current = startListenReplay;
 
@@ -1170,6 +1210,9 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   const goToFullReplay = useCallback(() => {
     setShowReview(false);
     setPhase('fullReplay');
+    // 新しいリプレイを開始するので、前回の失敗検知状態をクリアする
+    audioFailStreakRef.current = 0;
+    setAudioResumeHandler(null);
 
     // 全パターンの FPP/SPP/FQ/FA を順番に並べてリプレイ
     const lines: ReplayLine[] = [];
@@ -1276,22 +1319,23 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
     }
   }, [effectiveTarget, pattern, addBubble, playAudio, scoreLevel2, index, total, goToFullReplay]);
 
-  const playReplaySequence = useCallback(async (lines: ReplayLine[]) => {
-    for (let i = 0; i < lines.length; i++) {
-      setReplayPlayingIdx(i);
-      if (lines[i].hasAudio) {
-        await playAudio(lines[i].patternId, lines[i].audioType);
-      } else {
-        await new Promise(r => setTimeout(r, 1200));
+  const playReplaySequence = useCallback((lines: ReplayLine[]) => {
+    playLinesWithFailsafe(
+      lines,
+      0,
+      (i) => setReplayPlayingIdx(i),
+      () => {
+        setReplayPlayingIdx(-1);
+        setShowPostReplayBar(true);
       }
-    }
-    setReplayPlayingIdx(-1);
-    setShowPostReplayBar(true);
-  }, [playAudio]);
+    );
+  }, [playLinesWithFailsafe]);
 
   // Post-replay handlers
   const handleReplayAgain = useCallback(() => {
     setShowPostReplayBar(false);
+    audioFailStreakRef.current = 0;
+    setAudioResumeHandler(null);
     playReplaySequence(replayLines);
   }, [replayLines, playReplaySequence]);
 
@@ -1331,7 +1375,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         switch (phase) {
-          case 'idle': handleStart(); break;
+          case 'idle': unlockAudio(); handleStart(); break;
           case 'speak1': case 'speak2': stopRecording(); break;
         }
       }
@@ -1349,8 +1393,14 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   }, [stopAudio, clearSpeakTimers]);
 
   // ===== チャンクキュー: 完了時に次チャンクへ or 最終結果表示 =====
+  // React 19 の StrictMode 等によるエフェクト二重実行や、予期しない再実行で
+  // queue.ids.shift() が二重に走って1チャンク分が消費されてしまわないよう、
+  // このマウント内で一度だけ処理する冪等性ガードを設ける。
+  const chunkCompleteHandledRef = useRef(false);
   useEffect(() => {
     if (phase !== 'complete') return;
+    if (chunkCompleteHandledRef.current) return;
+    chunkCompleteHandledRef.current = true;
     const queueRaw = sessionStorage.getItem('hwChunkQueue');
     // キューも宿題モードもなければ通常の個別結果を表示
     if (!queueRaw && !isHomework) return;
@@ -1377,7 +1427,14 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       if (isHw) parts.push('homework=1');
       if (sp) parts.push('student=' + encodeURIComponent(sp));
       const suffix = '?' + parts.join('&');
-      window.location.href = `/practice/pattern/${nextId}${suffix}`;
+      // window.location.href によるフルリロードは、ブラウザの user activation を
+      // リセットしてしまい次チャンクでの音声自動再生がブロックされる原因になるため、
+      // Next.js のクライアントサイド遷移（history を汚さないよう replace）に変更。
+      // page.tsx 側の <PracticeMode key={patternId} /> がチャンク切り替わりで
+      // 確実にリマウントされ、状態が初期化される。
+      startChunkTransition(() => {
+        router.replace(`/practice/pattern/${nextId}${suffix}`);
+      });
     } else if (hasEmbedded) {
       // 埋め込みカード練習へ（stats累積を保持したまま遷移）
       sessionStorage.setItem('hwAccStats', JSON.stringify(acc));
@@ -1405,7 +1462,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
       sessionStorage.removeItem('hwChunkQueue');
       sessionStorage.removeItem('hwAccStats');
       try {
-        const sp = (queue && queue.student) || new URLSearchParams(window.location.search).get('student') || '';
+        const sp = (queue && queue.student) || student || '';
         localStorage.removeItem(hwProgressKey(sp));
       } catch { /* ignore */ }
       setFinalStats(acc);
@@ -1415,9 +1472,19 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
 
   // ===== Completion Screen =====
   if (phase === 'complete') {
-    // キューまたは宿題モード: finalStats が確定するまで待機（useEffectが処理中）
+    // キューまたは宿題モード: finalStats が確定するまで待機（useEffectが処理中、
+    // または次チャンクへのクライアントサイド遷移が進行中）。
+    // 画面が一瞬白くならないよう、簡単なローディング表示を出す。
     const hasQueueOrHomework = isHomework || !!sessionStorage.getItem('hwChunkQueue');
-    if (hasQueueOrHomework && !finalStats) return null;
+    if (hasQueueOrHomework && !finalStats) {
+      return (
+        <div className="prac" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+          <div style={{ color: 'var(--text-sub)', fontSize: 14 }}>
+            {isChunkTransitionPending ? '次の会話へ…' : '読み込み中…'}
+          </div>
+        </div>
+      );
+    }
     const displayStats = finalStats ?? stats;
     const totalDone = displayStats.perfect + displayStats.great + displayStats.good + displayStats.almost + displayStats.retry;
     return (
@@ -1628,7 +1695,7 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
               {/* idle: START */}
               {phase === 'idle' && (
                 <div className="action-phase v">
-                  <button className="action-start-btn" onClick={handleStart}>START</button>
+                  <button className="action-start-btn" onClick={() => { unlockAudio(); handleStart(); }}>START</button>
                 </div>
               )}
 
@@ -1747,7 +1814,18 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
               {phase === 'fullReplay' && !showPostReplayBar && !showListenEndBar && (
                 <div className="action-phase v">
                   <div className="action-speak">
-                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Replaying conversation...</div>
+                    {audioResumeHandler ? (
+                      <>
+                        <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>
+                          音声を再生できませんでした。タップして再開してください
+                        </div>
+                        <button className="done-btn" onClick={() => audioResumeHandler()}>
+                          タップして再開
+                        </button>
+                      </>
+                    ) : (
+                      <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Replaying conversation...</div>
+                    )}
                   </div>
                 </div>
               )}
