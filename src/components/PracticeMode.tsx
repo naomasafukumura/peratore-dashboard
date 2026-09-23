@@ -378,9 +378,20 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   }, []);
 
   // ---- 保険機能: 連続再生ループでの音声再生失敗検知 ----
-  // 2回連続で失敗したら再生を止め、タップで再開できるようにする。
+  // 「自動再生ブロックが確定した」(play-reject) が2回連続で起きたら再生を止め、
+  // タップで再開できるようにする。timeout/error/too-short は音が出なかったことは記録するが
+  // ブロックが確定したわけではないため、再生を止めずに次の行へ進める。
   const audioFailStreakRef = useRef(0);
   const [audioResumeHandler, setAudioResumeHandler] = useState<(() => void) | null>(null);
+
+  // 常設の脱出導線（スキップ/続きから再生）用に、現在の連続再生ループの状態を ref に保持する。
+  // playLinesWithFailsafe は再帰的に自身を呼び出すため、外部（UIのボタン）から
+  // 「今どの行を再生していたか」を取り出せるようにしておく。
+  const replayLoopGenRef = useRef(0);
+  const replayLoopLinesRef = useRef<ReplayLine[]>([]);
+  const replayLoopIdxRef = useRef(0);
+  const replayLoopOnIndexRef = useRef<(i: number) => void>(() => {});
+  const replayLoopOnDoneRef = useRef<() => void>(() => {});
 
   const reportAudioFailure = useCallback((result: AudioPlayResult, patternId: number, audioType: string) => {
     reportClientError('client:audio', new Error(`audio-play-failed:${result.reason ?? 'unknown'}`), {
@@ -390,38 +401,85 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
   }, []);
 
   // 連続再生ループ本体（保険機能）。startAt から lines を順に再生し、各行の直前に onIndex(i) を呼ぶ。
-  // 音声再生が2回連続で失敗したら停止し、audioResumeHandler にタップ再開用コールバックをセットする
-  // （失敗した行 i から再開する）。1回だけの失敗は1200ms待って次の行へ進む（会話の文脈を飛ばさないため）。
+  // - play-reject（自動再生ブロック確定）が2回連続で起きたら停止し、audioResumeHandler に
+  //   タップ再開用コールバックをセットする（失敗した行 i から再開する）。
+  // - timeout/error/too-short は音が出なかったことを記録するだけで、再生は止めずに次の行へ進める。
+  // - superseded（stopSharedAudio() や新しい playSharedAudio() による割り込み）はユーザー操作等による
+  //   意図的な中断なので、失敗としてカウントせず静かにループを終える。
   // 全行再生し終えたら onDone を呼ぶ。
+  // この関数を呼ぶたびに replayLoopGenRef を進めることで、外部から skip/continue で新しいループを
+  // 開始した際に、まだ生きている古いループ（setTimeout 待ち等）が二重に進行しないようにしている。
   const playLinesWithFailsafe = useCallback(
     async (lines: ReplayLine[], startAt: number, onIndex: (i: number) => void, onDone: () => void) => {
+      const myLoopGen = ++replayLoopGenRef.current;
+      replayLoopLinesRef.current = lines;
+      replayLoopOnIndexRef.current = onIndex;
+      replayLoopOnDoneRef.current = onDone;
+
+      let hadSilentLine = false;
       for (let i = startAt; i < lines.length; i++) {
+        if (replayLoopGenRef.current !== myLoopGen) return; // より新しいループに追い越された
         onIndex(i);
+        replayLoopIdxRef.current = i;
         if (lines[i].hasAudio) {
           const result = await playAudio(lines[i].patternId, lines[i].audioType);
+          if (replayLoopGenRef.current !== myLoopGen) return;
           if (!result.ok) {
+            if (result.reason === 'superseded') return;
             reportAudioFailure(result, lines[i].patternId, lines[i].audioType);
-            audioFailStreakRef.current++;
-            if (audioFailStreakRef.current >= 2) {
+            if (result.reason === 'play-reject') {
+              audioFailStreakRef.current++;
+              if (audioFailStreakRef.current >= 2) {
+                audioFailStreakRef.current = 0;
+                setAudioResumeHandler(() => () => {
+                  setAudioResumeHandler(null);
+                  playLinesWithFailsafe(lines, i, onIndex, onDone);
+                });
+                return;
+              }
+              await new Promise(r => setTimeout(r, 1200));
+              if (replayLoopGenRef.current !== myLoopGen) return;
+            } else {
+              // timeout / error / too-short: ブロック確定ではないため止めない
+              hadSilentLine = true;
               audioFailStreakRef.current = 0;
-              setAudioResumeHandler(() => () => {
-                setAudioResumeHandler(null);
-                playLinesWithFailsafe(lines, i, onIndex, onDone);
-              });
-              return;
             }
-            await new Promise(r => setTimeout(r, 1200));
           } else {
             audioFailStreakRef.current = 0;
           }
         } else {
           await new Promise(r => setTimeout(r, 1200));
+          if (replayLoopGenRef.current !== myLoopGen) return;
         }
+      }
+      if (hadSilentLine) {
+        console.warn('[PracticeMode] 一部の行で音声を再生できませんでした（timeout/error）');
       }
       onDone();
     },
     [playAudio, reportAudioFailure]
   );
+
+  // 常設の脱出導線: 現在の行をスキップして次へ進む
+  const handleReplaySkip = useCallback(() => {
+    const lines = replayLoopLinesRef.current;
+    const i = replayLoopIdxRef.current;
+    const onIndex = replayLoopOnIndexRef.current;
+    const onDone = replayLoopOnDoneRef.current;
+    setAudioResumeHandler(null);
+    stopSharedAudio();
+    playLinesWithFailsafe(lines, i + 1, onIndex, onDone);
+  }, [playLinesWithFailsafe]);
+
+  // 常設の脱出導線: 現在の行から再生を再開する（保険機能の検知漏れで固まった場合の手動リカバリ用）
+  const handleReplayContinueFromCurrent = useCallback(() => {
+    const lines = replayLoopLinesRef.current;
+    const i = replayLoopIdxRef.current;
+    const onIndex = replayLoopOnIndexRef.current;
+    const onDone = replayLoopOnDoneRef.current;
+    setAudioResumeHandler(null);
+    playLinesWithFailsafe(lines, i, onIndex, onDone);
+  }, [playLinesWithFailsafe]);
 
   // ---- Bubble helpers ----
   const addBubble = useCallback((bubble: Omit<ChatBubble, 'id'>) => {
@@ -1810,22 +1868,13 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
                 </div>
               )}
 
-              {/* fullReplay: no action buttons, post-replay bar at bottom */}
+              {/* fullReplay: ステータス表示。操作ボタンは常設の下部バー（post-replay-bar）側に出す */}
               {phase === 'fullReplay' && !showPostReplayBar && !showListenEndBar && (
                 <div className="action-phase v">
                   <div className="action-speak">
-                    {audioResumeHandler ? (
-                      <>
-                        <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>
-                          音声を再生できませんでした。タップして再開してください
-                        </div>
-                        <button className="done-btn" onClick={() => audioResumeHandler()}>
-                          タップして再開
-                        </button>
-                      </>
-                    ) : (
-                      <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>Replaying conversation...</div>
-                    )}
+                    <div className="speak-status" style={{ fontSize: '14px', color: 'var(--text-sub)' }}>
+                      {audioResumeHandler ? '音声を再生できませんでした。下のボタンで再開できます' : 'Replaying conversation...'}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1933,6 +1982,18 @@ export default function PracticeMode({ patterns, chunkTitle, chunkTitleJp, backH
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ===== フルリプレイ再生中の常設バー（保険機能の検知漏れでも袋小路にならないための脱出導線） ===== */}
+      {phase === 'fullReplay' && !showPostReplayBar && !showListenEndBar && (
+        <div className="post-replay-bar show">
+          <button className="post-replay-btn replay" onClick={audioResumeHandler ? () => audioResumeHandler() : handleReplayContinueFromCurrent}>
+            続きから再生
+          </button>
+          <button className="post-replay-btn next" onClick={handleReplaySkip}>
+            スキップ
+          </button>
         </div>
       )}
 
