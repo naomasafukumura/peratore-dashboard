@@ -1328,6 +1328,47 @@ let recognizedText = '';
 let thinkTimer = null;
 let speakTimerInterval = null;
 let currentAudio = null;
+// ===== Shared Audio Element (iOS/LINE内蔵ブラウザ autoplay unlock 対策) =====
+// iOS WebKit / LINE内蔵ブラウザのautoplay unlockは HTMLMediaElement 単位で成立するため、
+// 再生のたびに new Audio() で作り直すと、最初のタップでunlockされた要素以外は
+// play() が NotAllowedError で reject される。ページ全体で単一の Audio 要素を使い回し、
+// 最初のユーザー操作で無音を再生してunlockしておくことで、以後の play() を成立させる。
+let sharedAudioEl = null;
+let audioUnlocked = false;
+const AUDIO_SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+function getSharedAudioEl() {
+  if (!sharedAudioEl) {
+    sharedAudioEl = new Audio();
+    sharedAudioEl.preload = 'auto';
+  }
+  return sharedAudioEl;
+}
+// ユーザー操作（クリック/タップ）のハンドラ内で同期的に呼ぶこと。無音を再生して
+// 共有Audio要素を以後 "unlock" 済みの状態にする。二回目以降は何もしない。
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  const audio = getSharedAudioEl();
+  try {
+    audio.src = AUDIO_SILENT_WAV;
+    const p = audio.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  } catch (e) { /* ignore */ }
+}
+// `currentAudio = new Audio(path)` の置き換え。共有Audio要素のsrcを差し替えて使い回す。
+function setCurrentAudioSrc(path) {
+  const audio = getSharedAudioEl();
+  try { audio.pause(); } catch (e) {}
+  try { audio.currentTime = 0; } catch (e) {}
+  audio.src = path;
+  currentAudio = audio;
+  return audio;
+}
 let lvPlaybackRate = (() => {
   const v = parseFloat(localStorage.getItem('pp-listenRate') || '1');
   return Number.isFinite(v) && v >= 0.25 && v <= 2 ? v : 1;
@@ -1740,6 +1781,7 @@ function getSelectedCards() {
 
 // ===== Start Practice =====
 $startBtn.addEventListener('click', () => {
+  unlockAudio();
   cards = getSelectedCards();
   if (!cards.length) return;
 
@@ -1841,7 +1883,7 @@ function playAudioOrFallback(audioPath, fallbackText) {
       setTimeout(resolve, 1600);
       return;
     }
-    currentAudio = new Audio(audioPath);
+    setCurrentAudioSrc(audioPath);
     try {
       currentAudio.playbackRate = lvPlaybackRate;
       currentAudio.preservesPitch = true;
@@ -1978,8 +2020,7 @@ function lvPlayCards(cards, repeat, onDone) {
       state.gapTimer = setTimeout(() => { state.gapTimer = null; playNext(); }, gap);
     };
     armWatchdog(10000); // 音声ロード待ちのタイムアウト（loadedmetadata取得前）
-    if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
-    currentAudio = new Audio(item.line.audio);
+    setCurrentAudioSrc(item.line.audio);
     try {
       currentAudio.playbackRate = lvPlaybackRate;
       currentAudio.preservesPitch = true;
@@ -2522,7 +2563,7 @@ function addExampleAnswers(examples) {
       const s = c.states[0];
       if (s.naturalAudio) {
         stopAudio();
-        currentAudio = new Audio(s.naturalAudio);
+        setCurrentAudioSrc(s.naturalAudio);
         currentAudio.play().catch(() => {});
       }
     });
@@ -2640,10 +2681,15 @@ function playListenCard(idx) {
   showActionPhase(null);
 
   let li = 0;
+  let bubbleShownIdx = -1; // 直近でバブルを表示した行番号（同じ行を再試行する際の二重表示防止）
   // カード内・カード間で使い回すストリークカウンタ。カード単位（playListenCard呼び出し単位）でリセットされ、
   // グローバルに累積して永久停止することがないようにする。
   let listenSilentStreak = 0; // watchdogタイムアウト等の曖昧な失敗（無限に停止しない）
   let listenBlockedStreak = 0; // play()が明確にrejectされた回数（自動再生ブロック。復帰UIを出して停止）
+  // 行番号ごとの自動再生ブロック失敗回数。同じ行が「タップして再開」を挟んでも繰り返し
+  // ブロックされ続ける袋小路を防ぐため、一定回数に達したら音声を諦めてテキストのみで前進する。
+  const lineBlockedCounts = {};
+  const LINE_BLOCKED_LIMIT = 3;
   function playNextLine() {
     if (li >= lines.length) {
       if (idx < cards.length - 1) {
@@ -2654,63 +2700,84 @@ function playListenCard(idx) {
       return;
     }
     const line = lines[li];
-    if (line.speaker === 'opponent') addOpponentBubble(line.text, false);
-    else addUserBubble(line.text);
-    scrollToBottom();
-    li++;
-    if (line.audio) {
-      stopAudio();
-      currentAudio = new Audio(line.audio);
-      let advanced = false; // 二重発火防止
-      let watchdog;
-      const armWatchdog = (ms) => {
-        clearTimeout(watchdog);
-        watchdog = setTimeout(() => advance(false), ms);
-      };
-      const onLoadedMetadata = () => {
-        const dur = currentAudio && currentAudio.duration;
-        if (dur && isFinite(dur) && dur > 0) armWatchdog(dur * 1000 + 3000);
-        else armWatchdog(15000);
-      };
-      const onTimeUpdate = onLoadedMetadata; // 再生が進んでいる間はwatchdogを都度延長
-      const advance = (ok, blocked) => {
-        if (advanced) return;
-        advanced = true;
-        clearTimeout(watchdog);
-        if (currentAudio) {
-          currentAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
-          currentAudio.removeEventListener('timeupdate', onTimeUpdate);
-        }
-        if (ok) {
-          listenSilentStreak = 0;
-          listenBlockedStreak = 0;
-        } else if (blocked) {
-          listenBlockedStreak++;
-          listenSilentStreak++;
-        } else {
-          listenSilentStreak++;
-        }
-        // 明確な自動再生ブロックが2回連続した場合のみ、復帰UIを出して一旦停止する。
-        // watchdogタイムアウト（メディアストール等）は何度起きても無言のまま止めず、必ず次へ進める。
-        if (listenBlockedStreak >= 2) {
-          showListenResumeBar(() => {
-            listenBlockedStreak = 0;
-            listenSilentStreak = 0;
-            playNextLine();
-          });
-          return;
-        }
-        setTimeout(playNextLine, 600);
-      };
-      currentAudio.addEventListener('loadedmetadata', onLoadedMetadata);
-      currentAudio.addEventListener('timeupdate', onTimeUpdate);
-      armWatchdog(10000); // 音声ロード待ちのタイムアウト（loadedmetadata取得前）
-      currentAudio.onended = () => advance(true);
-      currentAudio.onerror = () => advance(false);
-      currentAudio.play().catch(() => advance(false, true));
-    } else {
-      setTimeout(playNextLine, 1200);
+    const myLi = li;
+    if (bubbleShownIdx !== myLi) {
+      bubbleShownIdx = myLi;
+      if (line.speaker === 'opponent') addOpponentBubble(line.text, false);
+      else addUserBubble(line.text);
+      scrollToBottom();
     }
+    if (!line.audio) {
+      li++;
+      setTimeout(playNextLine, 1200);
+      return;
+    }
+    stopAudio();
+    setCurrentAudioSrc(line.audio);
+    let advanced = false; // 二重発火防止
+    let watchdog;
+    const armWatchdog = (ms) => {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => advance(false), ms);
+    };
+    const onLoadedMetadata = () => {
+      const dur = currentAudio && currentAudio.duration;
+      if (dur && isFinite(dur) && dur > 0) armWatchdog(dur * 1000 + 3000);
+      else armWatchdog(15000);
+    };
+    const onTimeUpdate = onLoadedMetadata; // 再生が進んでいる間はwatchdogを都度延長
+    const advance = (ok, blocked) => {
+      if (advanced) return;
+      advanced = true;
+      clearTimeout(watchdog);
+      if (currentAudio) {
+        currentAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
+        currentAudio.removeEventListener('timeupdate', onTimeUpdate);
+      }
+      if (ok) {
+        listenSilentStreak = 0;
+        listenBlockedStreak = 0;
+        lineBlockedCounts[myLi] = 0;
+        li++;
+        setTimeout(playNextLine, 600);
+        return;
+      }
+      if (!blocked) {
+        // 自動再生ブロック以外（デコード失敗・watchdogタイムアウト等）は無言でも必ず次へ進める。
+        listenSilentStreak++;
+        li++;
+        setTimeout(playNextLine, 600);
+        return;
+      }
+      // ここから明確な自動再生ブロック（NotAllowedError）のみ
+      listenBlockedStreak++;
+      listenSilentStreak++;
+      lineBlockedCounts[myLi] = (lineBlockedCounts[myLi] || 0) + 1;
+      if (lineBlockedCounts[myLi] >= LINE_BLOCKED_LIMIT) {
+        // 同じ行が既定回数ブロックされ続けた場合は音声を諦めてテキストのみで強制前進（袋小路防止）
+        li++;
+        setTimeout(playNextLine, 400);
+        return;
+      }
+      // 明確な自動再生ブロックが2回連続した場合のみ、復帰UIを出して一旦停止する。
+      // watchdogタイムアウト（メディアストール等）は何度起きても無言のまま止めず、必ず次へ進める。
+      if (listenBlockedStreak >= 2) {
+        showListenResumeBar(() => {
+          listenBlockedStreak = 0;
+          listenSilentStreak = 0;
+          playNextLine(); // li は据え置き。同じ行の音声を再試行する
+        });
+        return;
+      }
+      setTimeout(playNextLine, 600); // li は据え置き。同じ行の音声を再試行する
+    };
+    currentAudio.addEventListener('loadedmetadata', onLoadedMetadata);
+    currentAudio.addEventListener('timeupdate', onTimeUpdate);
+    armWatchdog(10000); // 音声ロード待ちのタイムアウト（loadedmetadata取得前）
+    currentAudio.onended = () => advance(true);
+    currentAudio.onerror = () => advance(false);
+    // play()のreject理由を見て、自動再生ブロック（NotAllowedError）のときだけblocked扱いにする。
+    currentAudio.play().catch(err => advance(false, err && err.name === 'NotAllowedError'));
   }
   playNextLine();
 }
@@ -2728,6 +2795,7 @@ function showHwResumeStartBar(onStart) {
   const freshBtn = btn.cloneNode(true);
   btn.parentNode.replaceChild(freshBtn, btn);
   freshBtn.addEventListener('click', () => {
+    unlockAudio();
     bar.classList.remove('show');
     $chatThread.style.paddingBottom = '';
     onStart();
@@ -2751,6 +2819,7 @@ function showListenResumeBar(onResume) {
   const freshBtn = btn.cloneNode(true);
   btn.parentNode.replaceChild(freshBtn, btn);
   freshBtn.addEventListener('click', () => {
+    unlockAudio();
     bar.classList.remove('show');
     $chatThread.style.paddingBottom = '';
     onResume();
@@ -2786,7 +2855,10 @@ function showListenEndBar() {
 }
 
 // ===== Phase: Tap to Start → Listen =====
-document.getElementById('tapStartBtn').addEventListener('click', startListenPhase);
+document.getElementById('tapStartBtn').addEventListener('click', () => {
+  unlockAudio();
+  startListenPhase();
+});
 
 // ===== 質問モード用ヘルパー: 英語の質問を日本語化して出題 → mic ready =====
 // 質問モードでは listen/speak 設定に関わらず、日本語で促して英語の質問を録音させる。
@@ -2823,7 +2895,7 @@ function startListenPhase() {
   addTypingIndicator();
   showActionPhase(null);
   stopAudio();
-  currentAudio = new Audio(c.triggerAudio);
+  setCurrentAudioSrc(c.triggerAudio);
   const onAudioDone = () => {
     removeTypingIndicator();
     addOpponentBubble(c.trigger, false);
@@ -2841,7 +2913,7 @@ function playFollowupAudio(audioPath, text, onDone) {
     setTimeout(onDone, 1600);
     return;
   }
-  currentAudio = new Audio(audioPath);
+  setCurrentAudioSrc(audioPath);
   currentAudio.addEventListener('ended', onDone, { once: true });
   currentAudio.addEventListener('error', () => {
     setTimeout(onDone, 1600);
@@ -3267,7 +3339,7 @@ async function showResult() {
   const reaction = reactions[Math.floor(Math.random() * reactions.length)];
 
   if (resultType === 'perfect' || resultType === 'great') spawnConfetti();
-  try { stopAudio(); currentAudio = new Audio(reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
+  try { stopAudio(); setCurrentAudioSrc(reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
 
   // Show user's answer in chat, then after a beat show review card
   // 質問モード時はレビューの照合先を質問文に切り替える
@@ -3337,7 +3409,7 @@ async function showTurn2Result() {
 
   const t2Reactions = (t2ResultType === 'perfect' || t2ResultType === 'great') ? REACTIONS_PERFECT : t2ResultType === 'good' ? REACTIONS_GOOD : t2ResultType === 'almost' ? REACTIONS_ALMOST : REACTIONS_RETRY;
   const t2Reaction = t2Reactions[Math.floor(Math.random() * t2Reactions.length)];
-  try { stopAudio(); currentAudio = new Audio(t2Reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
+  try { stopAudio(); setCurrentAudioSrc(t2Reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
   if (t2ResultType === 'perfect' || t2ResultType === 'great') spawnConfetti();
 
   // Add user bubble in chat for conversation flow
@@ -3533,7 +3605,7 @@ function showReviewCard(turnLabel, userReply, naturalReply, altReplies, resultTy
   if (audioToPlay) {
     setTimeout(() => {
       stopAudio();
-      currentAudio = new Audio(audioToPlay);
+      setCurrentAudioSrc(audioToPlay);
       currentAudio.play().catch(() => {});
     }, 400);
   }
@@ -3648,12 +3720,21 @@ function showFullConversationReplay(autoPlay) {
       const playBtn = document.createElement('button');
       playBtn.className = 'bubble-play-btn';
       playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
-      let btnAudio = null;
+      let btnAudioPlaying = false;
       playBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (btnAudio) { btnAudio.pause(); btnAudio = null; }
-        btnAudio = new Audio(l.audio);
-        btnAudio.play().catch(() => {});
+        unlockAudio();
+        // 同じボタンを再タップした場合はトグルで停止する
+        if (btnAudioPlaying && currentAudio && !currentAudio.paused) {
+          stopAudio();
+          btnAudioPlaying = false;
+          return;
+        }
+        stopAudio();
+        setCurrentAudioSrc(l.audio);
+        currentAudio.play().catch(() => {});
+        btnAudioPlaying = true;
+        currentAudio.addEventListener('ended', () => { btnAudioPlaying = false; }, { once: true });
       });
       bubbleEl.appendChild(playBtn);
     }
@@ -3689,8 +3770,7 @@ function showFullConversationReplay(autoPlay) {
       }
       const l = lines[seqIdx];
       addBubbleWithControls(l);
-      if (currentAudio) { currentAudio.pause(); currentAudio.removeAttribute('src'); currentAudio.load(); }
-      currentAudio = new Audio(l.audio);
+      setCurrentAudioSrc(l.audio);
       let advanced = false; // 二重発火防止
       let watchdog;
       const advance = (ok) => {
@@ -3776,12 +3856,12 @@ function playAnswerAudio() {
   if (round === 2) {
     stopAudio();
     if (s.naturalAudio) {
-      currentAudio = new Audio(s.naturalAudio);
+      setCurrentAudioSrc(s.naturalAudio);
       currentAudio.play().catch(() => {});
     }
   } else {
     stopAudio();
-    currentAudio = new Audio(s.conclusionAudio);
+    setCurrentAudioSrc(s.conclusionAudio);
     currentAudio.play().catch(() => {});
   }
 }
@@ -3922,7 +4002,7 @@ function showPracticeMode(card, onDone) {
     // 答えモード（または triggerJa 空のフォールバック）: 従来フロー
     addOpponentBubble(card.trigger, false);
     stopAudio();
-    currentAudio = new Audio(card.triggerAudio);
+    setCurrentAudioSrc(card.triggerAudio);
     currentAudio.play().catch(() => {});
 
     let inputShown = false;
@@ -4034,7 +4114,7 @@ function showPracticeResult(card, userAnswer, onDone) {
       // 答えモード（または triggerJa 空のフォールバック）: 従来フロー
       addOpponentBubble(card.trigger, false);
       stopAudio();
-      currentAudio = new Audio(card.triggerAudio);
+      setCurrentAudioSrc(card.triggerAudio);
       currentAudio.play().catch(() => {});
       const showRetryInput = () => {
         showActionPhase(inputMode === 'text' ? 'actionTextInput' : 'actionMicReady');
@@ -4094,7 +4174,7 @@ async function fetchPracticeCheck(userAnswer, question, targetPattern, situation
     // Audio reaction + confetti
     const reactions = (level === 'perfect' || level === 'great') ? REACTIONS_PERFECT : level === 'good' ? REACTIONS_GOOD : level === 'almost' ? REACTIONS_ALMOST : REACTIONS_RETRY;
     const reaction = reactions[Math.floor(Math.random() * reactions.length)];
-    try { stopAudio(); currentAudio = new Audio(reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
+    try { stopAudio(); setCurrentAudioSrc(reaction.audio); currentAudio.play().catch(() => {}); } catch(e) {}
     if (level === 'perfect' || level === 'great') spawnConfetti();
     scrollToBottom();
   } catch (e) {
