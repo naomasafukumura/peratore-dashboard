@@ -1328,7 +1328,6 @@ let recognizedText = '';
 let thinkTimer = null;
 let speakTimerInterval = null;
 let currentAudio = null;
-let listenSilentStreak = 0;
 let lvPlaybackRate = (() => {
   const v = parseFloat(localStorage.getItem('pp-listenRate') || '1');
   return Number.isFinite(v) && v >= 0.25 && v <= 2 ? v : 1;
@@ -2641,6 +2640,10 @@ function playListenCard(idx) {
   showActionPhase(null);
 
   let li = 0;
+  // カード内・カード間で使い回すストリークカウンタ。カード単位（playListenCard呼び出し単位）でリセットされ、
+  // グローバルに累積して永久停止することがないようにする。
+  let listenSilentStreak = 0; // watchdogタイムアウト等の曖昧な失敗（無限に停止しない）
+  let listenBlockedStreak = 0; // play()が明確にrejectされた回数（自動再生ブロック。復帰UIを出して停止）
   function playNextLine() {
     if (li >= lines.length) {
       if (idx < cards.length - 1) {
@@ -2660,23 +2663,101 @@ function playListenCard(idx) {
       currentAudio = new Audio(line.audio);
       let advanced = false; // 二重発火防止
       let watchdog;
-      const advance = (ok) => {
+      const armWatchdog = (ms) => {
+        clearTimeout(watchdog);
+        watchdog = setTimeout(() => advance(false), ms);
+      };
+      const onLoadedMetadata = () => {
+        const dur = currentAudio && currentAudio.duration;
+        if (dur && isFinite(dur) && dur > 0) armWatchdog(dur * 1000 + 3000);
+        else armWatchdog(15000);
+      };
+      const onTimeUpdate = onLoadedMetadata; // 再生が進んでいる間はwatchdogを都度延長
+      const advance = (ok, blocked) => {
         if (advanced) return;
         advanced = true;
         clearTimeout(watchdog);
-        listenSilentStreak = ok ? 0 : listenSilentStreak + 1;
-        if (listenSilentStreak >= 3) { stopAudio(); return; }
+        if (currentAudio) {
+          currentAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
+          currentAudio.removeEventListener('timeupdate', onTimeUpdate);
+        }
+        if (ok) {
+          listenSilentStreak = 0;
+          listenBlockedStreak = 0;
+        } else if (blocked) {
+          listenBlockedStreak++;
+          listenSilentStreak++;
+        } else {
+          listenSilentStreak++;
+        }
+        // 明確な自動再生ブロックが2回連続した場合のみ、復帰UIを出して一旦停止する。
+        // watchdogタイムアウト（メディアストール等）は何度起きても無言のまま止めず、必ず次へ進める。
+        if (listenBlockedStreak >= 2) {
+          showListenResumeBar(() => {
+            listenBlockedStreak = 0;
+            listenSilentStreak = 0;
+            playNextLine();
+          });
+          return;
+        }
         setTimeout(playNextLine, 600);
       };
-      watchdog = setTimeout(() => advance(false), 8000);
+      currentAudio.addEventListener('loadedmetadata', onLoadedMetadata);
+      currentAudio.addEventListener('timeupdate', onTimeUpdate);
+      armWatchdog(10000); // 音声ロード待ちのタイムアウト（loadedmetadata取得前）
       currentAudio.onended = () => advance(true);
       currentAudio.onerror = () => advance(false);
-      currentAudio.play().catch(() => advance(false));
+      currentAudio.play().catch(() => advance(false, true));
     } else {
       setTimeout(playNextLine, 1200);
     }
   }
   playNextLine();
+}
+
+function showHwResumeStartBar(onStart) {
+  let bar = document.getElementById('hwResumeStartBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'hwResumeStartBar';
+    bar.className = 'post-replay-bar';
+    bar.innerHTML = '<button class="post-replay-btn next" id="hwResumeStartBtn">▶ 続きを再生</button>';
+    document.getElementById('postReplayBar').parentNode.appendChild(bar);
+  }
+  const btn = document.getElementById('hwResumeStartBtn');
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+  freshBtn.addEventListener('click', () => {
+    bar.classList.remove('show');
+    $chatThread.style.paddingBottom = '';
+    onStart();
+  }, { once: true });
+  bar.classList.add('show');
+  $chatThread.style.paddingBottom = '100px';
+  scrollToBottom();
+}
+
+function showListenResumeBar(onResume) {
+  let bar = document.getElementById('listenResumeBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'listenResumeBar';
+    bar.className = 'post-replay-bar';
+    bar.innerHTML = '<button class="post-replay-btn next" id="listenResumeBtn">▶ タップして再開</button>';
+    document.getElementById('postReplayBar').parentNode.appendChild(bar);
+  }
+  const btn = document.getElementById('listenResumeBtn');
+  // 直前に登録したリスナーを引き継がないよう、ボタンを張り替えてから今回分だけ登録する
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+  freshBtn.addEventListener('click', () => {
+    bar.classList.remove('show');
+    $chatThread.style.paddingBottom = '';
+    onResume();
+  }, { once: true });
+  bar.classList.add('show');
+  $chatThread.style.paddingBottom = '100px';
+  scrollToBottom();
 }
 
 function showListenEndBar() {
@@ -3617,7 +3698,7 @@ function showFullConversationReplay(autoPlay) {
         advanced = true;
         clearTimeout(watchdog);
         silentStreak = ok ? 0 : silentStreak + 1;
-        if (silentStreak >= 3) { stopAudio(); return; }
+        // 失敗が続いても無言で停止しない。必ず次へ進めて最終的にshowPostReplayBar()に到達させる。
         seqIdx++; setTimeout(playSeqNext, 600);
       };
       watchdog = setTimeout(() => advance(false), 8000);
@@ -4866,9 +4947,10 @@ loadDataFromAPI().then(() => {
           $prac.classList.add('show');
           $complete.classList.remove('show');
           loadCard();
-          // listen モードなら START ボタン押下を待たず自動で再生開始
+          // listen モードでもフルリロード直後はuser activationが無く自動再生がブロックされやすいため、
+          // 自動でstartListenFlow()を呼ばず、ワンタップの再開ボタンを表示してから開始する。
           if (turn2Mode === 'listen') {
-            setTimeout(() => startListenFlow(), 50);
+            setTimeout(() => showHwResumeStartBar(() => startListenFlow()), 50);
           }
           return;
         } else {

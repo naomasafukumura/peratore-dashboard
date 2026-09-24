@@ -2706,7 +2706,7 @@ function showFullConversationReplay(autoPlay) {
         advanced = true;
         clearTimeout(watchdog);
         silentStreak = ok ? 0 : silentStreak + 1;
-        if (silentStreak >= 3) { stopAudio(); return; }
+        // 失敗が続いても無言で停止しない。必ず次へ進めて最終的にshowPostReplayBar()に到達させる。
         seqIdx++; setTimeout(playSeqNext, 600);
       };
       watchdog = setTimeout(() => advance(false), 8000);
