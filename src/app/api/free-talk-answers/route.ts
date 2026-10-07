@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { logError } from '@/lib/error-log';
-import { isTeacherGateEnabled, TEACHER_SESSION_COOKIE, verifyTeacherJwt } from '@/lib/teacher-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,10 +42,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (isTeacherGateEnabled()) {
-    const ok = await verifyTeacherJwt(req.cookies.get(TEACHER_SESSION_COOKIE)?.value);
-    if (!ok) return NextResponse.json({ error: '先生用ログインが必要です' }, { status: 401 });
-  }
   let studentName: string | undefined;
   try {
     const body = await req.json();
