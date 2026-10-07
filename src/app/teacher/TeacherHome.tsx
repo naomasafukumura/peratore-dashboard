@@ -40,6 +40,18 @@ const cards = [
     accent: 'bg-rose-500',
     external: true,
   },
+  {
+    href: '/teacher-manual.html#sec11',
+    label: 'フリートーク',
+    desc: 'フリートークの進め方・回答の登録方法',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinejoin="round"/>
+      </svg>
+    ),
+    accent: 'bg-amber-500',
+    external: true,
+  },
 ];
 
 export default function TeacherHome() {
