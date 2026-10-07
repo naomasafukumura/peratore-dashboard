@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import FreeTalkAnswerSection from './FreeTalkAnswerSection';
+
 const PLACEHOLDER_LESSON_MEMO =
   'レッスンで話したこと・使った表現・日本語メモなど、自由に書いてください。\n例：週末の予定を聞かれた。What are you doing this weekend? に対して stay home と言いたかった。フォローで Netflix と聞かれた。';
 
@@ -356,6 +358,8 @@ export default function LessonFormClient() {
             {message && (
               <p className="mt-3 text-xs text-error px-0.5">{message}</p>
             )}
+
+            <FreeTalkAnswerSection studentName={resolvedStudentName} />
 
             <div className="flex flex-wrap gap-2 mt-4">
               <button type="button" onClick={clearForm} className="px-5 py-2.5 border border-border rounded-[var(--radius-button)] text-sm text-text-muted">
