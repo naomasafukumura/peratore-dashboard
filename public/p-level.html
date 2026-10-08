@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ペラトレ レベル判定基準</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#FAFAF7;--surface:#FFFFFF;
+  --text:#182124;--text-sub:#4E5B60;
+  --accent:#2F6F75;--accent-soft:rgba(47,111,117,0.08);
+  --cta:#E9852D;--cta-soft:rgba(233,133,45,0.10);
+  --border:#E7ECEE;
+  --fen:'DM Sans',sans-serif;--fja:'Noto Sans JP',sans-serif;
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{font-family:var(--fja);background:var(--bg);color:var(--text);line-height:1.8;overflow-x:hidden}
+.wrap{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+.back{display:inline-block;font-size:14px;color:var(--accent);text-decoration:none;margin-bottom:20px}
+h1{font-size:24px;font-weight:700;line-height:1.4;margin-bottom:8px}
+.lead{font-size:15px;color:var(--text-sub)}
+h2{font-size:18px;font-weight:700;margin:40px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--text)}
+dl.sys{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px 20px}
+dl.sys div{display:grid;grid-template-columns:8.5em 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--border)}
+dl.sys div:last-child{border-bottom:none}
+dl.sys dt{font-weight:600;font-size:15px}
+dl.sys dd{font-size:15px}
+.q{font-size:15px;margin-bottom:16px}
+.q span{font-family:var(--fen);font-weight:600}
+.lv{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px}
+.lv.p6{border:2px solid var(--cta)}
+.lv-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.lv-code{font-family:var(--fen);font-size:26px;font-weight:700;color:var(--accent);line-height:1}
+.lv.p6 .lv-code{color:var(--cta)}
+.lv-name{font-size:16px;font-weight:700}
+.lv-note{width:100%;font-size:13px;font-weight:600;color:#B45309}
+.ex{font-family:var(--fen);font-size:16px;font-weight:500;line-height:1.6;background:var(--accent-soft);border-left:3px solid var(--accent);padding:12px 14px;border-radius:0 8px 8px 0;margin-bottom:14px}
+.lv.p6 .ex{background:var(--cta-soft);border-left-color:var(--cta)}
+.row{font-size:15px;margin-top:8px}
+.row b{display:block;font-size:13px;font-weight:700;color:var(--text-sub);margin-bottom:2px}
+@media (max-width:480px){
+  dl.sys div{grid-template-columns:1fr;gap:2px}
+  h1{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="javascript:history.back()">← 戻る</a>
+  <h1>ペラトレ（Pレベル）チェックシステム</h1>
+  <p class="lead">レッスン中の会話力をもとに、P1〜P7の7段階でレベルを判定します。</p>
+
+  <h2>概要</h2>
+  <dl class="sys">
+    <div><dt>実施時期</dt><dd>年2回（12月・6月）</dd></div>
+    <div><dt>スタートレベル</dt><dd>カウンセリングで決定</dd></div>
+    <div><dt>判定方法</dt><dd>担当講師がレッスン中の「会話力」を観察し、下記の判断基準に基づいて運営に評価・報告します。生徒様には運営からレベルアップのお知らせをします。</dd></div>
+    <div><dt>ステップアップ特典</dt><dd>P6 に到達すると、外国人講師レッスンへの追加、または完全移行 が可能になります。</dd></div>
+  </dl>
+
+  <h2>レベル判定基準（P1〜P7）</h2>
+  <p class="q">質問例：「休日は何をしていますか？（<span>What do you do on weekends?</span>）」</p>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P1</span><span class="lv-name">超入門（単語でかろうじて答える）</span></div>
+    <p class="ex">"Game... and sleep."</p>
+    <p class="row"><b>説明</b>文章が作れず、頭に浮かんだ単語や動詞の原形を単体で口にするレベル。相手の汲み取りやジェスチャーに頼る部分が大きいです。</p>
+    <p class="row"><b>発音</b>カタカナ英語。音節やアクセントの概念がなく、「ゲーム」「スリープ」と日本語の発声のまま話す状態です。</p>
+  </section>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P2</span><span class="lv-name">入門（一文なら言える）</span></div>
+    <p class="ex">"I play game." / "I sleep."</p>
+    <p class="row"><b>説明</b>「主語＋動詞」の最もシンプルな一文（S+V+O）を自力で組み立てられるレベル。複数形や前置詞などの装飾はまだ難しい状態です。</p>
+    <p class="row"><b>発音</b>個別単語の発音。単語ひとつひとつをカタカナ混じりで区切って発声するため、文全体の繋がり（リンキング）はありません。</p>
+  </section>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P3</span><span class="lv-name">CEFR: A1相当</span></div>
+    <p class="ex">"I play games at home. And I sleep a lot."</p>
+    <p class="row"><b>説明</b>一文に場所（at home）や程度（a lot）などの語句を足せるレベル。簡単な文を「And」などで繋いで事実を短く伝えられます。</p>
+    <p class="row"><b>発音</b>通じるカタカナ発音。日本語アクセントや発音はあるものの、知っている単語なら相手に十分伝わります。</p>
+  </section>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P4</span><span class="lv-name">CEFR: A2相当</span></div>
+    <p class="ex">"I usually play video games with my child. Sometimes we go to the park."</p>
+    <p class="row"><b>説明</b>時間・頻度（usually, sometimes）・誰と（with my child）などの具体的な情報を自然に追加して、やり取りを広げられるレベルです。</p>
+    <p class="row"><b>発音</b>一定のリズム感。単語同士の音の繋がり（例: with my や go to）が一部自然になり、英語らしい強弱が出始めます。</p>
+  </section>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P5</span><span class="lv-name">CEFR: B1相当</span></div>
+    <p class="ex">"Usually I try to take it easy at home, but if the weather is nice, I like taking my child to the park."</p>
+    <p class="row"><b>説明</b>単に事実を並べるだけでなく、日常会話でよく使われるイディオム（take it easy：ゆっくり過ごす）や条件（if the weather is nice）を使って、状況に合わせて自分の意思や好みを一通り説明できるレベルです。</p>
+    <p class="row"><b>発音</b>滑らかでクリア。抑揚（イントネーション）が自然になり、相手が聞き返すことが大幅に減ります。</p>
+  </section>
+
+  <section class="lv p6">
+    <div class="lv-hd"><span class="lv-code">P6</span><span class="lv-name">CEFR: B2相当</span><span class="lv-note">※外国人講師レッスン開放条件</span></div>
+    <p class="ex">"It depends on the week, really. If I'm tired, I just chill at home, but otherwise I try to get out with my kid so we can do something fun together. How about you?"</p>
+    <p class="row"><b>説明</b>クッション言葉（It depends, really）や自然な会話表現（chill, get out）を使いこなせるレベル。相手とのキャッチボールを途切れさせず、その場の流れに合わせて柔軟に相槌や補足を差し込めます。相手に質問をする余裕もあります。</p>
+    <p class="row"><b>発音</b>ナチュラルなスピードと音変化。リンキングや音が消える現象（リダクション）が自然にでき、ネイティブとも自然なテンポで会話が弾みます。</p>
+  </section>
+
+  <section class="lv">
+    <div class="lv-hd"><span class="lv-code">P7</span><span class="lv-name">CEFR: C1相当</span></div>
+    <p class="ex">"To be honest, my weekends are largely centered around family activities. Engaging in playful activities with my child serves as a great reset button, allowing me to fully recharge."</p>
+    <p class="row"><b>説明</b>高度で多様な語彙や複雑な文法構造（分詞構文など）を使いこなし、自分の感情や状況のニュアンスをより正確・多角的に表現できるレベルです。</p>
+    <p class="row"><b>発音</b>ネイティブレベルの表現力。感情や強調したいポイントに合わせてスピードやトーンを自在にコントロールできます。</p>
+  </section>
+</div>
+</body>
+</html>
