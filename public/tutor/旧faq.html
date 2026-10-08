@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<!-- saved from url=(0055)faq.html -->
+<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>よくある質問（FAQ） - ペラトレ講師ポータル</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background: #F8F9FA;
+            min-height: 100vh;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h2 {
+            color: white;
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        /* 目次ナビゲーション */
+        .toc-nav {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 40px;
+        }
+
+        .toc-nav h2 {
+            color: #667eea;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .toc-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toc-list li a {
+            display: block;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .toc-list li a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        /* セクション */
+        .section {
+            margin-bottom: 50px;
+            scroll-margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-weight: bold;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 1.3em;
+            color: #764ba2;
+            margin-bottom: 20px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        /* Accordion FAQ */
+        .faq-item {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e8eaf6 100%);
+            border: 1px solid #9c27b0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 4px 12px rgba(156, 39, 176, 0.2);
+        }
+
+        .faq-question {
+            padding: 18px 60px 18px 20px;
+            cursor: pointer;
+            position: relative;
+            font-weight: 500;
+            color: #333;
+            user-select: none;
+        }
+
+        .faq-question::before {
+            content: "Q. ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        .faq-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .faq-item.active .faq-toggle {
+            background: #764ba2;
+            transform: translateY(-50%) rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: white;
+        }
+
+        .faq-answer-content {
+            padding: 15px 20px 20px 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .faq-answer-content::before {
+            content: "A. ";
+            color: #764ba2;
+            font-weight: bold;
+            margin-right: 4px;
+        }
+
+        .faq-answer-content ul,
+        .faq-answer-content ol {
+            margin: 10px 0 10px 20px;
+        }
+
+        .faq-answer-content li {
+            margin-bottom: 8px;
+        }
+
+        .faq-answer-content a {
+            color: #667eea;
+            text-decoration: underline;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .faq-answer-content a:hover {
+            color: #764ba2;
+        }
+
+        .faq-answer-content .btn-link {
+            color: white;
+            text-decoration: none;
+        }
+
+        .faq-answer-content .btn-link:hover {
+            color: white;
+            text-decoration: none;
+        }
+
+        .faq-answer-content strong {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .faq-answer-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .faq-answer-content table th,
+        .faq-answer-content table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .faq-answer-content table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .faq-answer-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .faq-answer-content table tr:hover {
+            background: #f5f5f5;
+        }
+
+        /* ボタンリンク */
+        .btn-link {
+            display: inline-block;
+            margin: 10px 10px 10px 0;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-link:hover {
+            background: #764ba2;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            text-decoration: none;
+        }
+
+        .btn-link.orange {
+            background: #ff9800;
+        }
+
+        .btn-link.orange:hover {
+            background: #f57c00;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        /* 重要メッセージ */
+        .warning-message {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+
+        .warning-message strong {
+            color: #ff9800;
+            font-size: 1.1em;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* Back to Top Button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h2 {
+                font-size: 1.5em;
+            }
+
+            header p {
+                font-size: 0.9em;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .section-title {
+                font-size: 1.4em;
+            }
+
+            .category-title {
+                font-size: 1.1em;
+            }
+
+            .faq-question {
+                font-size: 0.9em;
+                padding: 15px 50px 15px 15px;
+            }
+
+            .faq-answer-content {
+                font-size: 0.9em;
+                padding: 10px 15px 15px 15px;
+            }
+
+            .back-to-top {
+                width: 45px;
+                height: 45px;
+                bottom: 20px;
+                right: 20px;
+                font-size: 18px;
+            }
+        }
+
+        /* 固定ヘッダー */
+        .site-header {
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 2px solid #667eea;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+            padding: 0;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .header-left { flex-shrink: 0; }
+        .header-center { display: flex; gap: 8px; flex: 1; justify-content: center; }
+        .header-right { flex-shrink: 0; }
+
+        .site-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #1F2937;
+            transition: all 0.3s;
+        }
+
+        .site-logo:hover { transform: translateY(-1px); }
+
+        .site-logo-icon {
+            font-size: 26px;
+            filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.3));
+        }
+
+        .site-logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.5px;
+        }
+
+        .search-box { position: relative; width: 260px; }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 14px;
+            border: 2px solid #E0E7FF;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #FAFAFA;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .search-results {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #E0E7FF;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+        }
+
+        .search-results.active { display: block; }
+
+        .search-result-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E0E7FF;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background: #F8F9FA; }
+
+        .search-result-title {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .search-result-excerpt {
+            font-size: 13px;
+            color: #6B7280;
+            line-height: 1.5;
+        }
+
+        .search-result-highlight {
+            background: #FEF3C7;
+            font-weight: 600;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+
+        .no-results {
+            padding: 16px;
+            text-align: center;
+            color: #6B7280;
+            font-size: 14px;
+        }
+
+        .main-menu-link {
+            padding: 0 18px;
+            text-decoration: none;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            position: relative;
+        }
+
+        .main-menu-link:hover {
+            color: #667eea;
+            border-bottom-color: #E0E7FF;
+        }
+
+        .main-menu-link.active {
+            color: #9c27b0;
+            font-weight: 700;
+            border-bottom-color: #9c27b0;
+        }
+
+        .main-menu-link.active::before {
+            content: '●';
+            position: absolute;
+            left: 4px;
+            font-size: 8px;
+            color: #9c27b0;
+        }
+
+        /* サイトフッター */
+        .site-footer {
+            background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+            color: white;
+            padding: 24px 0;
+            margin-top: 20px;
+            border-top: 3px solid #667eea;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-contact {
+            font-size: 14px;
+            color: #E5E7EB;
+        }
+
+        .footer-contact strong {
+            color: white;
+            font-weight: 600;
+        }
+
+        .footer-copyright {
+            font-size: 14px;
+            color: #9CA3AF;
+        }
+
+        /* ページ内フッター */
+        footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .back-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                height: auto;
+                padding: 12px 16px;
+                gap: 12px;
+            }
+
+            .header-center {
+                width: 100%;
+                justify-content: flex-start;
+                overflow-x: auto;
+                gap: 4px;
+            }
+
+            .main-menu-link {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .search-box { width: 100%; }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
+        }
+    </style>
+    <script>
+        // 検索機能
+        document.addEventListener("DOMContentLoaded", function() {
+
+        // ページ読み込み時に検索語にスクロール＆ハイライト
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('q');
+        
+        if (searchQuery) {
+            setTimeout(function() {
+                const bodyText = document.body.innerText.toLowerCase();
+                const searchLower = searchQuery.toLowerCase();
+                
+                if (bodyText.includes(searchLower)) {
+                    const walker = document.createTreeWalker(
+                        document.body,
+                        NodeFilter.SHOW_TEXT,
+                        null,
+                        false
+                    );
+                    
+                    let node;
+                    let found = false;
+                    
+                    while (node = walker.nextNode()) {
+                        const text = node.textContent;
+                        const textLower = text.toLowerCase();
+                        const index = textLower.indexOf(searchLower);
+                        
+                        if (index !== -1 && !found) {
+                            const parent = node.parentElement;
+                            if (parent) {
+                                const style = document.createElement('style');
+                                style.textContent = '.search-highlight { background-color: #fff59d; padding: 2px 4px; border-radius: 3px; animation: highlight-fade 2s ease-in-out; } @keyframes highlight-fade { 0% { background-color: #ffeb3b; } 100% { background-color: #fff59d; } }';
+                                document.head.appendChild(style);
+                                
+                                const beforeText = text.substring(0, index);
+                                const matchText = text.substring(index, index + searchQuery.length);
+                                const afterText = text.substring(index + searchQuery.length);
+                                
+                                const span = document.createElement('span');
+                                span.innerHTML = beforeText + '<span class="search-highlight">' + matchText + '</span>' + afterText;
+                                node.replaceWith(span);
+                                
+                                setTimeout(function() {
+                                    const highlight = document.querySelector('.search-highlight');
+                                    if (highlight) {
+                                        highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                }, 100);
+                                
+                                found = true;
+                            }
+                        }
+                    }
+                }
+            }, 500);
+        }
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout;
+
+        const searchData = [
+            {
+                title: 'はじめに',
+                url: 'getting-started.html',
+                content: 'ペラトレ講師マニュアル 基本情報・概要編 目次 各セクションをクリックして移動できます ペラトレとは？ 基本情報 報酬について レッスンの流れ MasaEnglishとの違い よくある質問 セクション1：ペラトレとは？ 基本的な情報 ペラトレは「英会話のアウトプット練習に特化したオンライン英会話レッスン」です MasaEnglishの受講生や一般の方を対象に、週1〜複数回の50分レッスンを提供します 目的：英語の知識はあるけれど「話す機会がない」「実践で使えない」という方に、継続的なアウトプットの場を提供すること レッスンは基本的にフリートークベースで進み、受講生のレベルや目標に合わせて柔軟に対応します 重要ポイント MasaEnglishとは独立したサービス ペラトレは独立したサブスクリプション型のサービスです MasaEnglish受講生だけでなく、一般の方も利用できます 報酬 1レッスン（50分）: 2,000円 支払い：月末締め、翌月15日振込 詳細は「報酬について」セクションを参照してください セクション2：報酬について 給与の詳細 基本報酬 1レッスン（50分）：2,000円 月末締め、翌月15日に指定口座へ振込 レッスン数に応じた報酬計算例 週1回レッスン：月4回 = 8,000円 週2回レッスン：月8回 = 16,000円 週3回レッスン：月12回 = 24,000円 重要な注意事項 キャンセルされたレッスンは報酬対象外です 生徒都合のキャンセルでも、実施されなかったレッスンには報酬は発生しません 報酬の振込手数料は運営側が負担します セクション3：レッスンの流れ 50分間の基本構成 1. ウォームアップ（5-10分） 軽い雑談やフリートーク 受講生の近況確認 今日のレッスンの方向性を確認 2. メイントレーニング（30-35分） テーマに基づいた会話練習 瞬間英作文トレーニング 実践的なロールプレイ 3. フィードバック（5-10分） 良かった点の共有 改善ポイントの提示 次回に向けたアドバイス レッスンのポイント 受講生の「話す量」を最大化することを意識 完璧さよりも「自然に話し続ける力」を重視 ポジティブなフィードバックで自信をつける セクション4：MasaEnglishとの違い 比較表 項目 MasaEnglish ペラトレ 目的 体系的な英語力向上 アウトプット練習 カリキュラム 構造化された学習プログラム 柔軟なフリートーク中心 対象者 MasaEnglish受講生のみ 受講生＋一般利用者 レッスン頻度 プログラムに応じて 週1〜複数回（自由選択） 重点 インプット＋アウトプット アウトプット特化 重要な理解 ペラトレはMasaEnglishの補完サービスではなく、独立したアウトプット練習の場です 両方を受講している生徒もいれば、ペラトレのみを利用する生徒もいます 講師として、どちらのサービスを利用しているかを把握し、適切なアプローチを取ることが大切です セクション5：よくある質問 Q1. 教材は用意されていますか？ A. 基本的にフリートーク形式ですが、テーマ別の質問リストやトピックガイドは提供されます。受講生が特定の教材を希望する場合は、それに対応することも可能です。 Q2. 生徒のレベルはどのくらいですか？ A. 初級〜中級レベルの方が中心です。基本的な英語の知識はあるが、実践での会話経験が少ない方が多いです。 Q3. レッスンのキャンセルはどう対応しますか？ A. 生徒都合のキャンセルの場合、報酬は発生しません。講師都合でキャンセルする場合は、できるだけ早めに運営に連絡してください。 Q4. 複数の生徒を同時に担当できますか？ A. はい、可能です。スケジュール管理ツール（TimeRex）を使用して、複数の生徒とのレッスンを調整できます。 Q5. フィードバックはどのように記録しますか？ A. レッスン後に簡単なフィードバックシートを提出していただきます。良かった点、改善点、次回の目標などを記録してください。'
+            },
+            {
+                title: 'レッスンの進め方',
+                url: 'lesson-guide.html',
+                content: 'レッスンの進め方 ペラトレ講師のためのレッスンガイド 目次 各セクションをクリックして移動できます レッスン準備 事前準備とチェックリスト レッスンの基本構成 50分間の流れ 満足度を高めるコツ 効果的な指導方法 よくある課題と対応 トラブルシューティング セクション1：レッスン準備 事前にチェックすべきこと 前回のレッスンメモを確認 受講生の目標や課題を把握 今回のテーマや話題を決定 必要な資料や質問リストを準備 Zoom設定の確認 カメラ・マイクの動作確認 録画設定（必要に応じて） 画面共有の準備 環境の整備 静かで集中できる場所 安定したインターネット接続 照明の調整（明るく見えるように） 準備のポイント 初回レッスンの場合は、受講生の自己紹介や目標設定に時間を使う 継続レッスンの場合は、前回の内容を軽く振り返る セクション2：レッスンの基本構成 50分間のタイムテーブル フェーズ 時間 内容 ポイント ウォームアップ 5-10分 軽いフリートーク、近況確認 リラックスした雰囲気作り メイントレーニング 30-35分 テーマトーク、瞬間英作文、ロールプレイ 受講生の発話量を最大化 振り返り 5-10分 良かった点、改善点のフィードバック ポジティブに締める 各フェーズの詳細 1. ウォームアップ 目的：英語モードに切り替える、緊張をほぐす 内容：週末の過ごし方、最近のニュース、趣味の話など コツ：講師から積極的に話しかけ、受講生が話しやすい雰囲気を作る 2. メイントレーニング 目的：実践的なアウトプット練習 テーマトーク：特定のテーマについて深く話す（旅行、仕事、趣味など） 瞬間英作文：日本語の文を即座に英語にする練習 ロールプレイ：実際の場面を想定した会話練習（レストラン、会議など） コツ：受講生が70%、講師が30%の発話割合を目指す 3. 振り返り 目的：学びを定着させる、次回への動機づけ 良かった点：具体的に褒める 改善点：1-2つに絞って伝える 次回の目標：明確に設定する コツ：ポジティブな言葉で締めくくり、次回への期待を持たせる セクション3：満足度を高めるコツ 受講生が満足するポイント たくさん話せた実感がある 自分の英語が伝わった成功体験 具体的で実用的なフィードバックをもらえた 楽しくリラックスした雰囲気 講師が実践すべきこと 1. 傾聴の姿勢 受講生の話に真剣に耳を傾ける 適切なリアクション（相槌、表情） 話を遮らない 2. ポジティブなフィードバック まず良かった点を伝える 改善点は建設的に 具体例を挙げる 3. 実用的なアドバイス すぐに使えるフレーズを教える 発音のコツを実演 覚えやすい表現を提案 4. パーソナライズ 受講生の興味や目標に合わせる 個別の課題に焦点を当てる 前回の内容を覚えている セクション4：よくある課題と対応 ケース1：受講生が話せない・沈黙が続く 対応策： 質問を具体的にする（オープンクエスチョン） 自分の経験を話して話題を広げる 簡単な質問から始める ビジュアル教材を使う ケース2：同じミスを繰り返す 対応策： その場で優しく訂正 正しい表現を繰り返し使う 次回のレッスンで再度確認 パターン練習を取り入れる ケース3：レベルが予想と違った 対応策： 柔軟にレッスン内容を調整 受講生に直接確認する（難しすぎる？簡単すぎる？） 次回以降のプランを見直す ケース4：時間配分がうまくいかない 対応策： タイマーを活用 各フェーズの時間を意識 話が脱線したら軽く軌道修正 参考動画・資料 効果的な質問の仕方（動画） フィードバックの実例集 トラブル時の対応マニュアル'
+            },
+            {
+                title: '業務フロー',
+                url: 'lesson-management.html',
+                content: '業務フロー 予約確認からレッスン後の対応まで完全ガイド 動画解説：公式LINEを通した講師の動き 目次 各セクションをクリックして移動できます レッスン予約の確認 TimeRexでの管理方法 レッスン前の準備 準備チェックリスト レッスン実施 当日の流れ レッスン後の対応 フィードバック送付 トラブル対応 よくある問題と解決策 セクション1：レッスン予約の確認 TimeRexでの予約管理 TimeRexとは？ オンライン日程調整ツール 生徒が空いている時間を選んで予約 自動でGoogleカレンダーと同期 予約確認の手順 TimeRexダッシュボードにログイン 「予約一覧」で今後のレッスンを確認 新規予約は通知メールでも確認可能 各予約の詳細情報を確認： 生徒名 日時 Zoom URL（自動生成） 予約の管理 予約の変更やキャンセルはTimeRex上で管理 生徒からの変更リクエストも通知される Googleカレンダーと自動同期 重要：TimeRexの設定 シフト登録：レッスン可能な時間帯を事前に設定 バッファ時間：レッスン間の休憩時間を設定可能 通知設定：予約確認メールを有効にする セクション2：レッスン前の準備 前日までの準備 生徒情報の確認 前回のレッスンメモを読む 生徒の目標や課題を把握 レッスンプランの作成 今回のテーマを決定 必要な質問リストを準備 教材があれば用意 レッスンリマインド TimeRexから自動でリマインドメールが送信されます 必要に応じて、前日に簡単なメッセージを送ることも可能 当日の準備（レッスン開始15分前） 環境チェック 静かな場所の確保 照明の調整（顔が明るく見えるように） 背景の確認（シンプルで清潔感のある背景） 機材チェック インターネット接続の確認 カメラ・マイクのテスト Zoomの動作確認 録画設定（必要な場合） 資料準備 画面共有する資料を開いておく メモ用のツールを準備 前回のフィードバックを手元に セクション3：レッスン実施 レッスン当日の流れ 1. レッスン開始（0分） Zoom URLにアクセス（TimeRexに記載） 5分前には待機室で待機 生徒が入室したら明るく挨拶 簡単なアイスブレイク 2. レッスン本編（5-45分） ウォームアップ（5-10分） メイントレーニング（30-35分） 詳細は「レッスンの進め方」を参照 3. レッスン終了前（45-50分） 本日の振り返り フィードバック 次回の予定確認 4. レッスン終了（50分） 感謝の言葉を伝える 「次回も楽しみにしています」と締めくくる Zoomを退出 レッスン中の注意点 時間厳守（50分ぴったりに終わる） 受講生の発話を優先 メモは最小限に（会話の流れを止めない） ポジティブな雰囲気を保つ セクション4：レッスン後の対応 レッスン直後（30分以内） レッスンメモの作成 全体のレッスン状況（Googleドキュメント）に記録 今日の内容 良かった点 改善点 次回の目標 フィードバック送付 TimeRex経由で簡単なフィードバックを送信 または指定のフォーマットで送信 内容： 本日のハイライト 具体的な良かった点 1-2つの改善提案 励ましの言葉 その日のうちに（24時間以内） 詳細なメモの整理 必要に応じて追加のフィードバックを送信 次回のレッスンプランを軽く考える 月末 報酬計算の確認 TimeRexのレッスン履歴を確認 実施したレッスン数をチェック 報酬計算に誤りがないか確認 セクション5：トラブル対応 よくあるトラブルと解決法 1. 生徒が遅刻した場合 対応： 10分待つ TimeRexのメッセージ機能で連絡 それでも来ない場合は運営に報告 レッスン時間は予定通り終了（延長しない） 2. 技術的な問題（音声・映像トラブル） 対応： 別のデバイスで接続を試す Zoom以外の連絡手段を確認（チャット等） 問題が解決しない場合は日程を再調整 運営に報告 3. 生徒が急にキャンセルした場合 対応： TimeRexの通知を確認 運営に報告（報酬対象外の確認） 振替日程の調整 4. レッスン内容が難しすぎる/簡単すぎる 対応： その場で柔軟に調整 レッスン後に受講生に確認 次回以降のプランを見直す 運営に相談 緊急連絡先 運営Slack窓口: #英会話講師-業務連絡用 緊急時の電話: [電話番号] TimeRexサポート: support@timerex.net 参考資料 TimeRex使い方ガイド レッスンメモテンプレート トラブルシューティング動画'
+            },
+            {
+                title: '初期設定',
+                url: 'initial-setup.html',
+                content: '初期設定ガイド ペラトレ講師として活動開始前に必要な設定を完了させましょう 目次 各セクションをクリックして移動できます TimeRexアカウント設定 日程調整ツールの準備 Zoom設定 オンラインレッスン環境の構築 Googleドキュメント設定 レッスンメモ管理 その他の準備 必要な環境整備 セクション1：TimeRexアカウント設定 TimeRexとは？ TimeRexは、オンライン日程調整ツールです ペラトレでは、生徒との日程調整とZoom URLの自動生成に使用します 設定手順 アカウント作成 運営から送られた招待リンクをクリック メールアドレスとパスワードを設定 プロフィール情報を入力 シフト登録 「シフト設定」から、レッスン可能な曜日・時間帯を設定 例：月曜 19:00-22:00、水曜 20:00-23:00 など バッファ時間を設定（レッスン間の休憩時間） Zoom連携 「連携設定」からZoomアカウントを連携 自動でZoom URLが生成されるようになります 通知設定 予約確認メールを有効化 リマインド通知を設定 キャンセル通知を有効化 TimeRexの使い方 予約確認：ダッシュボードで今後のレッスンを確認 予約変更：生徒からの変更リクエストを承認・調整 Googleカレンダー同期：自動でカレンダーに反映 セクション2：Zoom設定 Zoomアカウントの準備 Zoomアカウントを作成（無料版でOK） TimeRexと連携設定 Zoom設定の最適化 ビデオ設定 HD画質を有効化 バーチャル背景の設定（必要に応じて） 外見補正機能の調整 オーディオ設定 マイクのテスト 背景ノイズ抑制を有効化 エコーキャンセルを有効化 録画設定（必要な場合） 「レコーディング」設定を確認 クラウド録画またはローカル録画を選択 セキュリティ設定 待機室を有効化 パスワード保護を有効化 画面共有設定 画面共有を「ホストのみ」に設定 必要に応じて参加者も共有可能に レッスン前のZoomチェック レッスン開始15分前に接続テスト カメラ・マイクの動作確認 照明の調整 背景の確認 セクション3：Googleドキュメント設定 全体のレッスン状況（共有ドキュメント） ペラトレでは、全講師が共有のGoogleドキュメントを使用してレッスンメモを記録します このドキュメントは運営チームと全講師が閲覧可能です アクセス方法 運営から送られた共有リンクをクリック Googleアカウントでログイン ブックマークに保存しておく 使い方 各生徒ごとにセクションが分かれています 自分が担当した生徒のセクションに、レッスン後にメモを記入 フォーマット： 日付：2024/11/XX 内容：[今日のテーマ・活動内容] 良かった点：[具体的なポイント] 改善点：[1-2つ] 次回の目標：[明確な目標] レッスンメモテンプレート 運営が用意したテンプレートを使用 必要に応じてコピーして使う 一貫性のある記録を保つため、フォーマットを守る セクション4：その他の準備 環境整備 レッスン環境 静かで集中できる場所を確保 安定したインターネット接続（有線推奨） 照明の調整（顔が明るく見えるように） 背景をシンプルに（清潔感のある背景） 機材 ヘッドセットまたは高品質マイク（推奨） Webカメラ（PC内蔵でもOK） 安定したPC（メモリ8GB以上推奨） 必要な資料の準備 テーマ別質問リスト：運営から提供 フレーズ集：よく使う表現をまとめておく 文法チートシート：基本的な文法ポイント 発音ガイド：発音のコツをまとめたメモ 運営とのコミュニケーション Slackワークスペースへの参加 運営から招待リンクを受け取る アカウントを作成して参加 重要なチャンネルをフォロー： #英会話講師-業務連絡用 #ペラトレ-全体 初回オリエンテーション 運営との初回ミーティングを実施 不明点を確認 模擬レッスンを実施（推奨） 活動開始の準備完了 すべての設定が完了したら、運営に報告 初回レッスンの日程を調整 いつでもサポートが必要な場合はSlackで連絡 参考資料 TimeRex詳細ガイド Zoom設定マニュアル Googleドキュメント使い方 トラブルシューティング'
+            },
+            {
+                title: 'FAQ',
+                url: 'faq.html',
+                content: 'よくある質問（FAQ） 疑問や不明点を解決するためのQ&A集です 目次 質問カテゴリー一覧 レッスン全般について スケジュール・予約について 報酬・給与について 技術的な問題 生徒対応について 契約・その他 カテゴリー1：レッスン全般について Q1. レッスンは何分間ですか？ A. 1レッスンは50分間です。時間厳守でお願いします。 Q2. レッスンの内容は決まっていますか？ A. 基本的にフリートーク形式ですが、テーマ別の質問リストやガイドラインが提供されます。生徒の目標やレベルに合わせて柔軟に対応してください。 Q3. 教材は使いますか？ A. 必須ではありませんが、生徒が希望する場合や、特定のスキル（発音、文法など）を練習したい場合は教材を使用することも可能です。 Q4. レッスンは録画されますか？ A. 生徒が希望する場合、録画が許可されることがあります。事前に確認してください。講師側での録画も可能ですが、必ず生徒の同意を得てください。 Q5. フィードバックはどのように提供しますか？ A. レッスン後にTimeRex経由、または指定のフォーマットで簡単なフィードバックを送信します。また、全体のレッスン状況（Googleドキュメント）にも記録してください。 カテゴリー2：スケジュール・予約について Q6. シフトはどのように設定しますか？ A. TimeRexで「シフト設定」から、レッスン可能な曜日と時間帯を登録します。この時間帯内で生徒が予約できるようになります。 Q7. シフトの変更は可能ですか？ A. はい、可能です。TimeRexからいつでも変更できます。ただし、既に予約が入っている時間帯は変更できません。 Q8. 生徒がキャンセルした場合、どうなりますか？ A. 生徒都合のキャンセルの場合、報酬は発生しません。TimeRexから通知が来るので、運営に報告してください。 Q9. 講師側からキャンセルできますか？ A. 緊急の場合は可能ですが、できるだけ避けてください。キャンセルする場合は、できるだけ早く運営とTimeRexを通じて生徒に連絡してください。 Q10. 予約の変更リクエストにはどう対応しますか？ A. TimeRexから変更リクエストが来た場合、可能であれば承認してください。難しい場合は、運営に相談してください。 カテゴリー3：報酬・給与について Q11. 報酬はいくらですか？ A. 1レッスン（50分）あたり2,000円です。 Q12. 報酬はいつ支払われますか？ A. 月末締め、翌月15日に指定の口座に振り込まれます。 Q13. 振込手数料は誰が負担しますか？ A. 振込手数料は運営側が負担します。 Q14. キャンセルされたレッスンの報酬はどうなりますか？ A. 生徒都合のキャンセルの場合、報酬は発生しません。講師都合のキャンセルも同様です。 Q15. レッスン数の確認方法は？ A. TimeRexのダッシュボードで「レッスン履歴」を確認できます。月末に自分で確認し、報酬計算に誤りがないかチェックしてください。 Q16. 税金の扱いはどうなりますか？ A. 講師は業務委託契約のため、報酬は給与ではなく「報酬」として支払われます。確定申告が必要な場合があるため、詳しくは税務署または税理士にご相談ください。 カテゴリー4：技術的な問題 Q17. Zoomに接続できない場合はどうすればいいですか？ A. まず、インターネット接続を確認してください。それでも接続できない場合は、別のデバイスで試すか、TimeRexのメッセージ機能で生徒に連絡してください。 Q18. 音声や映像にトラブルがある場合は？ A. Zoomの設定を確認し、マイクとカメラが正しく選択されているかチェックしてください。それでも解決しない場合は、運営に報告し、レッスンを再調整してください。 Q19. TimeRexの使い方がわからない場合は？ A. TimeRexの詳細ガイドを参照してください。それでも不明な場合は、運営のSlackチャンネル（#英会話講師-業務連絡用）で質問してください。 Q20. レッスン中に生徒の接続が切れた場合は？ A. 数分待って再接続を試みてください。再接続できない場合は、TimeRexのメッセージ機能で連絡を取り、別の日に振替を提案してください。 カテゴリー5：生徒対応について Q21. 生徒のレベルが予想と違った場合はどうしますか？ A. その場で柔軟にレッスン内容を調整してください。レッスン後に運営に報告し、次回以降のプランを見直すことができます。 Q22. 生徒が全く話せない場合はどうすればいいですか？ A. 質問を具体的にし、簡単な質問から始めてください。講師から話題を提供し、生徒が答えやすい環境を作ることが重要です。 Q23. 生徒が同じミスを繰り返す場合は？ A. その場で優しく訂正し、正しい表現を繰り返し使ってください。次回のレッスンでも再度確認し、パターン練習を取り入れると効果的です。 Q24. 生徒から難しい質問をされた場合は？ A. わからない場合は正直に伝え、「次回までに調べておきます」と答えてください。後で調べて、次回のレッスンで説明するか、TimeRex経由でフィードバックを送ってください。 Q25. 生徒がレッスンに不満を持っている様子の場合は？ A. まず生徒に直接確認し、何が問題かを聞いてください。可能であればその場で改善し、必要に応じて運営に報告してください。 カテゴリー6：契約・その他 Q26. 契約形態はどうなっていますか？ A. 業務委託契約です。雇用契約ではないため、講師は個人事業主として活動します。 Q27. 活動を休止したい場合はどうすればいいですか？ A. 運営に事前に連絡し、TimeRexのシフトを調整してください。長期休暇の場合も同様です。 Q28. 契約を終了したい場合は？ A. 運営に1ヶ月前までに連絡してください。引き継ぎや最終レッスンの調整を行います。 Q29. 他の講師と情報交換できますか？ A. はい、Slackの講師専用チャンネルで情報交換が可能です。積極的に活用してください。 Q30. 困ったときはどこに相談すればいいですか？ A. 運営のSlackチャンネル（#英会話講師-業務連絡用）でいつでも相談できます。緊急の場合は電話でも対応します。 追加の質問 上記以外で疑問がある場合は、運営のSlackチャンネルで質問してください。または、定期的に開催される講師ミーティングでも質問を受け付けています。'
+            }
+        ];
+
+
+        if (searchInput && searchResults) {
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+
+                if (query.length === 0) {
+                    searchResults.classList.remove('active');
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    performSearch(query);
+                }, 300);
+            });
+        }
+
+        function performSearch(query) {
+            const results = [];
+            const queryLower = query.toLowerCase();
+
+            searchData.forEach(page => {
+                const contentLower = page.content.toLowerCase();
+                const titleLower = page.title.toLowerCase();
+
+                if (titleLower.includes(queryLower) || contentLower.includes(queryLower)) {
+                    const matchIndex = contentLower.indexOf(queryLower);
+                    let excerpt = '';
+                    
+                    if (matchIndex !== -1) {
+                        const start = Math.max(0, matchIndex - 50);
+                        const end = Math.min(page.content.length, matchIndex + query.length + 50);
+                        excerpt = page.content.substring(start, end);
+                        
+                        const regex = new RegExp(`(${query})`, 'gi');
+                        excerpt = excerpt.replace(regex, '<span class="search-result-highlight">$1</span>');
+                        
+                        if (start > 0) excerpt = '...' + excerpt;
+                        if (end < page.content.length) excerpt = excerpt + '...';
+                    } else {
+                        excerpt = page.content.substring(0, 100) + '...';
+                    }
+
+                    results.push({
+                        title: page.title,
+                        url: page.url,
+                        excerpt: excerpt
+                    });
+                }
+            });
+
+            displayResults(results);
+        }
+
+        function displayResults(results) {
+            const searchQuery = document.getElementById("searchInput").value;
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="no-results">検索結果が見つかりませんでした</div>';
+                searchResults.classList.add('active');
+                return;
+            }
+
+            const html = results.map(result => `
+                <div class="search-result-item" onclick="location.href=`${result.url}?q=${encodeURIComponent(searchQuery)}`">
+                    <div class="search-result-title">${result.title}</div>
+                    <div class="search-result-excerpt">${result.excerpt}</div>
+                </div>
+            `).join('');
+
+            searchResults.innerHTML = html;
+            searchResults.classList.add('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (searchInput && searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && searchInput && searchResults) {
+                searchResults.classList.remove('active');
+                searchInput.blur();
+            }
+        });
+        });
+    </script>
+</head>
+<body>
+    <!-- 固定ヘッダー -->
+    <header class="site-header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="index.html" class="site-logo">
+                    <img src="img_9172.png" alt="ペラトレ" style="height: 28px; width: auto;">
+                    <h1>講師ポータル</h1>
+                </a>
+            </div>
+            
+            <div class="header-center">
+                <a href="getting-started.html" class="main-menu-link">はじめに</a>
+                <a href="lesson-guide.html" class="main-menu-link">レッスンの進め方</a>
+                <a href="lesson-management.html" class="main-menu-link">業務フロー</a>
+                <a href="initial-setup.html" class="main-menu-link">初期設定</a>
+                <a href="faq.html" class="main-menu-link active">FAQ</a>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="キーワードで検索...">
+                    <span class="search-icon" style="cursor: pointer;">🔍</span>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <header>
+            <h1>📋 よくある質問（FAQ）</h1>
+            <p>疑問や不明点を解決するためのQ&amp;A集です</p>
+        </header>
+
+        <div class="content">
+            <!-- 目次ナビゲーション -->
+            <nav class="toc-nav">
+                <h2>📑 目次</h2>
+                <ul class="toc-list">
+                    <li><a href="faq.html#lesson">📖 レッスンについて</a></li>
+                    <li><a href="faq.html#payment">💰 報酬について</a></li>
+                    <li><a href="faq.html#other">📞 その他</a></li>
+                </ul>
+            </nav>
+
+            <!-- レッスンについて -->
+            <section id="lesson" class="section">
+                <h2 class="section-title">📖 レッスンについて</h2>
+
+                <!-- スケジュール・勤務条件 -->
+                <div class="category-section">
+                    <h3 class="category-title">📅 スケジュール・勤務条件</h3>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            講師や生徒は固定ですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                受講生が選択できます。
+                                <br><br>
+                                <strong>• 固定を希望される場合：</strong>同じ講師が継続して担当<br>
+                                <strong>• その都度選びたい場合：</strong>毎回異なる講師も可能
+                                <br><br>
+                                ※他の講師がお休みなどで対応できない場合には、別の生徒さんを担当いただくこともあります。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            勤務可能時間は何時から何時までですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                基本的には<strong>9:00〜23:00の間</strong>でお願いしております。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            日程変更したいとき、どれぐらい前までに連絡すればいいですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                基本的には<strong>1週間前まで</strong>に連絡してください。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            講師側から日程変更を提案できますか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                はい、可能です。受講生と相談の上、調整してください。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            契約期間はどのくらいですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                契約期間は<strong>1年間</strong>です。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 受講生について -->
+                <div class="category-section">
+                    <h3 class="category-title">👥 受講生について</h3>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            生徒さんの情報は、事前にどの程度わかりますか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                生徒さんとの契約が始まり次第、アンケート調査を行いますのでその内容を共有させていただきます。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            どのようなレベルや目的を持った生徒さんが多いですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                ある程度の英文法は理解しているものの、アウトプットの機会が少ない方が多いです。そのため、英会話レベルでいうと初心者の方が中心となります。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            受講生との連絡手段は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>公式LINEアカウント</strong>を通じてやり取りします。
+                                <br><br>
+                                個人LINE・SNSでの直接連絡は禁止です。すべてのコミュニケーションは公式LINEを経由してください。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            受講生から個人LINEで連絡が来た場合は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>「すべてのやり取りは公式LINEでお願いします」</strong>と丁寧にお伝えし、公式LINEへ誘導してください。
+                                <br><br>
+                                個人的な連絡先の交換は、トラブル防止のため固くお断りしています。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- レッスン準備・内容 -->
+                <div class="category-section">
+                    <h3 class="category-title">📚 レッスン準備・内容</h3>
+
+                    <div class="faq-item active">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            レッスンで使用する教材はありますか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer" style="max-height: 93px;">
+                            <div class="faq-answer-content">
+                                <a href="https://masaenglishcompany.com/yosyumanual/yosyumanual_1.htm">予習マニュアル</a>と<a href="https://masaenglishcompany.com/peratore/manual-review.html">復習マニュアル</a>があります。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            受講生におすすめの教材はありますか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                はい、市販教材のおすすめリストを用意しています。
+                                <br><br>
+                                受講生から<strong>「何を勉強したらいいですか？」</strong>と聞かれた際に、以下のリストを紹介してください。
+                                <br><br>
+                                <strong>• 文法：</strong>中学英文法の総復習<br>
+                                <strong>• 発音：</strong>音声変化のルールを学べる本<br>
+                                <strong>• 語彙：</strong>会話の型で覚える本<br>
+                                <strong>• リスニング：</strong>TED / BBC / Netflixなど
+                                <br><br>
+                                <a href="https://notepm.jp/sharing/59cfae30-36a5-4185-b6dc-9fc6f1bac490" class="btn-link" target="_blank">🎓 おすすめ教材リストを見る</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            レッスンの時間配分は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                50分レッスンは「ウォームアップ（8〜10分）」「メイントレーニング（25〜30分）」「振り返り+まとめ（約10分）」が目安です。
+                                <br><br>
+                                生徒の状態や会話の流れに合わせて柔軟に調整してください。
+                                <br><br>
+                                詳しくは<a href="lesson-guide.html#jikan">レッスンの進め方</a>ページをご覧ください。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            レッスンの引き継ぎはどうすればいいですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                前回のレッスン内容は全体のレッスン状況シートにある「保存フォルダ」か受講生別「ポータルサイト」から確認してください。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- レッスン進行・指導方法 -->
+                <div class="category-section">
+                    <h3 class="category-title">🎯 レッスン進行・指導方法</h3>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            英語だけでレッスンを行うのでしょうか？それとも日本語も使いますか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                生徒さんのレベルに合わせて、英語と日本語を使い分けていただきます。基本的には英語のみということは少なく、生徒さんのご要望や、フィードバックの際に日本語を使うなど、柔軟に対応していただく形になります。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            受講生がまったく話せない場合は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                焦らず、<strong>超初心者向けのアプローチ</strong>を取りましょう。
+                                <br><br>
+                                • 日本語を交えながらゆっくり進める<br>
+                                • 簡単な表現から始める<br>
+                                • 「リピートアフターミー」形式で練習<br>
+                                • 小さな成功体験を積み重ねる
+                                <br><br>
+                                <a href="https://notepm.jp/sharing/93447f7e-6e29-4ae4-99ef-d9d002dd91d8" class="btn-link orange" target="_blank">📝 超初心者向けレッスンを見る</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            時間内に終わらない場合は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>無理に終わらせず、次回に続きを</strong>やりましょう。
+                                <br><br>
+                                • 質を重視（量より実践の深さ）<br>
+                                • 中途半端に終わっても大丈夫<br>
+                                • 次回「前回の続きから」でOK
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- トラブル対応・業務 -->
+                <div class="category-section">
+                    <h3 class="category-title">🛠️ トラブル対応・業務</h3>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            レッスンのレコーディングは、いつからいつまで行えば良いですか？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                レッスンが始まった時から、終了するまで全ての時間をレコーディングしてください。
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            Google Meet接続トラブルが発生したら？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>落ち着いて対処し、必要に応じて運営に連絡</strong>してください。
+                                <br><br>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>トラブル</th>
+                                            <th>対応方法</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>音声が聞こえない</strong></td>
+                                            <td>
+                                                ・マイク・スピーカーの設定を確認<br>
+                                                ・「マイク」ボタンを押し直す<br>
+                                                ・デバイスの音量を確認
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>映像が映らない</strong></td>
+                                            <td>
+                                                ・カメラの設定を確認<br>
+                                                ・「カメラ」ボタンを確認<br>
+                                                ・他のアプリがカメラを使用していないか確認
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>接続が不安定</strong></td>
+                                            <td>
+                                                ・Wi-Fi接続を確認<br>
+                                                ・可能であれば有線接続に切り替え<br>
+                                                ・一度退出して再接続
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            受講生が遅刻・欠席した場合は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>状況に応じて柔軟に対応</strong>してください。
+                                <br><br>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>状況</th>
+                                            <th>対応方法</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>遅刻の場合</strong></td>
+                                            <td>
+                                                ・開始時刻から<strong>10分まで</strong>は待機<br>
+                                                ・10分経過しても連絡がない場合は運営に報告<br>
+                                                ・途中参加の場合は残り時間で可能な範囲でレッスン
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>無断欠席の場合</strong></td>
+                                            <td>
+                                                ・10分待機後、運営Slackに報告<br>
+                                                ・受講生への連絡は運営が行います
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>体調不良の場合</strong></td>
+                                            <td>
+                                                ・無理せず休憩or振替提案<br>
+                                                ・振替については運営に相談
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFaq(this)">
+                            録画を忘れてしまった場合は？
+                            <div class="faq-toggle">+</div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <strong>気づいた時点ですぐに録画開始</strong>してください。
+                                <br><br>
+                                • 途中からでも録画を開始する<br>
+                                • レッスン後、運営Slackに報告<br>
+                                • レッスンメモを通常より詳しく記入する
+                                <br><br>
+                                <div class="warning-message">
+                                    <strong>⚠️ 重要</strong>
+                                    録画は受講生の復習用として重要です。できる限り忘れないよう、レッスン開始時のチェックリストに入れておきましょう。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 報酬について -->
+            <section id="payment" class="section">
+                <h2 class="section-title">💰 報酬について</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        勉強会やミーティングに参加したら報酬はありますか？
+                        <div class="faq-toggle">+</div>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">
+                            <strong>運営から「依頼」がある場合のみ報酬対象</strong>です。
+                            <br><br>
+                            <strong>• 運営指定イベント →</strong> 報酬あり（都度金額指定）<br>
+                            <strong>• 任意の勉強会・視聴 →</strong> 報酬なし（自由参加）
+                            <br><br>
+                            詳しくは<a href="hajimeni.html#hoshu">はじめに</a>ページの報酬ルールをご覧ください。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        指導経験があるのですが、給与を上げていただくことは可能ですか？
+                        <div class="faq-toggle">+</div>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">
+                            経験豊富な方でも、初月の給与は一律でスタートさせていただいております。その後、生徒さんの満足度に応じて昇給するシステムとなっております。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        給与支払日はいつですか？
+                        <div class="faq-toggle">+</div>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">
+                            毎月25日に前月分のレッスン報酬をお支払いします。
+                            <br><br>
+                            （例：1月のレッスン分は2月25日に支払い）
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- その他 -->
+            <section id="other" class="section">
+                <h2 class="section-title">📞 その他</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        不明点があるときはどこに連絡すればいいですか？
+                        <div class="faq-toggle">+</div>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">
+                            <strong>運営Slack窓口（#英会話講師-業務連絡用）</strong>にご連絡ください。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        会社名と事業概要を教えてください。
+                        <div class="faq-toggle">+</div>
+                    </div>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">
+                            <strong>合同会社MasaEnglish</strong>と申します。主に英語コーチングサービスを提供しております。
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <a href="index.html" class="back-link">トップページに戻る</a>
+        </footer>
+    </div>
+
+    <!-- サイトフッター -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-contact">
+                <strong>お問い合わせ:</strong> 運営Slack窓口 (#英会話講師-業務連絡用)
+            </div>
+            <div class="footer-copyright">
+                © 2025 ペラトレ講師ポータル
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top visible" id="backToTop" onclick="scrollToTop()">↑</button>
+
+    <script>
+        // Toggle FAQ Accordion
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            const answer = faqItem.querySelector('.faq-answer');
+            const isActive = faqItem.classList.contains('active');
+
+            // Toggle current FAQ
+            if (isActive) {
+                faqItem.classList.remove('active');
+                answer.style.maxHeight = null;
+            } else {
+                faqItem.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + "px";
+            }
+        }
+
+        // Back to Top Button
+        const backToTopBtn = document.getElementById('backToTop');
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 全文検索機能
+        document.addEventListener("DOMContentLoaded", function() {
+
+        // ページ読み込み時に検索語にスクロール＆ハイライト
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('q');
+        
+        if (searchQuery) {
+            setTimeout(function() {
+                const bodyText = document.body.innerText.toLowerCase();
+                const searchLower = searchQuery.toLowerCase();
+                
+                if (bodyText.includes(searchLower)) {
+                    const walker = document.createTreeWalker(
+                        document.body,
+                        NodeFilter.SHOW_TEXT,
+                        null,
+                        false
+                    );
+                    
+                    let node;
+                    let found = false;
+                    
+                    while (node = walker.nextNode()) {
+                        const text = node.textContent;
+                        const textLower = text.toLowerCase();
+                        const index = textLower.indexOf(searchLower);
+                        
+                        if (index !== -1 && !found) {
+                            const parent = node.parentElement;
+                            if (parent) {
+                                const style = document.createElement('style');
+                                style.textContent = '.search-highlight { background-color: #fff59d; padding: 2px 4px; border-radius: 3px; animation: highlight-fade 2s ease-in-out; } @keyframes highlight-fade { 0% { background-color: #ffeb3b; } 100% { background-color: #fff59d; } }';
+                                document.head.appendChild(style);
+                                
+                                const beforeText = text.substring(0, index);
+                                const matchText = text.substring(index, index + searchQuery.length);
+                                const afterText = text.substring(index + searchQuery.length);
+                                
+                                const span = document.createElement('span');
+                                span.innerHTML = beforeText + '<span class="search-highlight">' + matchText + '</span>' + afterText;
+                                node.replaceWith(span);
+                                
+                                setTimeout(function() {
+                                    const highlight = document.querySelector('.search-highlight');
+                                    if (highlight) {
+                                        highlight.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                }, 100);
+                                
+                                found = true;
+                            }
+                        }
+                    }
+                }
+            }, 500);
+        }
+        const searchInput = document.getElementById('searchInput');
+        const searchIcon = document.querySelector('.search-icon');
+
+        // Enterキーで検索結果ページへ遷移
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearchNavigation();
+            }
+        });
+
+        // 虫眼鏡アイコンクリックで検索結果ページへ遷移
+        searchIcon.addEventListener('click', function() {
+            performSearchNavigation();
+        });
+
+        function performSearchNavigation() {
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.href = `search-results.html?q=${encodeURIComponent(query)}`;
+            }
+        }
+
+        });
+    </script>
+
+</body></html>

@@ -111,7 +111,10 @@ if (existsSync(envDefault)) {
 saturateMissingEnvFromDisk(root);
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    // 講師ポータル（旧 masaenglishcompany.com/peratore_tutor2/）
+    return [{ source: '/tutor', destination: '/tutor/index.html', permanent: false }];
+  },
 };
 
 export default nextConfig;

@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公式LINEワークフローマニュアル - ペラトレ講師ポータル</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .video-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            border: 2px solid white;
+            transition: all 0.3s;
+        }
+
+        .video-link:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 25px;
+            margin-bottom: 40px;
+            border-radius: 8px;
+        }
+
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .toc li:before {
+            content: "📌";
+            position: absolute;
+            left: 0;
+        }
+
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        section {
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h3 {
+            color: #764ba2;
+            font-size: 1.4em;
+            margin: 30px 0 15px 0;
+        }
+
+        h4 {
+            color: #667eea;
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .purple-box {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .highlight {
+            background: linear-gradient(transparent 60%, #ffeb3b 60%);
+            font-weight: bold;
+        }
+
+        .template-box {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 0;
+            margin: 20px 0;
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            position: relative;
+        }
+
+        .template-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .template-header h4 {
+            margin: 0;
+            color: white !important;
+            font-size: 1.1em;
+        }
+
+        .copy-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-btn.copied {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .template-content {
+            line-height: 2;
+            white-space: pre-wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        table td {
+            padding: 12px;
+            border: 1px solid #dee2e6;
+        }
+
+        table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .flow-step {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .flow-step:before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: -25px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 15px solid #667eea;
+            transform: translateX(-50%);
+        }
+
+        .flow-step:last-child:before {
+            display: none;
+        }
+
+        .flow-step h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        strong {
+            color: #667eea;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+        }
+
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .back-to-top.show {
+            display: flex;
+        }
+
+        /* Section anchors for smooth scrolling */
+        section {
+            scroll-margin-top: 20px;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .back-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header {
+                padding: 30px 20px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            h3 {
+                font-size: 1.2em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+    <script>
+        function copyTemplate(button) {
+            // Get the template content from the next sibling
+            const templateBox = button.closest('.template-box');
+            const templateContent = templateBox.querySelector('.template-content');
+            const textToCopy = templateContent.textContent.trim();
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Change button text and style
+                const originalText = button.textContent;
+                button.textContent = 'コピーしました!';
+                button.classList.add('copied');
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                alert('コピーに失敗しました。手動でコピーしてください。');
+            });
+        }
+
+        // Back to top button functionality
+        window.addEventListener('scroll', function() {
+            const backToTopButton = document.getElementById('backToTop');
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('show');
+            } else {
+                backToTopButton.classList.remove('show');
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Smooth scroll for anchor links
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 公式LINEワークフローマニュアル</h1>
+            <p>予約確認からレッスン後の対応まで</p>
+            <a href="https://www.loom.com/share/4fed00a8f7cc4f4ebc352ff3307117f7" class="video-link" target="_blank">🎥 動画解説はこちら</a>
+        </header>
+
+        <div class="content">
+            <div class="success-box">
+                <h3>🎯 このマニュアルの目的</h3>
+                <ul>
+                    <li><strong>TimeRex予約 → LINE対応 → シート記入 → FB送付</strong> をワンフロー化</li>
+                    <li>講師・運営・受講生の間でのやり取りをスムーズにする</li>
+                    <li>すべての連絡を<strong>公式LINE</strong>に統一して、個人間トラブルや情報漏れを防ぐ</li>
+                    <li>各レッスンの進捗・FB共有状況・次回調整をシートで可視化する</li>
+                </ul>
+            </div>
+
+            <div class="toc">
+                <h2>📑 目次</h2>
+                <ul>
+                    <li><a href="#section1">1. TimeRex予約確認ルール</a></li>
+                    <li><a href="#section2">2. 予約後に行うこと</a></li>
+                    <li><a href="#section3">3. LINEテンプレート一覧</a></li>
+                    <li><a href="#section4">4. レッスン後の運用フロー</a></li>
+                    <li><a href="#section5">5. 一連の流れまとめ</a></li>
+                    <li><a href="#section6">6. 注意事項・導入ステップ</a></li>
+                </ul>
+            </div>
+
+            <div class="info-box">
+                <h3 style="color: #2196F3; margin-bottom: 10px;">📖 このページの使い方</h3>
+                <p>このマニュアルは全体の流れを網羅した詳細版です。以下の方法で効率的に使用できます：</p>
+                <ul style="margin-top: 10px;">
+                    <li><strong>目次から該当セクションへジャンプ</strong> - 必要な情報に素早くアクセス</li>
+                    <li><strong>テンプレートの「コピー」ボタン</strong> - ワンクリックでLINEにペースト可能</li>
+                    <li><strong>ページトップへ戻るボタン</strong> - 右下の「↑」ボタンで素早く上部へ</li>
+                    <li><strong>ブックマーク推奨</strong> - 日常業務で頻繁に参照してください</li>
+                </ul>
+            </div>
+
+            <section id="section1">
+                <h2>📅 1. TimeRex予約確認ルール（カレンダー連携仕様）</h2>
+                
+                <div class="info-box">
+                    <strong>💡 対象者</strong><br>
+                    ※固定スケジュールの受講生には不要です
+                </div>
+
+                <h3>🔹 スプレッドシートへの連携方法</h3>
+                <ol>
+                    <li>カレンダーの編集画面に移動</li>
+                    <li>最下部にある「詳細設定」を押す</li>
+                    <li>サービス連携で「スプレッドシート」と連携する</li>
+                </ol>
+
+                <h3>🔹 予約反映の仕組み</h3>
+                <div class="success-box">
+                    <p>TimeRexで設定した<strong>カレンダー名</strong>が、そのままスプレッドシートに自動反映されます。</p>
+                    
+                    <p><strong>【設定必須】カレンダー名の形式：</strong></p>
+                    <p style="font-size: 1.2em; color: #667eea; font-weight: bold;">🗓「ペラトレレッスン｜〇〇先生」</p>
+                    
+                    <p style="margin-top: 15px;">スプレッドシート内の「カレンダー名」列で<br>
+                    自分の名前が入ったカレンダー（例：「ペラトレレッスン｜ケント先生」）を探せば、<br>
+                    自分の予約を簡単に確認できます。</p>
+                </div>
+
+                <h3>🔹 確認方法①：スプレッドシートで確認（推奨）</h3>
+                <ul>
+                    <li>TimeRexの予約情報は自動でGoogleスプレッドシートに連携されます</li>
+                    <li>シート例：「TimeRex_予約一覧」</li>
+                    <li>「カレンダー名」列で自分名義（例：「ペラトレレッスン｜ケント先生」）を検索</li>
+                    <li>日付・時間・受講生名を確認</li>
+                </ul>
+
+                <h3>🔹 確認方法②：Gmail通知で確認</h3>
+                <ul>
+                    <li>予約が入ると、TimeRexから「新しい予約が入りました」とメールが届きます</li>
+                    <li>件名・本文に生徒名・日付・時間が記載</li>
+                    <li>Gmailでも同様に確認可能</li>
+                </ul>
+
+                <h3>🔹 補足</h3>
+                <div class="info-box">
+                    <ul>
+                        <li><strong>スプレッドシートまたはGmailのどちらか一方</strong>でOK</li>
+                        <li>スプレッドシート確認を基本とし、Gmailを補助として使用</li>
+                        <li>確認後は速やかに「全体のレッスン状況」へ記入</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="section2">
+                <h2>✅ 2. 予約後に行うこと</h2>
+                
+                <h3>🔸 シート記入（【全体のレッスン状況】）</h3>
+                <p>🔗 <a href="https://docs.google.com/spreadsheets/d/14Fcj5COzzw9bLm39Yz4gbt8iYzap7VDMoUeUN29yi6k/edit?gid=600193864#gid=600193864" target="_blank" style="color: #667eea; font-weight: bold;">全体のレッスン状況シート</a></p>
+
+                <table>
+                    <tr>
+                        <th>項目名</th>
+                        <th>内容</th>
+                        <th>記入タイミング</th>
+                    </tr>
+                    <tr>
+                        <td>レッスン担当</td>
+                        <td>実際に担当する講師名</td>
+                        <td>予約確認時</td>
+                    </tr>
+                    <tr>
+                        <td>日付</td>
+                        <td>レッスン実施日（例：10/22）</td>
+                        <td>予約確認時</td>
+                    </tr>
+                    <tr>
+                        <td>次回日程調整</td>
+                        <td>未調整</td>
+                        <td>予約確認時</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section id="section3">
+                <h2>💬 3. LINEテンプレート一覧</h2>
+                
+                <h3>🕐 レッスン前リマインド（前日または当日朝）</h3>
+                <div class="template-box">
+                    <div class="template-header">
+                        <h4>📝 テンプレート</h4>
+                        <button class="copy-btn" onclick="copyTemplate(this)">📋 コピー</button>
+                    </div>
+                    <div class="template-content">◯◯さん、
+お世話になっております!
+【明日／本日】のレッスンは【◯月◯日（◯）◯:◯〜】ですね! 
+
+お時間になりましたら、以下のZoomリンクからご参加ください💻  
+🔗【Zoomリンク】
+
+レッスン後はいつも通り、メモとアーカイブを共有しますのでご安心ください🙌  
+よろしくお願いいたします!
+
+講師名</div>
+                </div>
+
+                <h3>🕊 レッスン直後</h3>
+                <div class="template-box">
+                    <div class="template-header">
+                        <h4>📝 テンプレート</h4>
+                        <button class="copy-btn" onclick="copyTemplate(this)">📋 コピー</button>
+                    </div>
+                    <div class="template-content">レッスンお疲れ様でした!🙌  
+レッスンメモは【本日の夕方ごろ】までにお送りいたしますね!
+
+もしよろしければ、レッスンの感想もお聞かせください✨  
+🔗 https://forms.gle/raDeEZztKdvaNtEPA  
+
+今後のサービス向上のため、引き続きアンケートを実施してまいります。  
+任意ではございますが、ぜひご協力いただけますと幸いです。  
+
+Thanks again for today!  
+引き続きよろしくお願いいたします☺️</div>
+                </div>
+            </section>
+
+            <section id="section4">
+                <h2>📘 4. レッスン後の運用フロー</h2>
+                
+                <div class="flow-step">
+                    <h4>✅ Step 1：URL登録</h4>
+                    <p>🔗 <a href="https://docs.google.com/spreadsheets/d/14Fcj5COzzw9bLm39Yz4gbt8iYzap7VDMoUeUN29yi6k/edit?gid=600193864#gid=600193864" target="_blank" style="color: #667eea; font-weight: bold;">【全体のレッスン状況】</a></p>
+                    
+                    <table style="margin-top: 15px;">
+                        <tr>
+                            <th>項目名</th>
+                            <th>内容</th>
+                        </tr>
+                        <tr>
+                            <td>レッスン動画URL</td>
+                            <td>Zoom録画のアーカイブURL</td>
+                        </tr>
+                        <tr>
+                            <td>レッスンFBURL</td>
+                            <td>レッスンメモ（フィードバック）URL</td>
+                        </tr>
+                    </table>
+                    <p style="margin-top: 10px;"><strong>※この2つだけ記入すればOK。</strong></p>
+                </div>
+
+                <div class="flow-step">
+                    <h4>✅ Step 2：LINEでメモ送付</h4>
+                    <div class="template-box" style="margin-top: 15px;">
+                        <div class="template-header">
+                            <h4>📝 テンプレート</h4>
+                            <button class="copy-btn" onclick="copyTemplate(this)">📋 コピー</button>
+                        </div>
+                        <div class="template-content">お待たせいたしました!  
+今回のレッスンメモが完成いたしましたので、ご確認ください。  
+アーカイブもございますので、ぜひ復習マニュアルと併せてご活用ください!
+
+------------
+📘レッスンメモ  
+▼▼▼  
+【レッスンFBURL】
+
+📗復習マニュアル  
+▼▼▼  
+https://masaenglishcompany.com/peratore/manual-review.html
+
+📹レッスンアーカイブ  
+▼▼▼  
+【レッスン動画URL】
+------------
+
+🎯生徒に対するメッセージ
+内容例：次回のレッスンまでの課題・今回のレッスンでの+αのアドバイス
+
+【ここに具体的な内容を記載】
+
+引き続きよろしくお願いいたします☺️</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h4>✅ Step 3：次回のレッスンの日程調整</h4>
+                    <div class="template-box" style="margin-top: 15px;">
+                        <div class="template-header">
+                            <h4>📝 テンプレート</h4>
+                            <button class="copy-btn" onclick="copyTemplate(this)">📋 コピー</button>
+                        </div>
+                        <div class="template-content">こんにちは、{{生徒名}} さん😊
+次回のレッスン日程のご調整をお願いいたします!
+
+下記ページから、担当講師を選んでご予約ください👇
+🔗 https://masaenglishcompany.com/peratore/teachers.html#
+
+ご希望の日時をお選びいただくと、講師のスケジュールと自動で調整されます✨
+
+※もし担当講師がわからない／変更したい場合は、このトークでお気軽にお知らせください。
+
+ご予約が完了しましたら、「予約しました!」と一言ご連絡いただけると助かります🙇‍♀️</div>
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h4>✅ Step 4：全体シート更新</h4>
+                    <p>【全体のレッスン状況】シートに戻り、以下を更新：</p>
+                    <ul style="margin-top: 10px;">
+                        <li><strong>FB共有有無</strong> → 「〇」</li>
+                        <li><strong>次回日程調整</strong> → 「調整中」記入</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="section5">
+                <h2>⚙️ 5. 一連の流れまとめ</h2>
+                
+                <table>
+                    <tr>
+                        <th>タイミング</th>
+                        <th>講師の対応</th>
+                        <th>確認・記入先</th>
+                    </tr>
+                    <tr>
+                        <td>TimeRex予約直後</td>
+                        <td>スプレッドシート or Gmailで予約確認</td>
+                        <td>TimeRexシート or Gmail</td>
+                    </tr>
+                    <tr>
+                        <td>予約確認後すぐ</td>
+                        <td>全体のレッスン状況に記入</td>
+                        <td><a href="https://docs.google.com/spreadsheets/d/14Fcj5COzzw9bLm39Yz4gbt8iYzap7VDMoUeUN29yi6k/edit?gid=600193864#gid=600193864" target="_blank" style="color: #667eea;">全体のレッスン状況</a></td>
+                    </tr>
+                    <tr>
+                        <td>前日／当日朝</td>
+                        <td>LINEでリマインド送信</td>
+                        <td>レッスン前テンプレ</td>
+                    </tr>
+                    <tr>
+                        <td>レッスン終了直後</td>
+                        <td>感想アンケート(テンプレ)送信</td>
+                        <td>レッスン直後テンプレ</td>
+                    </tr>
+                    <tr>
+                        <td>レッスン後</td>
+                        <td>FB・動画URL登録</td>
+                        <td><a href="https://docs.google.com/spreadsheets/d/14Fcj5COzzw9bLm39Yz4gbt8iYzap7VDMoUeUN29yi6k/edit?gid=600193864#gid=600193864" target="_blank" style="color: #667eea;">全体のレッスン状況</a></td>
+                    </tr>
+                    <tr>
+                        <td>メモ完成後</td>
+                        <td>LINEでテンプレ送信・日程調整<br>(日程固定以外の人のみ)</td>
+                        <td>メモ送付テンプレ</td>
+                    </tr>
+                    <tr>
+                        <td>翌日までに</td>
+                        <td>FB共有・次回日程更新</td>
+                        <td><a href="https://docs.google.com/spreadsheets/d/14Fcj5COzzw9bLm39Yz4gbt8iYzap7VDMoUeUN29yi6k/edit?gid=600193864#gid=600193864" target="_blank" style="color: #667eea;">全体のレッスン状況</a></td>
+                    </tr>
+                </table>
+            </section>
+
+            <section id="section6">
+                <h2>🔐 6. 注意事項・導入ステップ</h2>
+                
+                <h3>⚠️ 注意事項</h3>
+                <div class="warning-box">
+                    <ul>
+                        <li>予約確認は<strong>1日1回（朝）必ず行うこと</strong><br>
+                        <small>※キャンセルがあった場合も、Gmailまたはスプレッドシートに反映されるため要確認</small></li>
+                        <li>連絡は<strong>必ず公式LINE内で</strong>行う（個人LINE・SNS禁止）</li>
+                        <li>URLは「リンクを知っている全員が閲覧可」に設定</li>
+                        <li>レッスンメモ送付は<strong>24時間以内</strong>に完了</li>
+                        <li><strong>記入漏れ・シートへの未記載・受講生への連絡不備</strong>が続いた場合は運営から確認が入ります</li>
+                    </ul>
+                </div>
+
+                <h3>🚀 導入ステップ</h3>
+                <div class="success-box">
+                    <ol>
+                        <li>全講師に本マニュアルを共有（Slack／PDF）</li>
+                        <li>公式LINEへの招待リンクを運営から送付</li>
+                        <li>以降は講師がLINE主導でやり取り</li>
+                        <li>運営が定期的にスプレッドシート・LINEをモニタリング</li>
+                    </ol>
+                </div>
+
+                <div class="purple-box" style="margin-top: 30px;">
+                    <h3 style="color: #9c27b0;">💡 よくある質問</h3>
+                    <p><strong>Q. テンプレートは必ず使わないといけませんか？</strong></p>
+                    <p>A. 基本的にはテンプレートを使用してください。ただし、受講生との関係性に応じて、適宜アレンジしても構いません。</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Q. スプレッドシートの記入を忘れてしまった場合は？</strong></p>
+                    <p>A. 気づいた時点で速やかに記入してください。継続的に漏れが発生する場合は、運営からフォローアップの連絡が入ります。</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Q. 受講生から個人LINEで連絡が来た場合は？</strong></p>
+                    <p>A. 「すべてのやり取りは公式LINEでお願いします」と丁寧にお伝えし、公式LINEへ誘導してください。</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Back to Top Button -->
+        <button id="backToTop" class="back-to-top" onclick="scrollToTop()" title="ページトップへ戻る">
+            ↑
+        </button>
+
+        <footer>
+            <p>ペラトレ講師ポータル © 2024</p>
+            <a href="index.html" class="back-link">トップページに戻る</a>
+        </footer>
+    </div>
+</body>
+</html>

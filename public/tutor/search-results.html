@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<!-- saved from url=(0087)search-results.html?q=%E5%A0%B1%E9%85%AC -->
+<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索結果 - ペラトレ講師ポータル</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background: #F8F9FA;
+            min-height: 100vh;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        /* ヘッダー */
+        .site-header {
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 2px solid #667eea;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 32px;
+        }
+        
+        .header-left {
+            flex-shrink: 0;
+        }
+        
+        .header-center {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .header-right {
+            flex-shrink: 0;
+        }
+
+        .site-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #1F2937;
+            transition: all 0.3s;
+        }
+
+        .site-logo:hover {
+            transform: translateY(-1px);
+        }
+
+        .site-logo-icon {
+            font-size: 26px;
+            filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.3));
+        }
+
+        .site-logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.5px;
+        }
+
+        .search-box {
+            position: relative;
+            width: 260px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 14px;
+            border: 2px solid #E0E7FF;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #FAFAFA;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-icon:hover {
+            transform: translateY(-50%) scale(1.2);
+            color: #764ba2;
+        }
+
+        .main-menu-link {
+            padding: 0 18px;
+            text-decoration: none;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+        .main-menu-link:hover {
+            color: #667eea;
+            border-bottom-color: #E0E7FF;
+        }
+
+        /* メインコンテンツ */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .search-header {
+            background: #fff;
+            padding: 32px;
+            border-radius: 14px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-header h1 {
+            font-size: 24px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .search-query {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .search-count {
+            font-size: 14px;
+            color: #6B7280;
+            margin-top: 8px;
+        }
+
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .result-item {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid #E0E7FF;
+            transition: all 0.3s;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+
+        .result-excerpt {
+            font-size: 14px;
+            color: #4B5563;
+            line-height: 1.6;
+        }
+
+        .result-highlight {
+            background: #FFEB3B;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 64px 24px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .no-results-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .no-results h2 {
+            font-size: 20px;
+            color: #6B7280;
+            margin-bottom: 8px;
+        }
+
+        .no-results p {
+            color: #9CA3AF;
+            font-size: 14px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 24px;
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* フッター */
+        .site-footer {
+            margin-top: 64px;
+            padding: 24px;
+            background: #fff;
+            border-top: 2px solid #E0E7FF;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .footer-contact {
+            color: #6B7280;
+            font-size: 14px;
+        }
+
+        .footer-copyright {
+            color: #9CA3AF;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .header-center {
+                display: none;
+            }
+            
+            .search-box {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 固定ヘッダー -->
+    <header class="site-header">
+        <div class="header-content">
+            <div class="header-left">
+                <a href="index.html" class="site-logo">
+                    <span class="site-logo-icon">📚</span>
+                    <h1>ペラトレ講師ポータル</h1>
+                </a>
+            </div>
+            
+            <div class="header-center">
+                <a href="getting-started.html" class="main-menu-link">はじめに</a>
+                <a href="lesson-guide.html" class="main-menu-link">レッスンの進め方</a>
+                <a href="lesson-management.html" class="main-menu-link">業務フロー</a>
+                <a href="initial-setup.html" class="main-menu-link">初期設定</a>
+                <a href="faq.html" class="main-menu-link">FAQ</a>
+            </div>
+            
+            <div class="header-right">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="キーワードで検索...">
+                    <span class="search-icon" id="searchIcon">🔍</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="container">
+        <div class="search-header">
+            <h1>🔍 検索結果</h1>
+            <div class="search-query" id="searchQuery">"報酬" の検索結果</div>
+            <div class="search-count" id="searchCount">12件の結果が見つかりました</div>
+        </div>
+
+        <div class="results-container" id="resultsContainer">
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 0)">
+                    <div class="result-title">はじめに (1/10)</div>
+                    <div class="result-excerpt">ペラトレ講師マニュアル 基本情報・概要編 目次 各セクションをクリックして移動できます ペラトレとは？ 基本情報 <span class="result-highlight">報酬</span>について レッスンの流れ MasaEnglishとの違い よくある質問 セクション1：ペラトレとは？ 基本的な情報 ペラトレは「英会話のアウ...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 1)">
+                    <div class="result-title">はじめに (2/10)</div>
+                    <div class="result-excerpt">...とは独立したサービス ペラトレは独立したサブスクリプション型のサービスです MasaEnglish受講生だけでなく、一般の方も利用できます <span class="result-highlight">報酬</span> 1レッスン（50分）: 2,000円 支払い：月末締め、翌月15日振込 詳細は「<span class="result-highlight">報酬</span>について」セクションを参照してください セクション2：...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 2)">
+                    <div class="result-title">はじめに (3/10)</div>
+                    <div class="result-excerpt">...nglish受講生だけでなく、一般の方も利用できます <span class="result-highlight">報酬</span> 1レッスン（50分）: 2,000円 支払い：月末締め、翌月15日振込 詳細は「<span class="result-highlight">報酬</span>について」セクションを参照してください セクション2：<span class="result-highlight">報酬</span>について 給与の詳細 基本<span class="result-highlight">報酬</span> 1レッスン（50分）：2,000円 月末締め、翌月...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 3)">
+                    <div class="result-title">はじめに (4/10)</div>
+                    <div class="result-excerpt">... 1レッスン（50分）: 2,000円 支払い：月末締め、翌月15日振込 詳細は「<span class="result-highlight">報酬</span>について」セクションを参照してください セクション2：<span class="result-highlight">報酬</span>について 給与の詳細 基本<span class="result-highlight">報酬</span> 1レッスン（50分）：2,000円 月末締め、翌月15日に指定口座へ振込 レッスン数に応じた<span class="result-highlight">報酬</span>計算例 週1...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 4)">
+                    <div class="result-title">はじめに (5/10)</div>
+                    <div class="result-excerpt">...000円 支払い：月末締め、翌月15日振込 詳細は「<span class="result-highlight">報酬</span>について」セクションを参照してください セクション2：<span class="result-highlight">報酬</span>について 給与の詳細 基本<span class="result-highlight">報酬</span> 1レッスン（50分）：2,000円 月末締め、翌月15日に指定口座へ振込 レッスン数に応じた<span class="result-highlight">報酬</span>計算例 週1回レッスン：月4回 = 8,0...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 5)">
+                    <div class="result-title">はじめに (6/10)</div>
+                    <div class="result-excerpt">...クション2：<span class="result-highlight">報酬</span>について 給与の詳細 基本<span class="result-highlight">報酬</span> 1レッスン（50分）：2,000円 月末締め、翌月15日に指定口座へ振込 レッスン数に応じた<span class="result-highlight">報酬</span>計算例 週1回レッスン：月4回 = 8,000円 週2回レッスン：月8回 = 16,000円 週3回レッスン：月12回 = 24,000円 ...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 6)">
+                    <div class="result-title">はじめに (7/10)</div>
+                    <div class="result-excerpt">...00円 週2回レッスン：月8回 = 16,000円 週3回レッスン：月12回 = 24,000円 重要な注意事項 キャンセルされたレッスンは<span class="result-highlight">報酬</span>対象外です 生徒都合のキャンセルでも、実施されなかったレッスンには<span class="result-highlight">報酬</span>は発生しません <span class="result-highlight">報酬</span>の振込手数料は運営側が負担します セクション3：レ...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 7)">
+                    <div class="result-title">はじめに (8/10)</div>
+                    <div class="result-excerpt">...12回 = 24,000円 重要な注意事項 キャンセルされたレッスンは<span class="result-highlight">報酬</span>対象外です 生徒都合のキャンセルでも、実施されなかったレッスンには<span class="result-highlight">報酬</span>は発生しません <span class="result-highlight">報酬</span>の振込手数料は運営側が負担します セクション3：レッスンの流れ 50分間の基本構成 1. ウォームアップ（5-10分） ...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 8)">
+                    <div class="result-title">はじめに (9/10)</div>
+                    <div class="result-excerpt">...00円 重要な注意事項 キャンセルされたレッスンは<span class="result-highlight">報酬</span>対象外です 生徒都合のキャンセルでも、実施されなかったレッスンには<span class="result-highlight">報酬</span>は発生しません <span class="result-highlight">報酬</span>の振込手数料は運営側が負担します セクション3：レッスンの流れ 50分間の基本構成 1. ウォームアップ（5-10分） 軽い雑談やフリートー...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;getting-started.html&#39;, &#39;報酬&#39;, 9)">
+                    <div class="result-title">はじめに (10/10)</div>
+                    <div class="result-excerpt">...の知識はあるが、実践での会話経験が少ない方が多いです。 Q3. レッスンのキャンセルはどう対応しますか？ A. 生徒都合のキャンセルの場合、<span class="result-highlight">報酬</span>は発生しません。講師都合でキャンセルする場合は、できるだけ早めに運営に連絡してください。 Q4. 複数の生徒を同時に担当できますか？ A. ...</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;lesson-management.html&#39;, &#39;報酬&#39;, 0)">
+                    <div class="result-title">業務フロー</div>
+                    <div class="result-excerpt">業務フロー 予約確認からレッスン後の対応まで完全ガイド TimeRex レッスン予約 <span class="result-highlight">報酬</span>計算</div>
+                </div>
+            
+                <div class="result-item" onclick="navigateToResult(&#39;faq.html&#39;, &#39;報酬&#39;, 0)">
+                    <div class="result-title">FAQ</div>
+                    <div class="result-excerpt">よくある質問（FAQ） レッスン全般 スケジュール <span class="result-highlight">報酬</span> 技術的問題</div>
+                </div>
+            </div>
+    </div>
+
+    <!-- サイトフッター -->
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-contact">
+                <strong>お問い合わせ:</strong> 運営Slack窓口 (#英会話講師-業務連絡用)
+            </div>
+            <div class="footer-copyright">
+                © 2025 ペラトレ講師ポータル
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 検索データ
+        const searchData = [
+            {
+                title: 'はじめに',
+                url: 'getting-started.html',
+                content: 'ペラトレ講師マニュアル - 基本情報・概要編 🎓 ペラトレ講師ポータル はじめに レッスンの進め方 業務フロー 初期設定 FAQ 🔍 📚 はじめに 📋 目次 各セクションをクリックして移動できます 🎯 1. ペラトレとは 💡 2. レッスンの目的と位置づけ 📚 3. 教材・進め方の方針 🔄 4. MasaEnglishとの違い 💰 5. 報酬ルール 1. ペラトレとは 🎯 サービスコンセプト ペラトレは、 「英語がペラペラ話せるようになるトレーニング」 を提供する英会話プログラムです。 🔑 基本コンセプト • 正確さより自然に話し続ける力 を養う • 「気軽に・継続的にアウトプットできる場所」 として機能 • MasaEnglishとは独立したサブスクプログラム • アウトプット（口から出す力） に特化 🎓 受講生の特徴 英会話レベル： 中学英文法は理解済みだが話せない初心者〜中級者 年齢層： 20代〜50代と幅広い 目的： 日常会話、旅行、ビジネスなど多様 受講頻度： 週1レッスン 学習スタイル： オンラインでの自己学習+レッスン 💡 受講生の中心層 英語を勉強してきたけれど話す場がない人 留学・出張・海外旅行 などの前に「瞬発的に話す感覚」を掴みたい人 継続的に英語を使う習慣 を保ちたい人 一部の MasaEnglish受講生・卒業生 も、「アウトプット量を増やしたい」「英語を維持したい」目的で併用・継続 2. レッスンの目的と位置づけ 🎯 レッスンの目的 ペラトレのレッスンは、以下の3つを重視します： 実践練習の場 - 学んだことを実際に使ってみる フィードバックの提供 - 発音や表現を改善するアドバイス モチベーション維持 - 成長を実感できる褒めと励まし ⚠️ 重要 レッスンは「新しく教える場」ではなく、「練習とフィードバックの場」です。基本的な学習は受講生が自習で進めています。 📌 レッスン進行の基本方針 全講師が同じ方向性でレッスンを進めるための基本方針です： 目的： 全講師が同じ方向で進行し、生徒の発話機会を最大化 基本： 自然な会話を最優先／メモより会話の流れを重視 ただし： フィードバックの具体性・的確さは維持する 生徒視点： 話す機会と成功体験を最大化する環境づくり 📋 レッスンの詳しい進め方 レッスン構成、時間配分、満足度向上のポイントなど、レッスンの詳細な進め方については「 レッスンの進め方 」をご覧ください。 3. 教材・進め方の方針 📚 教材について ✅ 教材は完全自由です • 必須教材やフレーズ集は 存在しません • 講師が自作教材を使うのは自由です • 自作教材の権利は講師に帰属 します 受講生は主に以下のような教材を自習で使用しています： チャンク学習教材 - 基本的な英語表現の習得 瞬間英作文 - 日本語→英語の変換練習 シャドーイング教材 - リスニング・発音強化 オリジナル会話教材 - 実践的な会話練習 💡 教材の進め方 • 受講生は 事前に自習 で教材を学習しています • レッスンでは 実践練習とフィードバック を行います • 進度は 受講生のペース に合わせます（無理に進めない） 🎓 指導方針 褒めて伸ばす： できたことを積極的に褒める 丁寧な添削： 発音・文法の細かい改善点も指摘 実用性重視： 実際の会話で使える表現を優先 継続を応援： 小さな成長も認めてモチベーションを維持 ✏️ 添削のポイント ✅ 効果的な添削方法 1. 細かい文法ミスより伝わった成功体験を重視 2. 理由を説明 - なぜその表現が良いのか簡潔に説明 3. 繰り返し練習 - 正しい表現を何度か練習させる 4. MasaEnglishとの違い ペラトレとMasaEnglishは 別サービス です。違いを理解しておきましょう。 🔄 主な違い 項目 ペラトレ MasaEnglish 対象者 中学英文法理解済みだが話せない人 より幅広いレベル レッスン形式 マンツーマン50分・週1回 グループ・マンツーマン混在 目的 アウトプット特化で瞬発力UP 体系的に基礎から構築（総合型） 教材 完全自由・会話テーマから展開 個別構築（7Step→5Step法等） サポート より手厚いフォロー 標準的なサポート ⚠️ 注意点 • レッスン方法や教材は 混同しないように 注意してください • 受講生からの質問にはペラトレの方針で回答してください • 不明な点は運営に確認してください 5. 報酬ルール 💰 レッスン報酬 ✅ レッスン報酬（50分） 2,000円 内訳： 基本報酬：1,800円 Zoomリンク共有：+100円 前日リマインド：+100円 📊 その他の報酬 💡 運営から義務付けられた依頼については、別途報酬が発生します。 区分 内容 支払い 金額 備考 運営指定イベント ミーティング参加・アーカイブ視聴など ○ 運営が都度指定 依頼時に明記 オープンチャット 受講生からの質問・相談に回答 ○ 150円/件 1つの疑問解決で報酬発生 任意勉強会・視聴 自主的な勉強会・動画視聴など × ― 自由参加・報酬なし 特別案件 教材監修・資料作成など △ 運営が都度指定 案件により個別案内 💬 オープンチャット「英会話レッスン激伸びチャット」について ペラトレ受講生限定のオープンチャットです。受講生が英語学習に関する質問や相談を気軽に投稿でき、講師や他の受講生との交流を通じて学びを深めることを目的としています。 オープンチャットのリンクはこちら 講師の役割： 受講生からの質問・相談に対して、具体的で分かりやすい回答を行う 他講師の回答を参考にしながら、より良い指導のアイデアを共有する 報酬基準： メッセージ数ではなく、 「1つの疑問を解決できたか」 を基準とします。1つの質問・疑問に対する解決が完了した時点で報酬が発生します。 ⚠️ 注意事項 運営からの依頼内容が不明確な場合は、必ず事前に確認してください。 🔄 報酬請求の流れ 📝 4つのステップ 1. 報酬発生 レッスン報酬、その他の報酬 2. 請求書作成 請求書の雛形 をコピーして使用 3. 提出 毎月5日までに提出 4. 報酬振込 当月25日に報酬振込 ⚠️ 重要：締切について 毎月5日までの締切を過ぎると、その月の25日には報酬が支払われませんのでご注意ください。 ❓ よくある質問（FAQ） Q1. 勉強会に参加した場合も報酬ありますか？ → 運営から「依頼」している場合のみ対象です。自主参加は対象外です。 Q2. アーカイブを途中までしか見られなかった場合は？ → 原則、全編視聴を完了した場合に対象となります。 Q3. 今後ルールが変わる可能性はありますか？ → はい。講師の皆さまの声をもとに、より働きやすい形へ随時アップデートします。 トップページに戻る お問い合わせ: 運営Slack窓口 (#英会話講師-業務連絡用) © 2025 ペラトレ講師ポータル'
+            },
+            {
+                title: 'レッスンの進め方',
+                url: 'lesson-guide.html',
+                content: 'レッスンの進め方 - ペラトレ講師ポータル 🎓 ペラトレ講師ポータル はじめに レッスンの進め方 業務フロー 初期設定 FAQ 🔍 📖 レッスンの進め方 ペラトレ講師のためのレッスンガイド 📋 目次 各セクションをクリックして移動できます 📋 1. レッスン前の準備 ⏰ 2. レッスン構成（50分） 🎯 3. 満足度向上のポイント 🎥 4. 参考動画 ❓ 5. よくある質問 1. レッスン前の準備 📌 レッスン前の手続きについて 詳細なレッスン前の準備については、 業務フロー ページをご確認ください。 🔄 1. 前回のレッスンメモ確認 引き継ぎについて 前回のレッスン内容は 全体のレッスン状況 シートにある全体レッスンメモを確認してください。 「どこまでやったか」を確認 「どんな添削をしたか」を把握 受講生の課題を理解 前回の話題を復習質問に使う 📝 2. レッスンメモテンプレート準備 📝 レッスンメモテンプレート ※コピーしてお使いください タイトルは 【〇/〇（受講生名）レッスンメモ】 に変更し、ピンクの部分や例等は、ご自由にアレンジしてご使用ください！ 💭 3. 質問の準備（4つ） 受講生の興味・背景に合わせて、事前に4つの質問を用意しましょう。 📚 参考資料：テーマ別質問集 🎥 4. Zoom録画の準備 レッスン開始前に必ず録画設定を確認してください。 ⚠️ 重要な注意点 レッスン開始と 同時に録画開始 してください 録画ボタンは 画面下部 にあります 録画中は赤い点が表示されます 📄 資料：Zoom録画設定ガイド 2. レッスン構成（50分） パート・内容 時間 ポイント ① ウォームアップ （フリートーク） 軽いFT・近況など 8-10分 リラックスできる空気づくり。 会話優先、流れが良ければ教材から離れてもOK ② メイントレーニング 【必須】前回の復習2-3問 【メイン】即答練習（4つの質問） 【柔軟】話題展開 25-30分 即答を促す 詰まったらヒント 正しい表現提示 繰り返させる 📚 テーマ別質問集 ③ 振り返り+まとめ FB・改善ポイント共有 約10分 1-2点の具体的改善 希望表現+3-4個の言い回し提示 前向きな表現で ※時間配分は目安です。受講生の状態や会話の流れに合わせて柔軟に調整しましょう。 💬 フィードバックの言い換え例 ❌ 「ここは文法が違います」 ⭕ 「この表現、もう少し自然に言うなら〜がいいですよ」 細かい文法ミスよりも、 伝わった成功体験を重視 しましょう ⚠️ 注意事項 ❌ 質問を機械的に読み上げない ❌ 難しい質問で黙らせない ❌ 間違いを細かく指摘しすぎて会話を止めない ✅ 受講生の答えから話題を広げる ✅ 事前準備した質問を使わなくてもOK ✅ 原則メモを取らず、会話の流れを優先 ✅ 要点は後で思い出しながらまとめる 3. 満足度向上のポイント 🎯 Point ❶：成功体験を作る 小さな成功を積み重ねる / 具体的に褒める（「この発音が前回よりクリア！」） / 成長を可視化 🎯 Point ❷：ポジティブなフィードバック 具体的に褒める → 改善点を1つ → 励まし（「次回はもっと良くなりますよ！」） 🎯 Point ❸：丁寧な添削で「学びの質」を高める 発音・文法・自然な表現を丁寧に添削 🎯 Point ❹：発音指導を重視 喉発音 / 音声変化 / イントネーション 🎥 喉発音の解説動画を見る 🎯 Point ❺：比較して褒める 「前回と比べてここが良くなっている」「最初は詰まってたけど今はスムーズ」 4. 参考動画 🎥 モックレッスン動画 ▼ 標準的な初心者向けレッスンの参考例 🎥 レッスン動画を見る ▼ 初心者向けレッスンの別パターン 🎥 レッスン動画を見る ▼ 超初心者向けグループレッスン動画 今後全く話せない方がいらっしゃった時には、こちらの動画も参考にしてください。 📝 超初心者向けレッスンを見る 5. よくある質問 ❓ Q1: 受講生がまったく話せない場合は？ A: 焦らず、 超初心者向けのアプローチ を取りましょう。 日本語を交えながらゆっくり進める 簡単な表現から始める 「リピートアフターミー」形式で練習 小さな成功体験を積み重ねる 📝 超初心者向けレッスンを見る ❓ Q2: 時間内に終わらない場合は？ A: 無理に終わらせず、次回に続きを やりましょう。 質を重視（量より実践の深さ） 中途半端に終わっても大丈夫 次回「前回の続きから」でOK ❓ Q3: Zoom接続トラブルが発生したら？ A: 落ち着いて対処し、必要に応じて運営に連絡 してください。 トラブル 対応方法 音声が聞こえない ・マイク・スピーカーの設定を確認 ・「オーディオに参加」ボタンを押し直す ・デバイスの音量を確認 映像が映らない ・カメラの設定を確認 ・「ビデオの開始」ボタンを確認 ・他のアプリがカメラを使用していないか確認 接続が不安定 ・Wi-Fi接続を確認 ・可能であれば有線接続に切り替え ・一度退出して再接続 ❓ Q4: 受講生が遅刻・欠席した場合は？ A: 状況に応じて柔軟に対応 してください。 状況 対応 遅刻の場合 ・開始時刻から 10分まで は待機 ・10分経過しても連絡がない場合は運営に報告 ・途中参加の場合は残り時間で可能な範囲でレッスン 無断欠席の場合 ・10分待機後、運営Slackに報告 ・受講生への連絡は運営が行います 体調不良の場合 ・無理せず休憩or振替提案 ・振替については運営に相談 ❓ Q5: 録画を忘れてしまった場合は？ A: 気づいた時点ですぐに録画開始 してください。 途中からでも録画を開始する レッスン後、運営Slackに報告 レッスンメモを通常より詳しく記入する ⚠️ 重要 録画は受講生の復習用として重要です。できる限り忘れないよう、レッスン開始時のチェックリストに入れておきましょう。 ❓ Q6: 受講生におすすめの教材はありますか？ A: はい、市販教材のおすすめリストを用意しています。 受講生から 「何を勉強したらいいですか？」 と聞かれた際に、以下のリストを紹介してください。 文法： 中学英文法の総復習 発音： 音声変化のルールを学べる本 語彙： 会話の型で覚える本 リスニング： TED / BBC / Netflixなど 🎓 おすすめ教材リストを見る ❓ Q7: 今後の予定について教えてください A: 以下の整備を進めています。 初回〜3回目レッスンテンプレの整備予定 トピックリスト＆質問例集を開発中 生徒タイプ別FB文例集を準備予定 導入後の生徒反応・改善提案は随時共有をお願いします。 📢 講師の皆さまへ ペラトレは、 「完璧に話す場所」ではなく「英語を動かす場所」 です。 講師の言葉や表情ひとつで、生徒の"英語に対する心理的ハードル"は大きく変わります。 「楽しさ」と「成長実感」を両立できる空気づくり を、ぜひ意識してください。 ↑ トップページに戻る お問い合わせ: 運営Slack窓口 (#英会話講師-業務連絡用) © 2025 ペラトレ講師ポータル'
+            },
+            {
+                title: '業務フロー',
+                url: 'lesson-management.html',
+                content: '業務フロー - ペラトレ講師ポータル 🎓 ペラトレ講師ポータル はじめに レッスンの進め方 業務フロー 初期設定 FAQ 🔍 📱 業務フロー 予約確認からレッスン後の対応まで完全ガイド 🎥 動画解説：公式LINEを通した講師の動き 🗓️ レッスンの流れ（全体タイムライン） 各ステップをクリックして詳細セクションへ 🎯 予約確認 ： Gmail/TimeRexシートで確認 ✍️ 予約確認後 ： 全体のレッスン状況に記入 📹 Zoomリンク準備 ： スプレッドシート確認・共有方法 📱 レッスン前日／当日 ： リマインド送信 🎓 レッスン実施 ： レッスンの進め方を確認 ✉️ レッスン直後 ： 感想アンケート送信 📹 レッスン後 ： 全体のレッスン状況記入 📄 レッスン後24時間以内 ： レッスンメモ送付 🔐 注意事項／よくある質問 ： 運営ルール・FAQ 🔧 TimeRex初期設定ガイド（初回のみ） ▼ 📺 動画解説 🎥 動画解説：TimeRex登録方法 🎥 動画解説：TimeRex注意点（海外在住の講師は必須） 🎥 動画解説：ブロックスケジュールの重要性 💡 TimeRexとは TimeRexは、受講生がレッスン日時を予約するためのシステムです。講師のGoogleカレンダーと自動連携し、空いている時間だけが予約可能になります。 📅 初期設定の流れ 動画を視聴 - 上記の動画を必ず視聴 TimeRexアカウント作成・設定 - 自分のGoogleアカウントで登録 連携したスプレッドシートをSlackで運営に共有 📊 TimeRexスプレッドシート連携 TimeRexで日程調整が完了・キャンセル・変更されると、自動的にスプレッドシートに反映される機能です。 🔗 設定の流れ TimeRexアカウント設定で「Google Sheets連携」を有効化 日程調整カレンダーで「Google Sheets」を設定 スプレッドシートが自動作成される 連携したスプレッドシートをSlackで運営に共有 ⚠️ 注意事項 自動作成されたスプレッドシートの列を移動・追加・削除しない 「Events」シート名を変更しない スプレッドシートは自分のGoogleドライブに保存される 📖 詳細手順：TimeRex公式ヘルプ 🗓️ ブロックスケジュールの重要性 勤務不可の日や時間については、連携しているGoogleカレンダーに予定を入れると、受講生側の予約画面では自動的に「予約不可」となります。 ✅ 推奨事項 定期的に予定を登録してスケジュールをブロックしておくことを強く推奨します。 🔄 予定の変更・急な休み 固定シフト： 変更時は早めに運営に連絡 毎週変更： 運営からリマインド後に調整 急な休み： Slackで運営に連絡 🎯 予約確認 予約確認の方法（2つの方法があります） 方法① Gmail通知で確認 TimeRexから予約・キャンセル通知がGmailに届きます。 📧 Gmail通知内容 予約完了通知：受講生名・日時・Zoomリンク キャンセル通知：キャンセルされた予約情報 方法② TimeRexシートで確認 TimeRexと連携されたGoogleスプレッドシートで予約一覧を確認できます。 自分のGoogleドライブ内の「TimeRex」フォルダにあるスプレッドシート 「Events」シートに予約情報が自動反映される 日時順に並び替えて確認可能 ⚠️ 重要 予約確認は1日1回（朝）必ず行うこと ※キャンセルがあった場合も、Gmailまたはスプレッドシートに反映されるため要確認 ✍️ 予約確認後：全体のレッスン状況に記入 予約を確認したら、すぐに 全体のレッスン状況 シートに記入してください。 記入項目 項目名 内容 レッスン担当 担当する講師名 日付 レッスン実施日 次回日程調整 未調整 📹 Zoomリンクの準備・共有方法 📱 公式LINEメンバー登録方法（初回のみ） ▼ 📺 動画解説 🎥 動画解説：公式LINEメンバー登録方法 📝 登録手順 下記リンクから公式LINEに参加し、自分のLINEアカウントでログインしてください。動画で解説したようにチャットを確認できるようになります。 公式LINE招待リンクはこちら ① Zoomリンクを準備 📄 資料：Zoomリンク共有手順 📊 Zoomリンク 🎥 動画解説：Zoomリンク共有について ② 公式LINEで受講生にリンクを共有 🎥 動画解説：公式LINEでの共有方法 📱 レッスン前日／当日：リマインド送信 レッスン前日または当日朝に、公式LINEからリマインドメッセージを送信します。 📝 リマインドテンプレート 📋 コピー こんにちは!😊 レッスンのリマインドです✨ 【明日／本日】【◯月◯日】【◯時〜◯時】 にレッスンがございます。 講師： 講師名 【Zoomリンク】 ▼▼▼ （Zoomリンクをここに貼る） それでは、お待ちしております!🙌 💡 ポイント 前日または当日朝に送信 黄色マーカー部分を変更してコピー Zoomリンクは必ず確認してから貼り付け 🎓 レッスン実施 詳細なレッスンの進め方については、 レッスンの進め方 ページをご確認ください。 ✉️ レッスン直後：感想アンケート送信 📝 レッスン直後テンプレート 📋 コピー レッスンお疲れ様でした!🙌 レッスンメモは 【本日の夕方ごろ】 までにお送りいたしますね! もしよろしければ、レッスンの感想もお聞かせください✨ 🔗 https://forms.gle/raDeEZztKdvaNtEPA 今後のサービス向上のため、引き続きアンケートを実施してまいります。 任意ではございますが、ぜひご協力いただけますと幸いです。 Thanks again for today! 引き続きよろしくお願いいたします☺️ 📹 レッスン後：全体のレッスン状況記入 全体のレッスン状況 シートに以下を記入します： 項目名 内容 レッスン動画URL Zoom録画のアーカイブURL 📹保存フォルダ レッスンFBURL レッスンメモURL 📹保存フォルダ FB共有有無 「〇」と記入 次回日程調整 「調整中」と記入 💡 レッスン動画の保存について レッスン動画は【受講生のお名前】のフォルダに保存してください。 保存先： ペラトレ｜レッスン動画 → 【受講生のお名前】フォルダ 全体のレッスン状況の「保存フォルダ」行にも各受講生のフォルダリンクが記載されています。 ⚠️ 重要 URLは「リンクを知っている全員が閲覧可」に設定してください 📄 レッスン後24時間以内：レッスンメモ送付 📝 レッスンメモ送付テンプレート 📋 コピー お待たせいたしました! 今回のレッスンメモが完成いたしましたので、ご確認ください。 アーカイブもございますので、ぜひ復習マニュアルと併せてご活用ください! ------------ 📘レッスンメモ ▼▼▼ 【レッスンFBURL】 📗復習マニュアル ▼▼▼ https://masaenglishcompany.com/peratore/manual-review.html 📹レッスンアーカイブ ▼▼▼ 【レッスン動画URL】 ------------ 🎯生徒に対するメッセージ 【内容例：次回のレッスンまでの課題・今回のレッスンでの+αのアドバイス】 【ここに具体的な内容を記載】 引き続きよろしくお願いいたします☺️ 📅 次回日程調整 📝 日程調整テンプレート 📋 コピー こんにちは、 {{生徒名}} さん😊 次回のレッスン日程のご調整をお願いいたします! 下記ページから、担当講師を選んでご予約ください👇 🔗 https://masaenglishcompany.com/peratore/teachers.html# ご希望の日時をお選びいただくと、講師のスケジュールと自動で調整されます✨ ※もし担当講師がわからない／変更したい場合は、このトークでお気軽にお知らせください。 ご予約が完了しましたら、「予約しました!」と一言ご連絡いただけると助かります🙇‍♀️ 💡 注意 日程固定の受講生には、日程調整メッセージは送信不要です。 ⚠️ 重要 レッスンメモ送付は24時間以内に完了してください 🔐 注意事項／よくある質問 連絡は 必ず公式LINE内で 行う（個人LINE・SNS禁止） 記入漏れ・シートへの未記載・受講生への連絡不備 が続いた場合は運営から確認が入ります 💡 よくある質問 Q. テンプレートは必ず使わないといけませんか？ A. 基本的にはテンプレートを使用してください。ただし、受講生との関係性に応じて、適宜アレンジしても構いません。 Q. 全体のレッスン状況 の記入を忘れてしまった場合は？ A. 気づいた時点で速やかに記入してください。継続的に漏れが発生する場合は、運営からフォローアップの連絡が入ります。 Q. 受講生から個人LINEで連絡が来た場合は？ A. 「すべてのやり取りは公式LINEでお願いします」と丁寧にお伝えし、公式LINEへ誘導してください。 ↑ トップページに戻る お問い合わせ: 運営Slack窓口 (#英会話講師-業務連絡用) © 2025 ペラトレ講師ポータル'
+            },
+            {
+                title: '初期設定',
+                url: 'initial-setup.html',
+                content: '初期設定ガイド - ペラトレ講師ポータル 🎓 ペラトレ講師ポータル はじめに レッスンの進め方 業務フロー 初期設定 FAQ 🔍 🔧 初期設定ガイド ペラトレ講師として活動開始前に必要な設定を完了させましょう 📋 設定項目 📱 1. 公式LINEメンバー登録 💬 2. オープンチャット参加 🗓️ 3. TimeRex設定 🎥 4. Zoom設定 1. 📱 公式LINEメンバー登録 ペラトレの公式LINEに講師としてメンバー登録します。受講生とのやり取りは全てこの公式LINEを通じて行いますので、必ず最初に登録してください。 📺 動画解説 🎥 動画解説：公式LINEメンバー登録方法 📝 登録手順 下記リンクから公式LINEに参加し、自分のLINEアカウントでログインしてください。動画で解説したようにチャットを確認できるようになります。 公式LINE招待リンクはこちら 💡 ポイント 登録後、チャット画面が正しく表示されることを確認してください。受講生とのやり取りは全てこの公式LINEで行います。 2. 💬 オープンチャット参加 ペラトレ受講生限定のオープンチャット「英会話レッスン激伸びチャット」に参加します。受講生からの質問・相談に回答し、講師間で指導のアイデアを共有する場です。 📱 参加方法 オープンチャットのリンクはこちら 💡 講師の役割 • 受講生からの質問・相談に対して、具体的で分かりやすい回答を行う • 他講師の回答を参考にしながら、より良い指導のアイデアを共有する 💰 報酬について オープンチャットでの質問対応には報酬（150円/件）が発生します。 詳しくは「 はじめに - 報酬ルール 」をご確認ください。 3. 🗓️ TimeRex設定 TimeRexは、受講生がレッスン日時を予約するためのシステムです。講師のGoogleカレンダーと自動連携し、空いている時間だけが予約可能になります。 📺 動画解説 🎥 動画解説：TimeRex登録方法 🎥 動画解説：TimeRex注意点（海外在住の講師は必須） 🎥 動画解説：ブロックスケジュールの重要性 📅 初期設定の流れ 動画を視聴 - 上記の動画を必ず視聴してください TimeRexアカウント作成・設定 - 自分のGoogleアカウントで登録します 連携したスプレッドシートをSlackで運営に共有 📊 TimeRexスプレッドシート連携 TimeRexで日程調整が完了・キャンセル・変更されると、自動的にスプレッドシートに反映される機能です。 🔗 設定の流れ TimeRexアカウント設定で「Google Sheets連携」を有効化 日程調整カレンダーで「Google Sheets」を設定 スプレッドシートが自動作成される 連携したスプレッドシートをSlackで運営に共有 📖 詳細手順：TimeRex公式ヘルプ 🗓️ ブロックスケジュールの重要性 勤務不可の日や時間については、連携しているGoogleカレンダーに予定を入れると、受講生側の予約画面では自動的に「予約不可」となります。定期的に予定を登録してスケジュールをブロックしておくことを強く推奨します。 ⚠️ 注意事項 自動作成されたスプレッドシートの列を移動・追加・削除しない 「Events」シート名を変更しない スプレッドシートは自分のGoogleドライブに保存される 海外在住の方は必ず海外講師向け動画を視聴してください（タイムゾーン設定が重要です） 4. 🎥 Zoom設定 レッスンはZoomで実施します。Zoomアカウントの設定と録画設定を確認しましょう。 📺 動画解説・資料 📄 資料：Zoomリンク共有手順 📊 Zoomリンク 🎥 動画解説：Zoomリンク共有について 🎥 動画解説：公式LINEでの共有方法 ⚙️ 確認事項 Zoomアカウント： Zoomにログインできることを確認 録画設定： クラウド録画が有効になっているか確認 音声・映像： マイクとカメラが正常に動作するか確認 💡 レッスン録画について ペラトレでは全レッスンを録画し、受講生に共有します。クラウド録画の設定を必ず有効にしてください。 ⚠️ 重要 Zoomリンクの共有方法や録画の保存先については、「 業務フロー 」ページで詳しく解説しています。 ✅ 初期設定完了のチェックリスト ☐ 公式LINEメンバー登録が完了し、チャットが確認できる ☐ オープンチャットに参加した ☐ TimeRexで空き時間を登録した ☐ Zoomアカウントにログインでき、録画設定を確認した すべての設定を確認したら、いよいよレッスン開始です！🎉 トップページに戻る お問い合わせ: 運営Slack窓口 (#英会話講師-業務連絡用) © 2025 ペラトレ講師ポータル'
+            },
+            {
+                title: 'FAQ',
+                url: 'faq.html',
+                content: 'よくある質問（FAQ） - ペラトレ講師ポータル 🎓 ペラトレ講師ポータル はじめに レッスンの進め方 業務フロー 初期設定 FAQ 🔍 📋 よくある質問（FAQ） 疑問や不明点を解決するためのQ&A集です 📑 目次 📖 レッスンについて 💰 報酬について 📞 その他 📖 レッスンについて 📅 スケジュール・勤務条件 講師や生徒は固定ですか？ + 受講生が選択できます。 • 固定を希望される場合： 同じ講師が継続して担当 • その都度選びたい場合： 毎回異なる講師も可能 ※他の講師がお休みなどで対応できない場合には、別の生徒さんを担当いただくこともあります。 勤務可能時間は何時から何時までですか？ + 基本的には 9:00〜23:00の間 でお願いしております。 日程変更したいとき、どれぐらい前までに連絡すればいいですか？ + 基本的には 1週間前まで に連絡してください。 講師側から日程変更を提案できますか？ + はい、可能です。受講生と相談の上、調整してください。 契約期間はどのくらいですか？ + 契約期間は 1年間 です。 👥 受講生について 生徒さんの情報は、事前にどの程度わかりますか？ + 生徒さんとの契約が始まり次第、アンケート調査を行いますのでその内容を共有させていただきます。 どのようなレベルや目的を持った生徒さんが多いですか？ + ある程度の英文法は理解しているものの、アウトプットの機会が少ない方が多いです。そのため、英会話レベルでいうと初心者の方が中心となります。 受講生との連絡手段は？ + 公式LINEアカウント を通じてやり取りします。 個人LINE・SNSでの直接連絡は禁止です。すべてのコミュニケーションは公式LINEを経由してください。 受講生から個人LINEで連絡が来た場合は？ + 「すべてのやり取りは公式LINEでお願いします」 と丁寧にお伝えし、公式LINEへ誘導してください。 個人的な連絡先の交換は、トラブル防止のため固くお断りしています。 📚 レッスン準備・内容 レッスンで使用する教材はありますか？ + 教材はございません。完全自由です。レッスンの流れはマニュアルとしてまとめておりますので、詳しくは レッスンの進め方 ページをご参照ください。 受講生におすすめの教材はありますか？ + はい、市販教材のおすすめリストを用意しています。 受講生から 「何を勉強したらいいですか？」 と聞かれた際に、以下のリストを紹介してください。 • 文法： 中学英文法の総復習 • 発音： 音声変化のルールを学べる本 • 語彙： 会話の型で覚える本 • リスニング： TED / BBC / Netflixなど 🎓 おすすめ教材リストを見る レッスンの時間配分は？ + 50分レッスンは「ウォームアップ（8〜10分）」「メイントレーニング（25〜30分）」「振り返り+まとめ（約10分）」が目安です。 生徒の状態や会話の流れに合わせて柔軟に調整してください。 詳しくは レッスンの進め方 ページをご覧ください。 レッスンの引き継ぎはどうすればいいですか？ + 前回のレッスン内容は全体のレッスン状況シートにあるレッスンメモを確認してください。 🎯 レッスン進行・指導方法 英語だけでレッスンを行うのでしょうか？それとも日本語も使いますか？ + 生徒さんのレベルに合わせて、英語と日本語を使い分けていただきます。基本的には英語のみということは少なく、生徒さんのご要望や、フィードバックの際に日本語を使うなど、柔軟に対応していただく形になります。 受講生がまったく話せない場合は？ + 焦らず、 超初心者向けのアプローチ を取りましょう。 • 日本語を交えながらゆっくり進める • 簡単な表現から始める • 「リピートアフターミー」形式で練習 • 小さな成功体験を積み重ねる 📝 超初心者向けレッスンを見る 時間内に終わらない場合は？ + 無理に終わらせず、次回に続きを やりましょう。 • 質を重視（量より実践の深さ） • 中途半端に終わっても大丈夫 • 次回「前回の続きから」でOK 🛠️ トラブル対応・業務 レッスンのレコーディングは、いつからいつまで行えば良いですか？ + レッスンが始まった時から、終了するまで全ての時間をレコーディングしてください。 Zoom接続トラブルが発生したら？ + 落ち着いて対処し、必要に応じて運営に連絡 してください。 トラブル 対応方法 音声が聞こえない ・マイク・スピーカーの設定を確認 ・「オーディオに参加」ボタンを押し直す ・デバイスの音量を確認 映像が映らない ・カメラの設定を確認 ・「ビデオの開始」ボタンを確認 ・他のアプリがカメラを使用していないか確認 接続が不安定 ・Wi-Fi接続を確認 ・可能であれば有線接続に切り替え ・一度退出して再接続 受講生が遅刻・欠席した場合は？ + 状況に応じて柔軟に対応 してください。 状況 対応方法 遅刻の場合 ・開始時刻から 10分まで は待機 ・10分経過しても連絡がない場合は運営に報告 ・途中参加の場合は残り時間で可能な範囲でレッスン 無断欠席の場合 ・10分待機後、運営Slackに報告 ・受講生への連絡は運営が行います 体調不良の場合 ・無理せず休憩or振替提案 ・振替については運営に相談 録画を忘れてしまった場合は？ + 気づいた時点ですぐに録画開始 してください。 • 途中からでも録画を開始する • レッスン後、運営Slackに報告 • レッスンメモを通常より詳しく記入する ⚠️ 重要 録画は受講生の復習用として重要です。できる限り忘れないよう、レッスン開始時のチェックリストに入れておきましょう。 💰 報酬について 勉強会やミーティングに参加したら報酬はありますか？ + 運営から「依頼」がある場合のみ報酬対象 です。 • 運営指定イベント → 報酬あり（都度金額指定） • 任意の勉強会・視聴 → 報酬なし（自由参加） 詳しくは はじめに ページの報酬ルールをご覧ください。 指導経験があるのですが、給与を上げていただくことは可能ですか？ + 経験豊富な方でも、初月の給与は一律でスタートさせていただいております。その後、生徒さんの満足度に応じて昇給するシステムとなっております。 給与支払日はいつですか？ + 毎月25日に前月分のレッスン報酬をお支払いします。 （例：1月のレッスン分は2月25日に支払い） 📞 その他 不明点があるときはどこに連絡すればいいですか？ + 運営Slack窓口（#英会話講師-業務連絡用） にご連絡ください。 会社名と事業概要を教えてください。 + 合同会社MasaEnglish と申します。主に英語コーチングサービスを提供しております。 トップページに戻る お問い合わせ: 運営Slack窓口 (#英会話講師-業務連絡用) © 2025 ペラトレ講師ポータル ↑'
+            }
+        ];
+
+        // URLパラメータから検索語を取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('q');
+
+        if (searchQuery && searchQuery.trim()) {
+            performSearch(searchQuery.trim());
+        } else {
+            showNoQuery();
+        }
+
+        function performSearch(query) {
+            document.getElementById('searchQuery').textContent = `"${query}" の検索結果`;
+            
+            const results = [];
+            const queryLower = query.toLowerCase();
+
+            searchData.forEach(page => {
+                const contentLower = page.content.toLowerCase();
+                const titleLower = page.title.toLowerCase();
+
+                if (titleLower.includes(queryLower) || contentLower.includes(queryLower)) {
+                    // 全てのマッチ箇所を検索
+                    const matches = [];
+                    let startPos = 0;
+                    
+                    while (startPos < contentLower.length) {
+                        const matchIndex = contentLower.indexOf(queryLower, startPos);
+                        if (matchIndex === -1) break;
+                        matches.push(matchIndex);
+                        startPos = matchIndex + 1;
+                    }
+                    
+                    // 最大10件に制限
+                    const limitedMatches = matches.slice(0, 10);
+                    
+                    limitedMatches.forEach((textPos, index) => {
+                        // マッチ箇所の前後70文字を抽出
+                        const start = Math.max(0, textPos - 70);
+                        const end = Math.min(page.content.length, textPos + query.length + 70);
+                        let excerpt = page.content.substring(start, end);
+                        
+                        // 検索語をハイライト
+                        const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                        excerpt = excerpt.replace(regex, '<span class="result-highlight">$1</span>');
+                        
+                        if (start > 0) excerpt = '...' + excerpt;
+                        if (end < page.content.length) excerpt = excerpt + '...';
+                        
+                        results.push({
+                            title: page.title + (limitedMatches.length > 1 ? ` (${index + 1}/${limitedMatches.length})` : ''),
+                            url: page.url,
+                            excerpt: excerpt,
+                            matchIndex: index
+                        });
+                    });
+                }
+            });
+
+            displayResults(results, query);
+        }
+
+        function displayResults(results, query) {
+            const container = document.getElementById('resultsContainer');
+            const countElement = document.getElementById('searchCount');
+
+            if (results.length === 0) {
+                showNoResults();
+                return;
+            }
+
+            countElement.textContent = `${results.length}件の結果が見つかりました`;
+
+            const html = results.map(result => `
+                <div class="result-item" onclick="navigateToResult('${result.url}', '${escapeHtml(query)}', ${result.matchIndex})">
+                    <div class="result-title">${escapeHtml(result.title)}</div>
+                    <div class="result-excerpt">${result.excerpt}</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        function navigateToResult(url, query, matchIndex) {
+            window.location.href = `${url}?q=${encodeURIComponent(query)}&match=${matchIndex}`;
+        }
+
+        function showNoResults() {
+            const container = document.getElementById('resultsContainer');
+            const countElement = document.getElementById('searchCount');
+            
+            countElement.textContent = '結果が見つかりませんでした';
+            
+            container.innerHTML = `
+                <div class="no-results">
+                    <div class="no-results-icon">🔍</div>
+                    <h2>検索結果が見つかりませんでした</h2>
+                    <p>別のキーワードで検索してみてください</p>
+                    <a href="index.html" class="back-link">← トップページに戻る</a>
+                </div>
+            `;
+        }
+
+        function showNoQuery() {
+            const container = document.getElementById('resultsContainer');
+            const queryElement = document.getElementById('searchQuery');
+            const countElement = document.getElementById('searchCount');
+            
+            queryElement.textContent = '検索キーワードが指定されていません';
+            countElement.textContent = '';
+            
+            container.innerHTML = `
+                <div class="no-results">
+                    <div class="no-results-icon">🔍</div>
+                    <h2>検索キーワードを入力してください</h2>
+                    <a href="index.html" class="back-link">← トップページに戻る</a>
+                </div>
+            `;
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // 検索実行関数
+        function executeSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = `search-results.html?q=${encodeURIComponent(query)}`;
+            }
+        }
+
+        // 検索ボックスでEnterキーを押したら検索実行
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                executeSearch();
+            }
+        });
+
+        // 虫眼鏡アイコンをクリックしたら検索実行
+        document.getElementById('searchIcon').addEventListener('click', function() {
+            executeSearch();
+        });
+    </script>
+
+
+</body></html>
