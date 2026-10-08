@@ -52,6 +52,18 @@ const cards = [
     accent: 'bg-amber-500',
     external: true,
   },
+  {
+    href: '/p-level.html',
+    label: 'レベル判定基準',
+    desc: 'ペラトレ（Pレベル）P1〜P7の判定基準',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+        <path d="M4 20V14M10 20V9M16 20V4M22 20H2" strokeLinecap="round"/>
+      </svg>
+    ),
+    accent: 'bg-violet-500',
+    external: true,
+  },
 ];
 
 export default function TeacherHome() {
