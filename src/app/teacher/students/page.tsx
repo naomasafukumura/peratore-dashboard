@@ -16,11 +16,11 @@ const PRESET_STUDENTS = [
   'ロバス由貴',
 ];
 
-export type StudentEntry = { name: string; yomi: string; displayName: string; selected: boolean };
+export type StudentEntry = { name: string; yomi: string; displayName: string; selected: boolean; level: number | null };
 
 export default async function StudentsPage() {
 
-  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '', displayName: '', selected: false }));
+  let entries: StudentEntry[] = PRESET_STUDENTS.map(name => ({ name, yomi: '', displayName: '', selected: false, level: null }));
 
   if (hasDatabaseUrl()) {
     let assignNames: string[] = [];
@@ -50,6 +50,13 @@ export default async function StudentsPage() {
       displayNameMap = new Map((rows as { name: string; yomi: string; display_name: string }[]).map(r => [r.name, r.display_name ?? '']));
     } catch {}
 
+    // Pレベル（表は /api/student-level が初回保存時に作る。未作成なら全員未設定）
+    let levelMap = new Map<string, number>();
+    try {
+      const rows = await sql`SELECT student_name, level FROM student_p_levels`;
+      levelMap = new Map((rows as { student_name: string; level: number }[]).map(r => [r.student_name, r.level]));
+    } catch {}
+
     let registeredNames: string[] = [];
     try {
       const rows = await sql`SELECT name FROM registered_students WHERE name IS NOT NULL AND TRIM(name) <> ''`;
@@ -62,6 +69,7 @@ export default async function StudentsPage() {
       yomi: yomiMap.get(name) ?? '',
       displayName: displayNameMap.get(name) ?? '',
       selected: selectedSet.has(name),
+      level: levelMap.get(name) ?? null,
     }));
     entries.sort((a, b) => {
       const ya = a.yomi || a.name;

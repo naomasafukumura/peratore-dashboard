@@ -40,6 +40,9 @@ dl.sys dd{font-size:15px}
 .ex{font-family:var(--fen);font-size:16px;font-weight:500;line-height:1.6;background:var(--accent-soft);border-left:3px solid var(--accent);padding:12px 14px;border-radius:0 8px 8px 0;margin-bottom:14px}
 .lv.p6 .ex{background:var(--cta-soft);border-left-color:var(--cta)}
 .row{font-size:15px;margin-top:8px}
+.lv.mine{box-shadow:0 0 0 3px var(--accent)}
+.mine-tag{display:none;width:100%;font-size:14px;font-weight:700;color:var(--accent)}
+.lv.mine .mine-tag{display:block}
 .row b{display:block;font-size:13px;font-weight:700;color:var(--text-sub);margin-bottom:2px}
 @media (max-width:480px){
   dl.sys div{grid-template-columns:1fr;gap:2px}
@@ -63,54 +66,63 @@ dl.sys dd{font-size:15px}
   <h2>レベル判定基準（P1〜P7）</h2>
   <p class="q">質問例：「休日は何をしていますか？（<span>What do you do on weekends?</span>）」</p>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P1</span><span class="lv-name">超入門（単語でかろうじて答える）</span></div>
+  <section class="lv" id="p1">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P1</span><span class="lv-name">超入門（単語でかろうじて答える）</span></div>
     <p class="ex">"Game... and sleep."</p>
     <p class="row"><b>説明</b>文章が作れず、頭に浮かんだ単語や動詞の原形を単体で口にするレベル。相手の汲み取りやジェスチャーに頼る部分が大きいです。</p>
     <p class="row"><b>発音</b>カタカナ英語。音節やアクセントの概念がなく、「ゲーム」「スリープ」と日本語の発声のまま話す状態です。</p>
   </section>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P2</span><span class="lv-name">入門（一文なら言える）</span></div>
+  <section class="lv" id="p2">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P2</span><span class="lv-name">入門（一文なら言える）</span></div>
     <p class="ex">"I play game." / "I sleep."</p>
     <p class="row"><b>説明</b>「主語＋動詞」の最もシンプルな一文（S+V+O）を自力で組み立てられるレベル。複数形や前置詞などの装飾はまだ難しい状態です。</p>
     <p class="row"><b>発音</b>個別単語の発音。単語ひとつひとつをカタカナ混じりで区切って発声するため、文全体の繋がり（リンキング）はありません。</p>
   </section>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P3</span><span class="lv-name">CEFR: A1相当</span></div>
+  <section class="lv" id="p3">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P3</span><span class="lv-name">CEFR: A1相当</span></div>
     <p class="ex">"I play games at home. And I sleep a lot."</p>
     <p class="row"><b>説明</b>一文に場所（at home）や程度（a lot）などの語句を足せるレベル。簡単な文を「And」などで繋いで事実を短く伝えられます。</p>
     <p class="row"><b>発音</b>通じるカタカナ発音。日本語アクセントや発音はあるものの、知っている単語なら相手に十分伝わります。</p>
   </section>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P4</span><span class="lv-name">CEFR: A2相当</span></div>
+  <section class="lv" id="p4">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P4</span><span class="lv-name">CEFR: A2相当</span></div>
     <p class="ex">"I usually play video games with my child. Sometimes we go to the park."</p>
     <p class="row"><b>説明</b>時間・頻度（usually, sometimes）・誰と（with my child）などの具体的な情報を自然に追加して、やり取りを広げられるレベルです。</p>
     <p class="row"><b>発音</b>一定のリズム感。単語同士の音の繋がり（例: with my や go to）が一部自然になり、英語らしい強弱が出始めます。</p>
   </section>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P5</span><span class="lv-name">CEFR: B1相当</span></div>
+  <section class="lv" id="p5">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P5</span><span class="lv-name">CEFR: B1相当</span></div>
     <p class="ex">"Usually I try to take it easy at home, but if the weather is nice, I like taking my child to the park."</p>
     <p class="row"><b>説明</b>単に事実を並べるだけでなく、日常会話でよく使われるイディオム（take it easy：ゆっくり過ごす）や条件（if the weather is nice）を使って、状況に合わせて自分の意思や好みを一通り説明できるレベルです。</p>
     <p class="row"><b>発音</b>滑らかでクリア。抑揚（イントネーション）が自然になり、相手が聞き返すことが大幅に減ります。</p>
   </section>
 
-  <section class="lv p6">
-    <div class="lv-hd"><span class="lv-code">P6</span><span class="lv-name">CEFR: B2相当</span><span class="lv-note">※外国人講師レッスン開放条件</span></div>
+  <section class="lv p6" id="p6">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P6</span><span class="lv-name">CEFR: B2相当</span><span class="lv-note">※外国人講師レッスン開放条件</span></div>
     <p class="ex">"It depends on the week, really. If I'm tired, I just chill at home, but otherwise I try to get out with my kid so we can do something fun together. How about you?"</p>
     <p class="row"><b>説明</b>クッション言葉（It depends, really）や自然な会話表現（chill, get out）を使いこなせるレベル。相手とのキャッチボールを途切れさせず、その場の流れに合わせて柔軟に相槌や補足を差し込めます。相手に質問をする余裕もあります。</p>
     <p class="row"><b>発音</b>ナチュラルなスピードと音変化。リンキングや音が消える現象（リダクション）が自然にでき、ネイティブとも自然なテンポで会話が弾みます。</p>
   </section>
 
-  <section class="lv">
-    <div class="lv-hd"><span class="lv-code">P7</span><span class="lv-name">CEFR: C1相当</span></div>
+  <section class="lv" id="p7">
+    <div class="lv-hd"><span class="mine-tag">あなたの現在のレベル</span><span class="lv-code">P7</span><span class="lv-name">CEFR: C1相当</span></div>
     <p class="ex">"To be honest, my weekends are largely centered around family activities. Engaging in playful activities with my child serves as a great reset button, allowing me to fully recharge."</p>
     <p class="row"><b>説明</b>高度で多様な語彙や複雑な文法構造（分詞構文など）を使いこなし、自分の感情や状況のニュアンスをより正確・多角的に表現できるレベルです。</p>
     <p class="row"><b>発音</b>ネイティブレベルの表現力。感情や強調したいポイントに合わせてスピードやトーンを自在にコントロールできます。</p>
   </section>
 </div>
+<script>
+(function(){
+  var lv = new URLSearchParams(location.search).get('lv');
+  var el = lv && /^[1-7]$/.test(lv) && document.getElementById('p' + lv);
+  if (!el) return;
+  el.classList.add('mine');
+  el.scrollIntoView({ block: 'center' });
+})();
+</script>
 </body>
 </html>

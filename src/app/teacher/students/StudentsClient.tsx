@@ -18,6 +18,25 @@ export default function StudentsClient({
     ? students.filter(s => s.name.includes(query.trim()) || s.yomi.includes(query.trim()))
     : students;
 
+  async function changeLevel(name: string, next: number | null) {
+    const prev = students;
+    setStudents(list => list.map(s => (s.name === name ? { ...s, level: next } : s)));
+    setSavingName(name);
+    try {
+      const res = await fetch('/api/student-level', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ studentName: name, level: next }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      setStudents(prev);
+      alert('レベルの保存に失敗しました');
+    } finally {
+      setSavingName(null);
+    }
+  }
+
   async function toggleSelect(name: string, next: boolean) {
     const prev = students;
     setStudents(list => list.map(s => (s.name === name ? { ...s, selected: next } : s)));
@@ -48,6 +67,7 @@ export default function StudentsClient({
           <div className="flex items-center gap-3 text-xs">
             <a href="/teacher" className="text-primary font-medium">ダッシュボード</a>
             <a href="/teacher-manual.html" target="_blank" rel="noopener noreferrer" className="text-primary font-medium">マニュアル</a>
+            <a href="/p-level.html" target="_blank" rel="noopener noreferrer" className="text-primary font-medium">レベル判定基準</a>
             <a href="/teacher/logout" className="text-text-muted hover:text-text-dark">ログアウト</a>
           </div>
         </div>
@@ -66,7 +86,7 @@ export default function StudentsClient({
           {filtered.length === 0 && (
             <li className="text-sm text-text-muted py-8 text-center">該当する受講生が見つかりません</li>
           )}
-          {filtered.map(({ name, yomi, selected }) => (
+          {filtered.map(({ name, yomi, selected, level }) => (
             <li
               key={name}
               className="bg-bg-card border border-border rounded-[var(--radius-card)] px-4 py-3 shadow-[var(--shadow-card)]"
@@ -90,6 +110,19 @@ export default function StudentsClient({
                   </Link>
                   {yomi && <p className="text-[10px] text-text-muted">{yomi}</p>}
                 </div>
+                <select
+                  value={level ?? ''}
+                  disabled={savingName === name}
+                  onChange={e => changeLevel(name, e.target.value ? Number(e.target.value) : null)}
+                  title="Pレベル（受講生のページに表示されます）"
+                  aria-label={`${name}のPレベル`}
+                  className="shrink-0 px-2 py-1.5 bg-bg-page border border-border rounded-[var(--radius-button)] text-xs font-medium text-text-dark"
+                >
+                  <option value="">P-</option>
+                  {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                    <option key={n} value={n}>P{n}</option>
+                  ))}
+                </select>
                 <div className="shrink-0 flex flex-col items-end gap-1">
                   <a
                     href={`/practice-v2.html?student=${encodeURIComponent(name)}`}

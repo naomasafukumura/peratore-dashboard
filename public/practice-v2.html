@@ -88,6 +88,9 @@ body{font-family:var(--fja);background:var(--bg);color:var(--text);min-height:10
 .ft-open-btn svg{width:16px;height:16px}
 .ft-open-btn:active{transform:scale(.97)}
 .ft-body{display:block;padding-top:6px}
+.cv-level{display:inline-flex;align-items:baseline;gap:6px;padding:4px 12px;border:1.5px solid var(--accent);border-radius:10px;color:var(--accent);font-size:13px;font-weight:600;text-decoration:none}
+.cv-level[hidden]{display:none}
+.cv-level b{font-size:17px;font-weight:700}
 .ft-body .ft-sub{margin-bottom:6px}
 .ft-body>*{max-width:720px;margin-left:auto;margin-right:auto}
 .ft-cat-lbl{font-size:11px;font-weight:700;color:var(--text-muted);padding:10px 4px 2px}
@@ -744,6 +747,7 @@ body.hw-mode .cv-sub.hw-on::after{content:'✓';position:absolute;left:13px;top:
     <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
       <div class="cv-title"><span class="cv-hl">Pattern</span> Practice</div>
       <span id="cvStudentName" style="font-size:18px;font-weight:600;color:var(--text-sub);margin-left:8px"></span>
+      <a id="cvLevel" class="cv-level" href="p-level.html" hidden></a>
     </div>
   </div>
   <div class="cv-sec">
@@ -1566,6 +1570,24 @@ function getSections(cat) {
   }
   return sections;
 }
+
+// ===== Pレベル（先生が受講生一覧で登録 → 名前の横に表示。押すと判定基準ページの自分の段へ） =====
+(function loadPLevel() {
+  const student = new URLSearchParams(location.search).get('student');
+  if (!student) return;
+  const LABEL = { 1: '超入門', 2: '入門', 3: 'CEFR A1相当', 4: 'CEFR A2相当', 5: 'CEFR B1相当', 6: 'CEFR B2相当', 7: 'CEFR C1相当' };
+  fetch('/api/student-level?student=' + encodeURIComponent(student))
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      const lv = j && j.level;
+      const el = document.getElementById('cvLevel');
+      if (!el || !LABEL[lv]) return;
+      el.innerHTML = '<b>P' + lv + '</b>' + LABEL[lv];
+      el.href = 'p-level.html?lv=' + lv;
+      el.hidden = false;
+    })
+    .catch(() => {});
+})();
 
 // ===== フリートーク一覧（パターンプラクティスを終えた人がレッスンで使うテーマ集） =====
 // 練習用DATAには混ぜない（カード数・宿題・カテゴリ選択に影響させないため）。表示のみ。
