@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>講師紹介</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'BIZ UDGothic', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+            background: #F1F1F1; 
+            color: #423929;
+            line-height: 1.6;
+        }
+        
+        /* ===== 左サイドメニュー（PC） ===== */
+        .sidebar {
+            width: 180px;
+            background: white;
+            border-right: 1px solid #d8d8d8;
+            padding: 20px 15px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        
+        .sidebar-logo {
+            width: 100%;
+            max-width: 80px;
+            margin: 0 auto 15px;
+            display: block;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .sidebar-logo:hover {
+            opacity: 0.7;
+        }
+        
+        .sidebar-title {
+            font-size: 0.8rem;
+            color: #7a6f5d;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .sidebar-list {
+            list-style: none;
+        }
+        
+        .sidebar-list li {
+            margin-bottom: 4px;
+        }
+        
+        .sidebar-list a {
+            display: block;
+            padding: 8px 10px;
+            color: #423929;
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        
+        .sidebar-list a:hover {
+            background: #A296AF;
+            color: white;
+        }
+        
+        .sidebar-list a.active {
+            background: #A296AF;
+            color: white;
+        }
+        
+        /* ===== スマホ用ヘッダー ===== */
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: white;
+            border-bottom: 1px solid #d8d8d8;
+            z-index: 200;
+            padding: 0 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .mobile-logo {
+            height: 32px;
+            cursor: pointer;
+        }
+        
+        .hamburger {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: #423929;
+            transition: all 0.3s;
+        }
+        
+        .hamburger.open span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+        .hamburger.open span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.open span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+        
+        .mobile-menu-overlay {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 150;
+        }
+        
+        .mobile-menu-overlay.show {
+            display: block;
+        }
+        
+        .mobile-menu {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 250px;
+            height: calc(100vh - 56px);
+            background: white;
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+            z-index: 160;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .mobile-menu.show {
+            transform: translateX(0);
+        }
+        
+        /* ===== メインコンテンツ ===== */
+        .main {
+            margin-left: 180px;
+            padding: 15px 40px 30px;
+            min-height: 100vh;
+        }
+        
+        .main-header {
+            background: transparent;
+            padding: 5px 25px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            max-width: 900px;
+        }
+        
+        .main-logo {
+            width: 80px;
+        }
+        
+        .main-header h1 {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: #423929;
+        }
+        
+        /* ===== 講師一覧グリッド ===== */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 12px;
+            background: white;
+            padding: 25px 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card { 
+            background: #fff; 
+            border: 1px solid #d8d8d8; 
+            padding: 20px 12px; 
+            text-align: center; 
+        }
+        
+        .photo-small { 
+            width: 90px; 
+            height: 90px; 
+            background: #e8e6e3; 
+            border-radius: 50%; 
+            margin: 0 auto 12px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: #7a6f5d; 
+            font-size: 11px;
+            overflow: hidden;
+        }
+        
+        .photo-small img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .name-small { 
+            font-size: 0.95rem; 
+            color: #423929; 
+            font-weight: 400; 
+            margin-bottom: 12px; 
+        }
+        
+        .card-buttons { 
+            display: flex; 
+            flex-direction: row; 
+            gap: 6px; 
+        }
+        
+        .btn-small { 
+            flex: 1; 
+            padding: 6px 4px; 
+            font-size: 0.75rem; 
+            text-decoration: none; 
+            text-align: center; 
+            border: 1px solid #A296AF; 
+            background: #fff; 
+            color: #A296AF; 
+            border-radius: 2px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .btn-small:hover { 
+            background: #A296AF; 
+            color: #fff;
+        }
+        
+        .btn-primary-small { 
+            background: #A296AF; 
+            color: #fff; 
+            border: 1px solid #A296AF; 
+        }
+        
+        .btn-primary-small:hover { 
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+        
+        /* ===== 詳細ページ ===== */
+        .detail-view {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .detail-view.show {
+            display: block;
+        }
+        
+        .back-btn {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            margin-top: 25px;
+            background: #A296AF;
+            border: 1px solid #A296AF;
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .back-btn:hover {
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+        
+        .back-btn:hover {
+            background: #f1f1f1;
+        }
+        
+        .detail-card {
+            background: white;
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .detail-top-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn-small {
+            position: absolute;
+            left: 0;
+            top: 0;
+            padding: 8px 15px;
+            background: #fff;
+            border: 1px solid #A296AF;
+            color: #A296AF;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        
+        .back-btn-small:hover {
+            background: #A296AF;
+            color: #fff;
+        }
+        
+        .photo-large { 
+            width: 120px; 
+            height: 120px; 
+            background: #e8e6e3; 
+            border-radius: 50%; 
+            margin: 0 auto; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            overflow: hidden;
+            color: #7a6f5d;
+            font-size: 14px;
+        }
+        
+        .photo-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .name-large { 
+            text-align: center; 
+            font-size: 1.4rem; 
+            color: #423929; 
+            margin-bottom: 20px; 
+            font-weight: 400; 
+        }
+        
+        .detail-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .detail-buttons .btn {
+            flex: 1;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            text-align: center;
+            border: 1px solid #A296AF;
+            background: #fff;
+            color: #A296AF;
+            border-radius: 2px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background: #A296AF;
+            color: #fff;
+        }
+        
+        .btn-primary {
+            background: #A296AF;
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+        
+        .btn-disabled {
+            background: #f5f3f0;
+            color: #999;
+            border: 1px solid #d8d8d8;
+            cursor: not-allowed;
+        }
+        
+        .btn-disabled:hover {
+            background: #f5f3f0;
+            color: #999;
+        }
+        
+        .section { 
+            margin-bottom: 18px; 
+            padding-bottom: 18px; 
+            border-bottom: 1px solid #e8e8e8; 
+        }
+        
+        .section:last-of-type { 
+            border-bottom: none; 
+        }
+        
+        .section-title { 
+            color: #7a6f5d; 
+            font-weight: 400; 
+            font-size: 0.85rem; 
+            margin-bottom: 8px; 
+        }
+        
+        .section-content { 
+            color: #423929; 
+            line-height: 1.8; 
+            font-size: 0.95rem; 
+        }
+        
+        /* ===== 動画モーダル ===== */
+        .video-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-modal.show {
+            display: flex;
+        }
+        
+        .video-modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 700px;
+            background: #000;
+            border-radius: 4px;
+            overflow: visible;
+        }
+        
+        .video-modal video {
+            width: 100%;
+            max-height: 80vh;
+            display: block;
+            object-fit: contain;
+        }
+        
+        .video-modal-close {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            color: #333;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 4px;
+            z-index: 310;
+        }
+        
+        .video-modal-close:hover {
+            background: #fff;
+        }
+        
+        .video-modal-newtab {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            color: #333;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 4px;
+            z-index: 310;
+            text-decoration: none;
+        }
+        
+        .video-modal-newtab:hover {
+            background: #fff;
+        }
+        
+        .video-modal-close:hover {
+            opacity: 0.7;
+        }
+        
+        .video-modal video {
+            width: 100%;
+            display: block;
+        }
+        
+        /* ===== スマホ対応 ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .mobile-header {
+                display: flex;
+            }
+            
+            .main {
+                margin-left: 0;
+                padding: 12px;
+                padding-top: 68px;
+            }
+            
+            .main-header {
+                padding: 12px 15px;
+                gap: 10px;
+            }
+            
+            .main-logo {
+                width: 60px;
+            }
+            
+            .main-header h1 {
+                font-size: 1rem;
+            }
+            
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                padding: 12px;
+            }
+            
+            .card {
+                padding: 12px 8px;
+            }
+            
+            .photo-small {
+                width: 55px;
+                height: 55px;
+            }
+            
+            .name-small {
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+            }
+            
+            .btn-small {
+                padding: 5px 2px;
+                font-size: 0.6rem;
+            }
+            
+            .detail-card {
+                padding: 20px 15px;
+                max-width: 100%;
+            }
+            
+            .photo-large {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .name-large {
+                font-size: 1.2rem;
+            }
+            
+            .detail-buttons {
+                flex-direction: column;
+            }
+            
+            .section-content {
+                font-size: 0.9rem;
+            }
+            
+            .video-modal-content {
+                width: 95%;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .grid { 
+                grid-template-columns: repeat(3, 1fr); 
+            }
+            
+            .main {
+                padding: 25px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- スマホ用ヘッダー -->
+    <header class="mobile-header">
+        <img src="images/teachers/rogo.png" alt="ペラトレ" class="mobile-logo" onclick="goToTop()">
+        <button class="hamburger" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+    
+    <!-- スマホ用メニュー -->
+    <div class="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+    <nav class="mobile-menu">
+        <div class="sidebar-title">講師一覧</div>
+        <ul class="sidebar-list" id="mobileMenuList">
+            <li><a href="#" data-id="takashi" onclick="showDetail('takashi'); closeMobileMenu(); return false;">たかし先生</a></li>
+            <li><a href="#" data-id="sora" onclick="showDetail('sora'); closeMobileMenu(); return false;">そら先生</a></li>
+            <li><a href="#" data-id="arisa" onclick="showDetail('arisa'); closeMobileMenu(); return false;">Arisa先生</a></li>
+            <li><a href="#" data-id="yuka" onclick="showDetail('yuka'); closeMobileMenu(); return false;">Yuka先生</a></li>
+            <li><a href="#" data-id="yoshie" onclick="showDetail('yoshie'); closeMobileMenu(); return false;">Yoshie先生</a></li>
+            <li><a href="#" data-id="yurie" onclick="showDetail('yurie'); closeMobileMenu(); return false;">ゆりえ先生</a></li>
+            <li><a href="#" data-id="ayako" onclick="showDetail('ayako'); closeMobileMenu(); return false;">あやこ先生</a></li>
+            <li><a href="#" data-id="taro" onclick="showDetail('taro'); closeMobileMenu(); return false;">Taro先生</a></li>
+            <li><a href="#" data-id="akiko" onclick="showDetail('akiko'); closeMobileMenu(); return false;">Akiko先生</a></li>
+            <li><a href="#" data-id="mai" onclick="showDetail('mai'); closeMobileMenu(); return false;">Mai先生</a></li>
+            <li><a href="#" data-id="aya" onclick="showDetail('aya'); closeMobileMenu(); return false;">Aya先生</a></li>
+            <li><a href="#" data-id="tomoyo" onclick="showDetail('tomoyo'); closeMobileMenu(); return false;">Tomoyo先生</a></li>
+        </ul>
+    </nav>
+    
+    <!-- PC用サイドメニュー -->
+    <nav class="sidebar">
+        <img src="images/teachers/rogo.png" alt="ペラトレ" class="sidebar-logo" onclick="goToTop()">
+        <div class="sidebar-title">講師一覧</div>
+        <ul class="sidebar-list" id="sidebarList">
+            <li><a href="#" data-id="takashi" onclick="showDetail('takashi'); return false;">たかし先生</a></li>
+            <li><a href="#" data-id="sora" onclick="showDetail('sora'); return false;">そら先生</a></li>
+            <li><a href="#" data-id="arisa" onclick="showDetail('arisa'); return false;">Arisa先生</a></li>
+            <li><a href="#" data-id="yuka" onclick="showDetail('yuka'); return false;">Yuka先生</a></li>
+            <li><a href="#" data-id="yoshie" onclick="showDetail('yoshie'); return false;">Yoshie先生</a></li>
+            <li><a href="#" data-id="yurie" onclick="showDetail('yurie'); return false;">ゆりえ先生</a></li>
+            <li><a href="#" data-id="ayako" onclick="showDetail('ayako'); return false;">あやこ先生</a></li>
+            <li><a href="#" data-id="taro" onclick="showDetail('taro'); return false;">Taro先生</a></li>
+            <li><a href="#" data-id="akiko" onclick="showDetail('akiko'); return false;">Akiko先生</a></li>
+            <li><a href="#" data-id="mai" onclick="showDetail('mai'); return false;">Mai先生</a></li>
+            <li><a href="#" data-id="aya" onclick="showDetail('aya'); return false;">Aya先生</a></li>
+            <li><a href="#" data-id="tomoyo" onclick="showDetail('tomoyo'); return false;">Tomoyo先生</a></li>
+        </ul>
+    </nav>
+    
+    <!-- メインコンテンツ -->
+    <main class="main">
+        <!-- 一覧用ヘッダー -->
+        <div class="main-header" id="listHeader">
+            <h1>講師紹介</h1>
+        </div>
+        
+        <!-- 一覧表示 -->
+        <div id="listView" class="grid">
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/takashi.jpeg" alt="たかし先生"></div>
+                <div class="name-small">たかし先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('takashi'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/okubotakashi.0212_9f6c/40a0c9ab" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/sora.jpg" alt="そら先生"></div>
+                <div class="name-small">そら先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('sora'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/110117sora_b560/dff90b56/" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/arisa.jpg" alt="Arisa先生"></div>
+                <div class="name-small">Arisa先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('arisa'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/llebasi.otsu_2ed7/3e550fd0" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/Yuka.jpeg" alt="Yuka先生"></div>
+                <div class="name-small">Yuka先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('yuka'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/happyuka98313_aa24/31b15aa2" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/Yoshie.png" alt="Yoshie先生"></div>
+                <div class="name-small">Yoshie先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('yoshie'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/ceruliwogd_f576/6c02b41f" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/Yurie Akashika.PNG" alt="ゆりえ先生"></div>
+                <div class="name-small">ゆりえ先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('yurie'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/yurie.akashika_a01f/adf8afdb" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/ayako.jpg" alt="あやこ先生"></div>
+                <div class="name-small">あやこ先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('ayako'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/lingzishanzhong81_e20e/896d183e" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/taro.png" alt="Taro先生"></div>
+                <div class="name-small">Taro先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('taro'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/umeki.taro_d4f9/f94c216e" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/akiko.jpg" alt="Akiko先生"></div>
+                <div class="name-small">Akiko先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('akiko'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/amingthenet_0485/90fcf649/" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/Mai.jpg" alt="Mai先生"></div>
+                <div class="name-small">Mai先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('mai'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/mai.y.malanog_1b2a/a4c7fbca" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/aya.png" alt="Aya先生"></div>
+                <div class="name-small">Aya先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('aya'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/ramondaaya_74fd/a07c686a" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="photo-small"><img src="images/teachers/tomoyo2.jpg" alt="Tomoyo先生"></div>
+                <div class="name-small">Tomoyo先生</div>
+                <div class="card-buttons">
+                    <a href="#" class="btn-small" onclick="showDetail('tomoyo'); return false;">自己紹介</a>
+                    <a href="https://timerex.net/s/tomoyo.e0514_3e8d/62a1baf0" target="_blank" class="btn-small btn-primary-small">予約</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 詳細表示 -->
+        <div id="detailView" class="detail-view">
+            <div class="detail-card">
+                <div class="detail-top-row">
+                    <button class="back-btn-small" onclick="showList()">一覧に戻る</button>
+                    <div class="photo-large"><img id="detailImage" src="" alt=""></div>
+                </div>
+                <div class="name-large" id="detailName">あやこ先生</div>
+                <div class="detail-buttons">
+                    <a href="#" class="btn" id="detailVideo" onclick="openVideo(); return false;">自己紹介動画</a>
+                    <a href="#" target="_blank" class="btn btn-primary" id="detailBooking">レッスン予約</a>
+                </div>
+                <div class="section">
+                    <div class="section-title">実績・経歴</div>
+                    <div class="section-content" id="detailProfile"></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">得意分野</div>
+                    <div class="section-content" id="detailSpecialty"></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">趣味</div>
+                    <div class="section-content" id="detailHobbies"></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">好きな食べ物</div>
+                    <div class="section-content" id="detailFood"></div>
+                </div>
+                <div class="section">
+                    <div class="section-title">一言・意気込み</div>
+                    <div class="section-content" id="detailMessage"></div>
+                </div>
+                <button class="back-btn" onclick="showList()">一覧に戻る</button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 動画モーダル -->
+    <div class="video-modal" id="videoModal" onclick="closeVideo(event)">
+        <div class="video-modal-content" onclick="event.stopPropagation()">
+            <video id="modalVideo" controls>
+                <source src="" type="video/mp4">
+            </video>
+        </div>
+        <button class="video-modal-close" onclick="closeVideo()">✕</button>
+        <a href="#" target="_blank" class="video-modal-newtab" id="videoNewTab">↗ 別タブで開く</a>
+    </div>
+    
+    <script>
+        // 講師データ
+        const teachers = {
+            takashi: {
+                name: "たかし先生",
+                imageUrl: "images/teachers/takashi.jpeg",
+                profile: "30歳の時にイギリスに移住し、5年間居住した後2026年に帰国しました。<br>イギリスを拠点に5年間音楽活動に従事<br>ロンドンのハイエンドレストランでウェイターとして3年間勤務<br>イングランド南西部のリテールチェーン店で販売員として1年間勤務<br>イギリス人パートナーと３年半の同棲経験",
+                specialty: "初級者向け英会話 / 接客英会話 / 発音矯正 / リアルな日常英会話やスラング / イギリス独自のアクセント",
+                hobbies: "音楽制作、映画鑑賞、料理、ハイキング",
+                food: "炊き込みご飯、きのこ、お漬け物、ハニーバタークランペット",
+                message: "「イギリス英語を話してみたい！」そんな憧れを、実践的な英会話に変えてみませんか？<br><br>僕はイギリスで5年間、ネイティブの友人やパートナーと暮らしながらリアルな日常英会話を身につけました。自然な表現や会話力はもちろん、日本語訛りの改善、イギリス英語の発音や言い回しの学習も丁寧にお手伝いします。<br><br>「英語を話すのは緊張する。間違えるのが不安で恥ずかしい」という方も終始リラックスして会話を楽しめるレッスンを目指しています！<br>楽しいおしゃべりを通して、一緒に英語力を伸ばしましょう！",
+                videoUrl: "videos/teachers/Takashi.mp4",
+                bookingUrl: "https://timerex.net/s/okubotakashi.0212_9f6c/40a0c9ab"
+            },
+            sora: {
+                name: "そら先生",
+                imageUrl: "images/teachers/sora.jpg",
+                profile: "ニュージーランド留学歴 3年（高校留学含む）<br>IELTS 6.0 保持<br>現地カフェでの勤務経験あり",
+                specialty: "初心者向け英会話 / 日常英会話 / 海外のカフェ・接客で使える実用英語 / スピーキング向上 / 現場で通じるリアルな表現",
+                hobbies: "編み物やお菓子作り、そしてとにかく食べることが大好きです☺︎",
+                food: "甘いもの全般（特にチョコレート！）と韓国料理が好きです！",
+                message: "私自身、最初は英語が全く話せない状態からスタートし、現地で生の英語に触れながら試行錯誤して英語力を身につけた経験があります。だからこそ、英語で困っている生徒さんのお気持ちにしっかり寄り添うことができます！<br><br>レッスンでは「海外で実際に自信を持って話せる実用的な英語」を楽しく身につけていきましょう！私自身おしゃべりが大好きなので、堅苦しい授業ではなく、たくさん話せて笑顔になれる楽しい時間を一緒に作っていきたいです。お気軽にお話ししましょう！",
+                videoUrl: "videos/teachers/sora.mp4",
+                bookingUrl: "https://timerex.net/s/110117sora_b560/dff90b56/"
+            },
+            arisa: {
+                name: "Arisa先生",
+                imageUrl: "images/teachers/arisa.jpg",
+                profile: "三重県出身 / 日本在住<br><br>英語個別塾講師歴3年半（小学生～大学受験・英検対策）<br>社内英語研修講師歴3年以上（IT・ビジネス英語）<br>現役バイリンガルITヘルプデスク／エンジニア<br>TOEIC 960点<br><br>日系ブラジル人として、多文化・多言語に囲まれた環境で育ちました。<br>現在は、仕事でも日常生活でも英語を使い、世界各国の人々とコミュニケーションを楽しんでいます。",
+                specialty: "イメージで理解する英文法・英語の考え方 / 自然な発音・音のつなげ方の指導 / 自然な英語表現・ネイティブらしい言い回し<br>日常英会話・フリートーク / IT・ビジネス英語",
+                hobbies: "空港・飛行機ウォッチング、語学学習（フランス語、トルコ語勉強中）、読書",
+                food: "『ティラミスといえばArisa』というぐらいティラミスが好きです！",
+                message: "「いつか私も英語をペラペラ話せるようになりたい。」そんな思いで、英語を話せる人に憧れたり、自分と比べたりした時期がありました。だからこそ、一人ひとりの目標やペースに寄り添いながら、「英語が話せるって楽しい！」を感じてもらえるレッスンをお届けします！",
+                videoUrl: "videos/teachers/arisa.mp4",
+                bookingUrl: "https://timerex.net/s/llebasi.otsu_2ed7/3e550fd0"
+            },
+            yuka: {
+                name: "Yuka先生",
+                imageUrl: "images/teachers/Yuka.jpeg",
+                profile: "子供の時から英語が話せるようになりたく、公文を始める<br>教科書の英語だけは得意で、話せなかったが英語の短期大学で外国人の先生とのコミュニケーションに悩む<br>19歳の時にセブ島に2ヶ月留学し、一日12時間ほど勉強漬けの生活を得て英語を話すまでの恥ずかしさの壁を克服<br>帰国後授業でもガンガン話すようになり、子供英会話教室で2年半勤務後現在も別会社でバイリンガル担当として勤務中<br>またその際に出会った韓国人の旦那さんと毎日日本語で話しながら日本語教室のような会話をしているので、言葉が伝わらないもどかしさと修行中です！",
+                specialty: "フォニックス式発音 / 初心者英会話 / 日常英会話 / 壁を壊す英会話",
+                hobbies: "Netflix鑑賞 / 居酒屋巡り / 旅行 / インスタ徘徊 / 人間観察",
+                food: "タピオカ / 麺類 / アイスクリーム",
+                message: "英会話レッスンを受講しているだけでも大きな一歩です！<br>一回一回のレッスンで壁を壊すお手伝いをさせてください！",
+                videoUrl: "videos/teachers/Yuka.mp4",
+                bookingUrl: "https://timerex.net/s/happyuka98313_aa24/31b15aa2"
+            },
+            yoshie: {
+                name: "Yoshie先生",
+                imageUrl: "images/teachers/Yoshie.png",
+                profile: "海外在住歴：約13年（アメリカ・サンフランシスコ1年／ロサンゼルス2年、タイ10年）<br>アメリカ留学中は、語学や異文化コミュニケーションを学び、ロサンゼルスでは特殊メイク・映画メイクも学びました。<br>帰国後は留学カウンセラーとして5年間、多くの方の海外挑戦をサポート。<br>その後、東南アジアへ渡り動画編集や翻訳などを通して、「言葉」と「表現」に関わる仕事をしています。",
+                specialty: "初心者向け英会話 / 旅行英語・日常英会話<br>自然なフレーズ・言い換え・会話の広げ方<br>英語を話す感覚づくり",
+                hobbies: "映画・ドラマ鑑賞 / 音楽・ポッドキャスト<br>旅行先でその土地ならではの文化や日常に触れること<br>ウォーキング・ランニング・テニス・スイミング",
+                food: "バターチキンカレー / トッポッキ / 焼肉 / グリーンマンゴー / おはぎ",
+                message: "英語は、「ちゃんと話さなきゃ」と思うほど、言葉が出なくなることがあります。<br>だからこそ、まずは \"英語を話す感覚\" を大切にしています。<br>英語を通して、自分の知らなかった世界へ触れていく時間を一緒に作っていきます。",
+                videoUrl: "videos/teachers/Yoshie.mp4",
+                bookingUrl: "https://timerex.net/s/ceruliwogd_f576/6c02b41f"
+            },
+            yurie: {
+                name: "ゆりえ先生",
+                imageUrl: "images/teachers/Yurie Akashika.PNG",
+                profile: "オーストラリア在住歴 約6〜7年<br>日本語教師資格保有<br>英語を使った海外生活経験あり",
+                specialty: "初心者向け英会話 / 日常英会話 / 海外旅行で使える英語 / リスニング力向上 / 自然な英語表現",
+                hobbies: "旅行と絵を描くことが好きです。旅先で見た景色やホテルの風景を描くのが最近の楽しみです！",
+                food: "基本的になんでも食べます！新しい料理に挑戦するのが好きで、旅行先では現地料理を楽しんでいます。",
+                message: "私自身も英語学習に苦労した経験があります。初心者の方にもわかりやすく、安心して学べるレッスンを心がけています。一緒に楽しく英語を学びましょう！",
+                videoUrl: "videos/teachers/Yurie-Akashika.mp4",
+                bookingUrl: "https://timerex.net/s/yurie.akashika_a01f/adf8afdb"
+            },
+
+            ayako: {
+                name: "あやこ先生",
+                imageUrl: "images/teachers/ayako.jpg",
+                profile: "学生時代に英語に挫折、40代で学び直し<br>2025年2月 MasaEnglish卒業<br>大阪万博・東京デフリンピックでの通訳・案内<br>地域の外国の方とのやさしい日本語での交流などを通して、伝わる言葉で話す大切さを学ぶ",
+                specialty: "自然なリアクションと質問の組み立て / 会話が続く話し方（つなげ方・広げ方） / 覚えた言葉を「使える英語」に変えるための練習法",
+                hobbies: "散歩 / 国際交流イベントに参加すること / 子どもと絵本を読むこと",
+                food: "豚汁 / ご飯 / 納豆 / お寿司 / 酢豚 / 旬のくだもの",
+                message: "文法や単語を一生懸命覚えても、なかなか話せるようにならないと悩んでいませんか？<br><br>私のレッスンでは、少ない語彙でも会話を続けられる工夫を取り入れながら、文法や単語などの「点」の知識を、会話で使える「線」の力に変えていけるようサポートします。<br><br>楽しみながら、伝え合う力を一緒に育てていきましょう！",
+                videoUrl: "videos/teachers/ayako.mp4",
+                bookingUrl: "https://timerex.net/s/lingzishanzhong81_e20e/896d183e"
+            },
+            taro: {
+                name: "Taro先生",
+                imageUrl: "images/teachers/taro.png",
+                profile: "海外在住歴：インド（1年）、タイ（1年）<br>島根大学法文学部言語文化学科アメリカ文学専攻<br>海外で２年間、日本語N5~N3レベルの日本語を教えながら、現地で活動していました。",
+                specialty: "日常会話/ビジネス英語/接客・旅行英会話/TOEIC・英検サポート",
+                hobbies: "サルサ、読書、茶道、テニス、サウナ、カラオケ、旅行、ドライブ",
+                food: "インドカレー、柿、タイ料理、のどぐろ、日本酒",
+                message: "学びは『楽しい』が一番です！<br>英語で会話のキャッチボールができる喜び、自分の言葉で伝わる嬉しさを、一緒に体験していきましょう。<br>レッスンでは、お一人お一人のペースに寄り添いながら、無理なく、でも確実にステップアップできるよう伴奏させていただきます！！<br>私自身、たくさん悩んだり挫折したりしながら英語を身につけてきました。<br>現地で英語が通じず苦戦したことも、、、<br>だからこそ、生徒さんの不安や困りごとを理解しながら、前向きにサポートさせていただきます！",
+                videoUrl: "videos/teachers/taro.mp4",
+                bookingUrl: "https://timerex.net/s/umeki.taro_d4f9/f94c216e"
+            },
+            akiko: {
+                name: "Akiko先生",
+                imageUrl: "images/teachers/akiko.jpg",
+                profile: "海外在住歴：カナダ2年（語学学校通学&勤務）、カンボジア5年(サービス業の立ち上げから経営全般）。両職とも英語のみ使用の環境。<br>カナダから帰国後、働きながら大阪外国語大学の夜間主に通い、卒業後にカンボジア駐在。",
+                specialty: "日常英会話、ナチュラルな言い換え、リンキング・リズム・発音指導、洋楽を使ったレッスン、関西弁で解説するレッスン、日本育ちの方が誤解しているor間違えやすい英語レッスン、接客英語表現、ビジネス英語",
+                hobbies: "ダンス、ズンバ、読書、映画鑑賞、ミシン、インテリア、異文化交流、苔を観ること、四季の植物を愛でながら歩くこと",
+                food: "ファラフェル、旬の野菜と旬の果物+ドラゴンフルーツ+パッションフルーツ、海老類、釜揚げしらすご飯、梅干し",
+                message: "外国語は何歳になってからでもできます！ 私自身も日本生まれの日本育ち。24歳を過ぎてから英語に取り組み、人生が変わりました！ 日本育ちの皆さんが詰まる理由や伝えたいことをちゃんと伝えたい気持ちはよく分ります。 学びは楽しくなくっちゃ！伝わるように話せ、会話のキャッチボールができるようになるお手伝いを楽しくしますので、一緒に楽しみましょう！",
+                videoUrl: "videos/teachers/akiko.mp4",
+                bookingUrl: "https://timerex.net/s/amingthenet_0485/90fcf649/"
+            },
+            mai: {
+                name: "Mai先生",
+                imageUrl: "images/teachers/Mai.jpg",
+                profile: "シンガポールでの現地就職とカナダでの留学経験、日本でのグローバルな環境でHR業務の経験や、教育機関での留学生サポートなどのキャリアがあります。",
+                specialty: "日常会話、ビジネスでよく使われる表現",
+                hobbies: "ヨガ、旅行、料理、散歩など",
+                food: "わさび、マスタード、牡蠣以外は大体何でも食べます。食べることが大好きなFoodieです。日本食はもちろん大好きですが、それ以外では韓国料理、シンガポール、マレーシア、インドネシアなど東南アジア系やトルコ料理が好きです！",
+                message: "私自身は日本の大学まで卒業し、第2言語として英語でコミュニケーションができるようになりました。日本で数年間英会話スクールのマネージャーを経験後、それらで得た経験を活かして、シンガポールで海外就職、カナダ留学を経て、帰国後もグローバルなビジネス環境で英語を活用した仕事を経験しました。<br><br>受講生が話せるようにしたいシチュエーションを実践的でシンプルなフレーズで繰り返し練習することを重点に置いたレッスンを心がけています。<br><br>皆様にお会いできることを楽しみにしています。",
+                videoUrl: "",
+                bookingUrl: "https://timerex.net/s/mai.y.malanog_1b2a/a4c7fbca"
+            },
+            aya: {
+                name: "Aya先生",
+                imageUrl: "images/teachers/aya.png",
+                profile: "国際大学出身・外資系企業勤務・海外出張・ヨーロッパ在住",
+                specialty: "日常会話・言い回し・簡単なフレーズへの言い換え",
+                hobbies: "子供と遊ぶこと、地域のイベントに参加すること、食事会やパーティーが好き",
+                food: "ピザ、バーニャカウダ、肉じゃが、納豆",
+                message: "現状や成長に合わせて、楽しく自信を持って英語を話せるようサポートします！",
+                videoUrl: "videos/teachers/aya.mp4",
+                bookingUrl: "https://timerex.net/s/ramondaaya_74fd/a07c686a"
+            },
+            tomoyo: {
+                name: "Tomoyo先生",
+                imageUrl: "images/teachers/tomoyo2.jpg",
+                profile: "沖縄県内アメリカ軍基地在住<br>東京学芸大学教育学部英語科卒業<br>小学校・中学校(英語)・高等学校(英語)教諭一種免許状<br>アメリカ・ニューヨーク留学経験有り<br>英会話講師歴10年",
+                specialty: "日常会話/初心者向け発音矯正/リンキング指導/文法/フレーズ/レベル別・興味別自主学習方法アドバイス",
+                hobbies: "漫画 / アニメ / ゲーム / ポケモン / お絵描き / ディズニー / 恐竜 / 旅行 / 食べ歩き / 写真 / インプロ / 祭",
+                food: "Dippin' Dots / 牛タン / 赤福 / 寿司 / 日本蕎麦 / カフェラテ",
+                message: "「英語は筋トレ！継続すれば必ず成果は現れる！」<br>筋トレも英語も、楽しい方法を知りモチベーション維持をサポートしてくれる人と一緒に頑張れば続けられます♪そして継続の先には必ず成果が待っています！一緒に頑張りましょう！<br><br>生徒様一人一人に合った学習方法でサポートさせていただきます★",
+                videoUrl: "videos/teachers/tomoyo.mp4",
+                bookingUrl: "https://timerex.net/s/tomoyo.e0514_3e8d/62a1baf0"
+            }
+        };
+        
+        let currentTeacherId = null;
+        
+        function goToTop() {
+            showList();
+        }
+        
+        function showList() {
+            document.getElementById('listView').style.display = 'grid';
+            document.getElementById('listHeader').style.display = 'flex';
+            document.getElementById('detailView').classList.remove('show');
+            currentTeacherId = null;
+            updateSidebarActive(null);
+            window.scrollTo(0, 0);
+        }
+        
+        function showDetail(id) {
+            const t = teachers[id];
+            if (t) {
+                document.getElementById('detailName').textContent = t.name;
+                document.getElementById('detailImage').src = t.imageUrl;
+                document.getElementById('detailImage').alt = t.name;
+                document.getElementById('detailProfile').innerHTML = t.profile;
+                document.getElementById('detailSpecialty').innerHTML = t.specialty;
+                document.getElementById('detailHobbies').innerHTML = t.hobbies;
+                document.getElementById('detailFood').innerHTML = t.food;
+                document.getElementById('detailMessage').innerHTML = t.message;
+                document.getElementById('detailBooking').href = t.bookingUrl;
+                
+                // 動画ボタン
+                const videoBtn = document.getElementById('detailVideo');
+                if (t.videoUrl) {
+                    videoBtn.className = 'btn';
+                    videoBtn.onclick = function() { openVideo(); return false; };
+                } else {
+                    videoBtn.className = 'btn btn-disabled';
+                    videoBtn.onclick = function() { return false; };
+                    videoBtn.textContent = '動画準備中';
+                }
+                if (t.videoUrl) {
+                    videoBtn.textContent = '自己紹介動画';
+                }
+                
+                currentTeacherId = id;
+            }
+            document.getElementById('listView').style.display = 'none';
+            document.getElementById('listHeader').style.display = 'none';
+            document.getElementById('detailView').classList.add('show');
+            updateSidebarActive(id);
+            window.scrollTo(0, 0);
+        }
+        
+        function updateSidebarActive(id) {
+            // PC用サイドバー
+            document.querySelectorAll('#sidebarList a').forEach(a => {
+                a.classList.remove('active');
+                if (a.dataset.id === id) {
+                    a.classList.add('active');
+                }
+            });
+            // スマホ用メニュー
+            document.querySelectorAll('#mobileMenuList a').forEach(a => {
+                a.classList.remove('active');
+                if (a.dataset.id === id) {
+                    a.classList.add('active');
+                }
+            });
+        }
+        
+        // 動画モーダル
+        function openVideo() {
+            if (!currentTeacherId || !teachers[currentTeacherId].videoUrl) return;
+            const videoUrl = teachers[currentTeacherId].videoUrl;
+            const video = document.getElementById('modalVideo');
+            video.src = videoUrl;
+            document.getElementById('videoNewTab').href = videoUrl;
+            document.getElementById('videoModal').classList.add('show');
+            video.play();
+        }
+        
+        function closeVideo(event) {
+            if (event && event.target !== document.getElementById('videoModal')) return;
+            const video = document.getElementById('modalVideo');
+            video.pause();
+            video.src = '';
+            document.getElementById('videoModal').classList.remove('show');
+        }
+        
+        // スマホメニュー
+        function toggleMobileMenu() {
+            document.querySelector('.hamburger').classList.toggle('open');
+            document.querySelector('.mobile-menu').classList.toggle('show');
+            document.querySelector('.mobile-menu-overlay').classList.toggle('show');
+        }
+        
+        function closeMobileMenu() {
+            document.querySelector('.hamburger').classList.remove('open');
+            document.querySelector('.mobile-menu').classList.remove('show');
+            document.querySelector('.mobile-menu-overlay').classList.remove('show');
+        }
+        
+        // ESCキーで動画閉じる
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeVideo();
+            }
+        });
+    </script>
+</body>
+</html>

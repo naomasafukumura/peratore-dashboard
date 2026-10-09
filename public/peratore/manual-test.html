@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Recall Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+    button {
+      cursor: pointer;
+      user-select: none;
+    }
+    button:disabled {
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-sky-100 min-h-screen">
+  
+  <!-- ホーム画面 -->
+  <div id="homeScreen" class="screen active p-6">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white rounded-3xl shadow-xl p-8 mb-6 text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">English Recall Quiz</h1>
+        <p class="text-gray-600">スペースドリピティションで英語を定着させよう</p>
+      </div>
+
+      <div class="bg-gradient-to-r from-blue-500 to-sky-500 rounded-3xl shadow-xl p-8 mb-6 text-white">
+        <h2 class="text-2xl font-bold mb-4">📊 今日の復習</h2>
+        <div id="todayCount" class="text-6xl font-bold mb-2">0問</div>
+        <p class="text-blue-100">復習すべき問題があります</p>
+      </div>
+
+      <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-6 rounded-3xl shadow-xl text-xl transition-colors mb-6">
+        復習を始める
+      </button>
+
+      <!-- 追加トレーニングセクション -->
+      <div id="extraTrainingSection" style="display: none;" class="mb-6">
+        <div class="border-t-2 border-gray-200 pt-6">
+          <div class="text-center mb-4">
+            <div class="text-3xl mb-2">🔥</div>
+            <h3 class="text-xl font-bold text-gray-800 mb-2">もっと練習したい？</h3>
+            <p class="text-gray-600 text-sm mb-4">
+              追加トレーニングでさらに上達
+            </p>
+          </div>
+          <button id="extraTrainingHomeBtn" class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-5 rounded-3xl shadow-xl text-lg transition-colors">
+            ⚡ 追加トレーニングを開始 →
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl p-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">📈 統計</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-blue-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">総問題数</div>
+            <div id="totalCount" class="text-2xl font-bold text-blue-600">0問</div>
+          </div>
+          <div class="bg-green-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">復習済み</div>
+            <div id="reviewedCount" class="text-2xl font-bold text-green-600">0問</div>
+          </div>
+          <div class="bg-purple-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">総復習回数</div>
+            <div id="totalReviewCount" class="text-2xl font-bold text-purple-600">0回</div>
+          </div>
+          <div class="bg-orange-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">平均回答時間</div>
+            <div id="avgTime" class="text-2xl font-bold text-orange-600">0秒</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="statsBtn" class="w-full mt-6 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-3xl transition-colors">
+        詳細統計を見る →
+      </button>
+    </div>
+  </div>
+
+  <!-- クイズ画面 -->
+  <div id="quizScreen" class="screen p-6">
+    <div class="max-w-2xl mx-auto">
+      <div class="mb-6">
+        <div class="flex justify-between text-sm text-gray-600 mb-2">
+          <span id="progressText">問題 1/15</span>
+          <span id="remainingText">残り 14問</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="progressBar" class="bg-blue-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl p-6 mb-6 text-center">
+        <div class="flex items-center justify-center gap-2 mb-2">
+          <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="timerDisplay" class="text-4xl font-bold text-blue-600">0.0秒</span>
+        </div>
+        <div class="text-sm text-gray-500" id="timerStatus">タイマー計測中...</div>
+      </div>
+
+      <div class="bg-gradient-to-r from-blue-500 to-sky-500 rounded-3xl shadow-xl p-8 mb-6">
+        <div id="questionText" class="text-white text-2xl font-bold text-center"></div>
+      </div>
+
+      <div id="showAnswerSection">
+        <button id="showAnswerBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-3xl shadow-xl text-xl transition-colors">
+          答えを見る
+        </button>
+      </div>
+
+      <div id="answerSection" style="display: none;">
+        <div class="bg-white rounded-3xl shadow-xl p-6 mb-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">💡 回答例</h3>
+          <div id="sampleAnswers" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">あなたの回答は...</h3>
+          <div class="space-y-3">
+            <button data-result="3sec" class="result-btn w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              ✨ 3秒以内に言えた
+            </button>
+            <button data-result="15sec" class="result-btn w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M7 10v12m8-16.12L14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path>
+              </svg>
+              👍 15秒以内に言えた
+            </button>
+            <button data-result="30sec" class="result-btn w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01"></path>
+              </svg>
+              😅 30秒以上かかった
+            </button>
+            <button data-result="failed" class="result-btn w-full bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M18 6 6 18M6 6l12 12"></path>
+              </svg>
+              💪 言えなかった
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="resultScreen" class="screen p-6">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-gradient-to-r from-green-500 to-emerald-500 rounded-3xl shadow-xl p-8 mb-6 text-white text-center">
+        <div class="text-6xl mb-4">🎉</div>
+        <h2 class="text-3xl font-bold mb-2">今日の復習完了！</h2>
+        <p class="text-green-100">お疲れ様でした！</p>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl p-6 mb-6">
+        <h3 id="resultSummary" class="text-xl font-bold text-gray-800 mb-4 text-center">15問中 10問正解</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between bg-green-50 rounded-xl p-4">
+            <span class="font-semibold text-gray-700">✨ 3秒以内</span>
+            <span id="result3sec" class="text-2xl font-bold text-green-600">0問</span>
+          </div>
+          <div class="flex items-center justify-between bg-blue-50 rounded-xl p-4">
+            <span class="font-semibold text-gray-700">👍 15秒以内</span>
+            <span id="result15sec" class="text-2xl font-bold text-blue-600">0問</span>
+          </div>
+          <div class="flex items-center justify-between bg-orange-50 rounded-xl p-4">
+            <span class="font-semibold text-gray-700">😅 30秒以上</span>
+            <span id="result30sec" class="text-2xl font-bold text-orange-600">0問</span>
+          </div>
+          <div class="flex items-center justify-between bg-red-50 rounded-xl p-4">
+            <span class="font-semibold text-gray-700">💪 言えなかった</span>
+            <span id="resultFailed" class="text-2xl font-bold text-red-600">0問</span>
+          </div>
+        </div>
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">平均回答時間</span>
+            <span id="resultAvgTime" class="text-2xl font-bold text-blue-600">0秒</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <button id="homeFromResultBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-3xl shadow-xl text-xl transition-colors">
+          ホームに戻る
+        </button>
+        <button id="statsFromResultBtn" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-3xl transition-colors">
+          詳細統計を見る
+        </button>
+      </div>
+
+      <!-- 追加トレーニング -->
+      <div class="mt-8 pt-8 border-t-2 border-gray-200">
+        <div class="text-center mb-4">
+          <div class="text-3xl mb-2">🔥</div>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">もっと上達したい？</h3>
+          <p class="text-gray-600 text-sm mb-4">
+            本気で英語を話せるようになりたい方へ
+          </p>
+        </div>
+        <button id="extraTrainingResultBtn" class="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-5 rounded-3xl shadow-xl text-lg transition-colors">
+          ⚡ 追加トレーニングを開始 →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 統計画面 -->
+  <div id="statsScreen" class="screen p-6">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white rounded-3xl shadow-xl p-6 mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M18 20V10M12 20V4M6 20v-6"></path>
+          </svg>
+          📊 あなたの統計
+        </h2>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">全体の進捗</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-blue-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">総問題数</div>
+            <div id="statsTotal" class="text-3xl font-bold text-blue-600">0問</div>
+          </div>
+          <div class="bg-green-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">復習済み</div>
+            <div id="statsReviewed" class="text-3xl font-bold text-green-600">0問</div>
+          </div>
+          <div class="bg-purple-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">残り</div>
+            <div id="statsRemaining" class="text-3xl font-bold text-purple-600">0問</div>
+          </div>
+          <div class="bg-orange-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">今日の復習</div>
+            <div id="statsTodayCount" class="text-3xl font-bold text-orange-600">0問</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">回答速度分布</h3>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">3秒以内</span>
+              <span id="stats3secPercent" class="font-semibold text-green-600">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="stats3secBar" class="bg-green-500 h-3 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">15秒以内</span>
+              <span id="stats15secPercent" class="font-semibold text-blue-600">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="stats15secBar" class="bg-blue-500 h-3 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">30秒以上</span>
+              <span id="stats30secPercent" class="font-semibold text-orange-600">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="stats30secBar" class="bg-orange-500 h-3 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-gray-600">言えない</span>
+              <span id="statsFailedPercent" class="font-semibold text-red-600">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div id="statsFailedBar" class="bg-red-500 h-3 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="flex justify-between">
+            <span class="text-gray-600">平均回答時間</span>
+            <span id="statsAvgTime" class="text-xl font-bold text-blue-600">0秒</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="homeFromStatsBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-6 rounded-3xl shadow-xl text-xl transition-colors">
+        ホームに戻る
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 質問データ
+    const INITIAL_QUESTIONS = [
+      {
+        id: 'q001',
+        question: 'What did you do yesterday?',
+        sampleAnswers: ['I went to work and met my friend for dinner.', 'I stayed home and watched a movie.', 'I studied English for two hours.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q002',
+        question: 'What are you going to do this weekend?',
+        sampleAnswers: ['I\'m going to visit my family.', 'I plan to relax at home.', 'I\'m meeting friends for lunch.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q003',
+        question: 'How was your day today?',
+        sampleAnswers: ['It was pretty good, thanks for asking.', 'It was busy but productive.', 'Not bad, just a typical Monday.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q004',
+        question: 'What do you usually do in your free time?',
+        sampleAnswers: ['I like to read books and watch movies.', 'I enjoy playing sports.', 'I usually hang out with friends.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q005',
+        question: 'Can you tell me about your job?',
+        sampleAnswers: ['I work as a software engineer.', 'I\'m a teacher at a high school.', 'I manage a small team at my company.'],
+        category: 'work'
+      },
+      {
+        id: 'q006',
+        question: 'What did you eat for breakfast?',
+        sampleAnswers: ['I had toast and coffee.', 'I ate a bowl of cereal.', 'I skipped breakfast today.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q007',
+        question: 'How do you usually get to work?',
+        sampleAnswers: ['I take the train.', 'I drive my car.', 'I work from home.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q008',
+        question: 'What\'s your favorite type of music?',
+        sampleAnswers: ['I love pop music.', 'I enjoy classical music.', 'I listen to all kinds of music.'],
+        category: 'hobbies'
+      },
+      {
+        id: 'q009',
+        question: 'Have you traveled anywhere recently?',
+        sampleAnswers: ['Yes, I went to Kyoto last month.', 'Not recently, but I\'m planning a trip.', 'No, I haven\'t traveled in a while.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q010',
+        question: 'What are you studying these days?',
+        sampleAnswers: ['I\'m learning English.', 'I\'m studying programming.', 'I\'m taking a business course.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q011',
+        question: 'What did you do last night?',
+        sampleAnswers: ['I cooked dinner and watched TV.', 'I went out with friends.', 'I worked late at the office.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q012',
+        question: 'Do you have any plans for next week?',
+        sampleAnswers: ['I have a meeting on Monday.', 'I\'m going to start a new project.', 'Nothing special planned yet.'],
+        category: 'future_plans'
+      },
+      {
+        id: 'q013',
+        question: 'How long have you been learning English?',
+        sampleAnswers: ['About two years now.', 'I started last year.', 'I\'ve been studying for six months.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q014',
+        question: 'What\'s the weather like today?',
+        sampleAnswers: ['It\'s sunny and warm.', 'It\'s cold and rainy.', 'It\'s a bit cloudy.'],
+        category: 'daily_conversation'
+      },
+      {
+        id: 'q015',
+        question: 'What time do you usually wake up?',
+        sampleAnswers: ['I wake up at 7 AM.', 'Around 6:30 in the morning.', 'It depends, but usually around 8.'],
+        category: 'daily_conversation'
+      }
+    ];
+
+    // グローバル変数
+    let questions = [];
+    let todayQuestions = [];
+    let currentQuestionIndex = 0;
+    let timer = 0;
+    let timerInterval = null;
+    let todayResults = [];
+
+    // 初期化
+    function init() {
+      loadData();
+      setupEventListeners();
+      updateHomeScreen();
+    }
+
+    // データ読み込み
+    function loadData() {
+      try {
+        const savedData = localStorage.getItem('quizData');
+        if (savedData) {
+          const data = JSON.parse(savedData);
+          questions = data.questions || initializeQuestions();
+        } else {
+          questions = initializeQuestions();
+        }
+      } catch (e) {
+        console.error('データ読み込みエラー:', e);
+        questions = initializeQuestions();
+      }
+    }
+
+    // 初期質問データ生成
+    function initializeQuestions() {
+      const today = new Date().toISOString().split('T')[0];
+      return INITIAL_QUESTIONS.map(q => ({
+        ...q,
+        nextReviewDate: today,
+        currentInterval: 0,
+        easeFactor: 2.5,
+        reviewHistory: []
+      }));
+    }
+
+    // データ保存
+    function saveData() {
+      try {
+        const data = {
+          questions: questions,
+          lastUpdated: new Date().toISOString()
+        };
+        localStorage.setItem('quizData', JSON.stringify(data));
+      } catch (e) {
+        console.error('データ保存エラー:', e);
+      }
+    }
+
+    // 今日の質問を取得
+    function getTodayQuestions() {
+      const today = new Date().toISOString().split('T')[0];
+      return questions.filter(q => q.nextReviewDate <= today);
+    }
+
+    // 統計取得
+    function getStats() {
+      const total = questions.length;
+      const reviewed = questions.filter(q => q.reviewHistory.length > 0).length;
+      const todayCount = getTodayQuestions().length;
+      const allResults = questions.flatMap(q => q.reviewHistory);
+      const within3sec = allResults.filter(r => r.result === '3sec').length;
+      const within15sec = allResults.filter(r => r.result === '15sec').length;
+      const within30sec = allResults.filter(r => r.result === '30sec').length;
+      const failed = allResults.filter(r => r.result === 'failed').length;
+      const totalReviews = allResults.length;
+      const avgTime = totalReviews > 0 
+        ? (allResults.reduce((sum, r) => sum + parseFloat(r.responseTime), 0) / totalReviews).toFixed(1)
+        : 0;
+
+      return {
+        total,
+        reviewed,
+        remaining: total - reviewed,
+        todayCount,
+        within3sec,
+        within15sec,
+        within30sec,
+        failed,
+        totalReviews,
+        avgTime
+      };
+    }
+
+    // イベントリスナー設定
+    function setupEventListeners() {
+      // ホーム画面
+      document.getElementById('startBtn').onclick = startQuiz;
+      document.getElementById('statsBtn').onclick = () => showScreen('stats');
+      document.getElementById('extraTrainingHomeBtn').onclick = startExtraTraining;
+
+      // クイズ画面
+      document.getElementById('showAnswerBtn').onclick = showAnswer;
+      
+      // 自己評価ボタン
+      document.querySelectorAll('.result-btn').forEach(btn => {
+        btn.onclick = function() {
+          handleAnswer(this.dataset.result);
+        };
+      });
+
+      // 結果画面
+      document.getElementById('homeFromResultBtn').onclick = () => showScreen('home');
+      document.getElementById('statsFromResultBtn').onclick = () => showScreen('stats');
+      document.getElementById('extraTrainingResultBtn').onclick = startExtraTraining;
+
+      // 統計画面
+      document.getElementById('homeFromStatsBtn').onclick = () => showScreen('home');
+    }
+
+    // 画面切り替え
+    function showScreen(screenName) {
+      // 全画面非表示
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      
+      // 指定画面を表示
+      if (screenName === 'home') {
+        updateHomeScreen();
+        document.getElementById('homeScreen').classList.add('active');
+      } else if (screenName === 'quiz') {
+        document.getElementById('quizScreen').classList.add('active');
+      } else if (screenName === 'result') {
+        updateResultScreen();
+        document.getElementById('resultScreen').classList.add('active');
+      } else if (screenName === 'stats') {
+        updateStatsScreen();
+        document.getElementById('statsScreen').classList.add('active');
+      }
+    }
+
+    // ホーム画面更新
+    function updateHomeScreen() {
+      todayQuestions = getTodayQuestions();
+      const stats = getStats();
+
+      document.getElementById('todayCount').textContent = `${todayQuestions.length}問`;
+      document.getElementById('totalCount').textContent = `${stats.total}問`;
+      document.getElementById('reviewedCount').textContent = `${stats.reviewed}問`;
+      document.getElementById('totalReviewCount').textContent = `${stats.totalReviews}回`;
+      document.getElementById('avgTime').textContent = `${stats.avgTime}秒`;
+
+      const startBtn = document.getElementById('startBtn');
+      const extraSection = document.getElementById('extraTrainingSection');
+      
+      if (todayQuestions.length === 0) {
+        startBtn.disabled = true;
+        startBtn.textContent = '今日の復習完了！🎉';
+        extraSection.style.display = 'block';
+      } else {
+        startBtn.disabled = false;
+        startBtn.textContent = '復習を始める';
+        extraSection.style.display = 'none';
+      }
+    }
+
+    // クイズ開始
+    function startQuiz() {
+      todayQuestions = getTodayQuestions();
+      if (todayQuestions.length === 0) {
+        alert('今日の復習はありません！明日また来てください 🎉');
+        return;
+      }
+      
+      currentQuestionIndex = 0;
+      todayResults = [];
+      showScreen('quiz');
+      displayQuestion();
+    }
+
+    // 追加トレーニング開始
+    function startExtraTraining() {
+      const today = new Date().toISOString().split('T')[0];
+      questions.forEach(q => {
+        q.nextReviewDate = today;
+      });
+      saveData();
+      
+      // 今日の問題を取得（全15問になっているはず）
+      todayQuestions = getTodayQuestions();
+      currentQuestionIndex = 0;
+      todayResults = [];
+      showScreen('quiz');
+      displayQuestion();
+    }
+
+    // 質問表示
+    function displayQuestion() {
+      const currentQ = todayQuestions[currentQuestionIndex];
+      
+      // プログレス更新
+      const progress = ((currentQuestionIndex + 1) / todayQuestions.length) * 100;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+      document.getElementById('progressText').textContent = `問題 ${currentQuestionIndex + 1}/${todayQuestions.length}`;
+      document.getElementById('remainingText').textContent = `残り ${todayQuestions.length - currentQuestionIndex - 1}問`;
+
+      // 質問表示
+      document.getElementById('questionText').textContent = currentQ.question;
+
+      // タイマー開始
+      timer = 0;
+      updateTimerDisplay();
+      startTimer();
+
+      // 表示切り替え
+      document.getElementById('showAnswerSection').style.display = 'block';
+      document.getElementById('answerSection').style.display = 'none';
+      document.getElementById('timerStatus').textContent = 'タイマー計測中...';
+    }
+
+    // タイマー開始
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timer += 0.1;
+        updateTimerDisplay();
+      }, 100);
+    }
+
+    // タイマー停止
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // タイマー表示更新
+    function updateTimerDisplay() {
+      document.getElementById('timerDisplay').textContent = `${timer.toFixed(1)}秒`;
+    }
+
+    // 答えを表示
+    function showAnswer() {
+      stopTimer();
+      const currentQ = todayQuestions[currentQuestionIndex];
+
+      // 回答例表示
+      const answersDiv = document.getElementById('sampleAnswers');
+      answersDiv.innerHTML = '';
+      currentQ.sampleAnswers.forEach(answer => {
+        const div = document.createElement('div');
+        div.className = 'bg-blue-50 rounded-xl p-3 text-gray-700';
+        div.textContent = `• ${answer}`;
+        answersDiv.appendChild(div);
+      });
+
+      // 表示切り替え
+      document.getElementById('showAnswerSection').style.display = 'none';
+      document.getElementById('answerSection').style.display = 'block';
+      document.getElementById('timerStatus').textContent = '';
+    }
+
+    // 回答処理
+    function handleAnswer(result) {
+      const currentQ = todayQuestions[currentQuestionIndex];
+      const today = new Date().toISOString().split('T')[0];
+
+      let nextInterval;
+      let easeFactor = currentQ.easeFactor;
+
+      if (result === '3sec') {
+        nextInterval = Math.max(1, Math.round(currentQ.currentInterval * 2.5));
+        easeFactor = Math.min(3.0, easeFactor + 0.1);
+      } else if (result === '15sec') {
+        nextInterval = Math.max(1, Math.round(currentQ.currentInterval * 1.5));
+      } else if (result === '30sec') {
+        nextInterval = 1;
+        easeFactor = Math.max(1.3, easeFactor - 0.2);
+      } else {
+        nextInterval = 0;
+        easeFactor = Math.max(1.3, easeFactor - 0.3);
+      }
+
+      const nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + nextInterval);
+      const nextReviewDate = nextDate.toISOString().split('T')[0];
+
+      // 質問データ更新
+      const questionIndex = questions.findIndex(q => q.id === currentQ.id);
+      questions[questionIndex].nextReviewDate = nextReviewDate;
+      questions[questionIndex].currentInterval = nextInterval;
+      questions[questionIndex].easeFactor = easeFactor;
+      questions[questionIndex].reviewHistory.push({
+        date: today,
+        responseTime: timer.toFixed(1),
+        result: result,
+        nextInterval: nextInterval
+      });
+
+      saveData();
+
+      // 今日の結果に追加
+      todayResults.push({
+        question: currentQ.question,
+        result: result,
+        time: timer.toFixed(1)
+      });
+
+      // 次の問題へ
+      if (currentQuestionIndex < todayQuestions.length - 1) {
+        currentQuestionIndex++;
+        displayQuestion();
+      } else {
+        showScreen('result');
+      }
+    }
+
+    // 結果画面更新
+    function updateResultScreen() {
+      const count3sec = todayResults.filter(r => r.result === '3sec').length;
+      const count15sec = todayResults.filter(r => r.result === '15sec').length;
+      const count30sec = todayResults.filter(r => r.result === '30sec').length;
+      const countFailed = todayResults.filter(r => r.result === 'failed').length;
+      const avgTime = todayResults.length > 0 
+        ? (todayResults.reduce((sum, r) => sum + parseFloat(r.time), 0) / todayResults.length).toFixed(1)
+        : 0;
+
+      document.getElementById('resultSummary').textContent = `${todayResults.length}問中 ${count3sec + count15sec}問正解`;
+      document.getElementById('result3sec').textContent = `${count3sec}問`;
+      document.getElementById('result15sec').textContent = `${count15sec}問`;
+      document.getElementById('result30sec').textContent = `${count30sec}問`;
+      document.getElementById('resultFailed').textContent = `${countFailed}問`;
+      document.getElementById('resultAvgTime').textContent = `${avgTime}秒`;
+    }
+
+    // 統計画面更新
+    function updateStatsScreen() {
+      const stats = getStats();
+
+      document.getElementById('statsTotal').textContent = `${stats.total}問`;
+      document.getElementById('statsReviewed').textContent = `${stats.reviewed}問`;
+      document.getElementById('statsRemaining').textContent = `${stats.remaining}問`;
+      document.getElementById('statsTodayCount').textContent = `${stats.todayCount}問`;
+      document.getElementById('statsAvgTime').textContent = `${stats.avgTime}秒`;
+
+      const total = stats.totalReviews || 1;
+      const percent3sec = Math.round((stats.within3sec / total) * 100);
+      const percent15sec = Math.round((stats.within15sec / total) * 100);
+      const percent30sec = Math.round((stats.within30sec / total) * 100);
+      const percentFailed = Math.round((stats.failed / total) * 100);
+
+      document.getElementById('stats3secPercent').textContent = `${percent3sec}%`;
+      document.getElementById('stats3secBar').style.width = `${percent3sec}%`;
+      document.getElementById('stats15secPercent').textContent = `${percent15sec}%`;
+      document.getElementById('stats15secBar').style.width = `${percent15sec}%`;
+      document.getElementById('stats30secPercent').textContent = `${percent30sec}%`;
+      document.getElementById('stats30secBar').style.width = `${percent30sec}%`;
+      document.getElementById('statsFailedPercent').textContent = `${percentFailed}%`;
+      document.getElementById('statsFailedBar').style.width = `${percentFailed}%`;
+    }
+
+    // 初期化実行
+    init();
+  </script>
+</body>
+</html>
