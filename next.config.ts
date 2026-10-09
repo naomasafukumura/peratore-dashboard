@@ -112,8 +112,13 @@ saturateMissingEnvFromDisk(root);
 
 const nextConfig: NextConfig = {
   async redirects() {
-    // 講師ポータル（旧 masaenglishcompany.com/peratore_tutor2/）
-    return [{ source: '/tutor', destination: '/tutor/index.html', permanent: false }];
+    // 受講生管理・講師ポータル（旧 masaenglishcompany.com/peratore-student/）
+    // /tutor は 10/8 に旧版(peratore_tutor2)を置いていた URL。最新版へ寄せる
+    return [
+      { source: '/peratore-student', destination: '/peratore-student/index.html', permanent: false },
+      { source: '/tutor', destination: '/peratore-student/index.html', permanent: false },
+      { source: '/tutor/:path*', destination: '/peratore-student/index.html', permanent: false },
+    ];
   },
 };
 

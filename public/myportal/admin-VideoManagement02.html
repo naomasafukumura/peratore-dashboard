@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>未消化管理 - ペラトレ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'BIZ UDGothic', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+            background: #F1F1F1;
+            color: #423929;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .header {
+            border-bottom: 1px solid #d0d0d0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.4rem;
+            color: #423929;
+        }
+
+        .breadcrumb a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #423929;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            color: #A296AF;
+        }
+
+        .breadcrumb .separator {
+            color: #7a6f5d;
+        }
+
+        .breadcrumb .current {
+            color: #A296AF;
+        }
+
+        .title-icon {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+
+        /* テーブル */
+        .table-wrapper {
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 8px 6px;
+            text-align: center;
+            border: 1px solid #e8e8e8;
+        }
+
+        .data-table th {
+            background: #f9f9f9;
+            font-weight: 400;
+            color: #7a6f5d;
+        }
+
+        .data-table th.month-header {
+            background: #f5f3f7;
+            color: #423929;
+        }
+
+        .data-table th.deadline-header {
+            background: #f9f9f9;
+            font-size: 0.75rem;
+            color: #A296AF;
+        }
+
+        .data-table td {
+            color: #423929;
+        }
+
+        .data-table td.name {
+            text-align: left;
+            font-weight: 400;
+            min-width: 80px;
+        }
+
+        .data-table td.line-name {
+            text-align: left;
+            color: #7a6f5d;
+            min-width: 60px;
+        }
+
+        .data-table td.start {
+            color: #7a6f5d;
+            font-size: 0.8rem;
+            min-width: 100px;
+        }
+
+        .data-table td.total {
+            color: #7a6f5d;
+            min-width: 45px;
+        }
+
+        .data-table td.booked {
+            color: #7a6f5d;
+            min-width: 45px;
+        }
+
+        .data-table td.remaining {
+            color: #A296AF;
+            font-weight: 700;
+            min-width: 45px;
+        }
+
+        .data-table td.remaining.has-remaining {
+            background: #A296AF;
+            color: white;
+        }
+
+        .data-table td.remaining.zero {
+            color: #d0d0d0;
+            font-weight: 400;
+        }
+
+        .data-table td.na {
+            color: #d0d0d0;
+            min-width: 45px;
+        }
+
+        /* アコーディオン3列レイアウト */
+        .accordion-3col {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .acc-col-history {
+            flex: 0 0 28%;
+            min-width: 0;
+            font-size: 0.82rem;
+        }
+
+        .acc-col-schedule {
+            flex: 0 0 20%;
+            min-width: 0;
+            font-size: 0.82rem;
+        }
+
+        .acc-col-line {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .acc-col-title {
+            font-size: 0.75rem;
+            color: #A296AF;
+            font-weight: 500;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .acc-col-history,
+        .acc-col-schedule {
+            text-align: left;
+        }
+
+        .hist-controls {
+            margin-bottom: 6px;
+        }
+
+        .hist-ctrl {
+            font-size: 0.72rem;
+            color: #A296AF;
+            cursor: pointer;
+            margin-right: 10px;
+            text-decoration: underline;
+        }
+
+        .hist-ctrl:hover {
+            color: #8a7e9a;
+        }
+
+        .history-month-group {
+            margin-bottom: 2px;
+        }
+
+        .history-month-label {
+            color: #7a6f5d;
+            font-weight: 500;
+            margin: 8px 0 2px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .history-month-label::before {
+            content: '▼ ';
+            font-size: 0.65rem;
+        }
+
+        .history-month-label.collapsed::before {
+            content: '▶ ';
+        }
+
+        .history-month-label:first-child {
+            margin-top: 0;
+        }
+
+        .history-month-body {
+            padding-left: 6px;
+        }
+
+        .history-month-body.hidden {
+            display: none;
+        }
+
+        .history-lesson-item {
+            padding: 1px 0;
+            color: #423929;
+        }
+
+        .history-lesson-item.cancelled {
+            color: #d0d0d0;
+            text-decoration: line-through;
+        }
+
+        .history-lesson-item.future {
+            color: #A296AF;
+        }
+
+        .history-footer {
+            margin-top: 12px;
+            padding-top: 8px;
+            border-top: 1px solid #e8e8e8;
+            font-weight: 600;
+            color: #A296AF;
+        }
+
+        .history-footer.zero {
+            color: #d0d0d0;
+            font-weight: 400;
+        }
+
+        .schedule-month-label {
+            color: #7a6f5d;
+            font-weight: 600;
+            margin: 16px 0 4px;
+            font-size: 0.8rem;
+            padding-top: 12px;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .schedule-month-label:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .schedule-item {
+            padding: 2px 0;
+            color: #423929;
+        }
+
+        .schedule-empty {
+            color: #d0d0d0;
+            font-size: 0.8rem;
+        }
+
+
+        .data-table td.expand-cell {
+            width: 30px;
+            cursor: pointer;
+            color: #A296AF;
+        }
+
+        .data-table td.expand-cell:hover {
+            background: #f5f3f7;
+        }
+
+        .data-table td.expand-cell.disabled {
+            color: #e8e8e8;
+            cursor: default;
+        }
+
+        .data-table td.expand-cell.disabled:hover {
+            background: transparent;
+        }
+
+        /* アコーディオン行 */
+        .accordion-row {
+            display: none;
+        }
+
+        .accordion-row.open {
+            display: table-row;
+        }
+
+        /* 週1以外・退会者のグレーアウト */
+        .data-table tr.non-target {
+            opacity: 0.5;
+        }
+
+        .accordion-content {
+            padding: 20px;
+            background: #fafafa;
+            text-align: left;
+        }
+
+        .line-text-box {
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 2px;
+            padding: 15px;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            width: 100%;
+            height: 300px;
+            resize: vertical;
+            font-family: 'BIZ UDGothic', sans-serif;
+            color: #423929;
+            text-align: left;
+        }
+
+        .accordion-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-start;
+        }
+
+        .patterns-container {
+            display: flex;
+            gap: 20px;
+        }
+
+        .pattern-box {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pattern-label {
+            font-size: 0.85rem;
+            color: #A296AF;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .line-text-box.no-remaining {
+            color: #7a6f5d;
+            text-align: center;
+            padding: 30px 15px;
+        }
+
+        /* ボタン */
+        button, .btn {
+            padding: 10px 20px;
+            border: 1px solid #A296AF;
+            background: white;
+            color: #A296AF;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            font-family: 'BIZ UDGothic', sans-serif;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        button:hover, .btn:hover {
+            background: #A296AF;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .btn-primary:hover {
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+
+        /* 成功メッセージ */
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #A296AF;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 2px;
+            font-size: 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 10000;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7a6f5d;
+            font-size: 0.95rem;
+        }
+
+        /* フィルター */
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #7a6f5d;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .data-table {
+                font-size: 0.75rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 5px 3px;
+            }
+        }
+
+        /* パスワード保護 */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #F1F1F1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .auth-box {
+            background: white;
+            padding: 50px 40px;
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+        }
+        .auth-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 20px;
+            opacity: 0.4;
+            object-fit: contain;
+        }
+        .auth-title {
+            font-size: 1.1rem;
+            color: #423929;
+            margin-bottom: 25px;
+            font-weight: 400;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #d8d8d8;
+            border-radius: 2px;
+            font-size: 1rem;
+            text-align: center;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            font-family: 'BIZ UDGothic', sans-serif;
+        }
+        .auth-input:focus {
+            outline: none;
+            border-color: #A296AF;
+        }
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #A296AF;
+            border: 1px solid #A296AF;
+            border-radius: 2px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: 'BIZ UDGothic', sans-serif;
+            transition: all 0.2s;
+        }
+        .auth-btn:hover {
+            background: #A296AF;
+            color: white;
+        }
+        .auth-error {
+            color: #c44;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- パスワード認証オーバーレイ -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <img src="icon_key.png" alt="" class="auth-icon">
+            <div class="auth-title">Lesson Archive管理</div>
+            <input type="password" id="authPassword" class="auth-input" placeholder="パスワード" onkeypress="if(event.key==='Enter')checkAuth()">
+            <button class="auth-btn" onclick="checkAuth()">ログイン</button>
+            <div id="authError" class="auth-error">パスワードが違います</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="breadcrumb">
+                <a href="admin-VideoManagement00.html">
+                    <img src="icon_movie.png" alt="" class="title-icon">
+                    <span>Lesson Archive管理</span>
+                </a>
+                <span class="separator">＞</span>
+                <span class="current">未消化管理</span>
+            </div>
+        </div>
+
+        <div id="successMessage" class="success-message"></div>
+
+        <div id="tableContainer">
+            <div class="empty-state">読み込み中...</div>
+        </div>
+
+        <div class="filter-row" style="margin-top: 20px; margin-bottom: 0;">
+            <label class="filter-checkbox">
+                <input type="checkbox" id="targetOnlyFilter" onchange="displayStudents()" checked>
+                未消化管理対象者のみ表示
+            </label>
+            <button class="btn" onclick="copyTableData()" style="margin-left: auto;">コピー</button>
+        </div>
+    </div>
+
+    <script>
+        const SCHEDULE_API_URL = '/api/legacy/gas'; // GAS のURL・キーはサーバー側にだけある
+        const GAS_CACHE_KEY = 'gas_schedule_cache';
+
+        let allStudents = [];
+        let allTemplates = {};
+        let gasLessons = [];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudents();
+        });
+
+        // 生徒データ読み込み
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/legacy/store/students?t=' + new Date().getTime());
+                const data = await response.json();
+                allStudents = data.students || data;
+                allTemplates = data.templates || {};
+
+                // GASキャッシュ取得
+                const cached = sessionStorage.getItem(GAS_CACHE_KEY);
+                if (cached) {
+                    gasLessons = JSON.parse(cached);
+                } else {
+                    try {
+                        const res = await fetch(SCHEDULE_API_URL);
+                        gasLessons = await res.json();
+                        if (Array.isArray(gasLessons)) sessionStorage.setItem(GAS_CACHE_KEY, JSON.stringify(gasLessons));
+                    } catch (e) {
+                        gasLessons = [];
+                    }
+                }
+
+                displayStudents();
+            } catch (error) {
+                console.error('読み込みエラー:', error);
+                document.getElementById('tableContainer').innerHTML =
+                    '<div class="empty-state">データの読み込みに失敗しました</div>';
+            }
+        }
+
+        // 指定月時点での頻度を返す
+        function getFreqAtMonth(student, year, month) {
+            let freq = student.freq || '月4';
+            const changes = (student.freqChanges || [])
+                .slice()
+                .sort((a, b) => a.month.localeCompare(b.month));
+            for (const change of changes) {
+                const [cy, cm] = change.month.split('-').map(Number);
+                if (year > cy || (year === cy && month >= cm)) {
+                    freq = change.freq;
+                }
+            }
+            return freq;
+        }
+
+        // 月の権利回数を返す
+        function getMonthRights(student, year, month) {
+            const freq = getFreqAtMonth(student, year, month);
+            if (freq === '月2') return 2;
+            if (freq === '月1') return 1;
+            // 月4: 2026年3月以降は4固定、以前は月曜日数
+            if (year > 2026 || (year === 2026 && month >= 3)) return 4;
+            return countMondaysInMonth(year, month);
+        }
+
+        // 月の月曜日数をカウント
+        function countMondaysInMonth(year, month) {
+            let count = 0;
+            const lastDay = new Date(year, month, 0).getDate();
+            for (let day = 1; day <= lastDay; day++) {
+                if (new Date(year, month - 1, day).getDay() === 1) count++;
+            }
+            return count;
+        }
+
+        // 指定月末時点の振替残り計算
+        function calcRemainingUpTo(student, upY, upM) {
+            if (!student.startMonth) return 0;
+            const [sY, sM] = student.startMonth.split('-').map(Number);
+            const cutoff = upY * 100 + upM;
+
+            // 権利計算（開始月〜min(退会月, 指定月)）
+            let rights = 0;
+            let y = sY, m = sM;
+            while (y * 100 + m <= cutoff) {
+                if (student.endMonth) {
+                    const [eY, eM] = student.endMonth.split('-').map(Number);
+                    if (y * 100 + m > eY * 100 + eM) break;
+                }
+                rights += getMonthRights(student, y, m);
+                m++; if (m > 12) { m = 1; y++; }
+            }
+
+            // JSONレッスン（非キャンセル、cutoff以内）
+            const jsAllDates = new Set((student.lessons || []).map(l => l.date));
+            const jsConsumed = (student.lessons || []).filter(l => {
+                const p = String(l.date).split('.');
+                return p.length >= 2 && parseInt(p[0]) * 100 + parseInt(p[1]) <= cutoff;
+            }).length;
+
+            // GASレッスン（JSONにないもの、cutoff以内）
+            const gasConsumed = gasLessons.filter(l => {
+                if (String(l.studentId) !== String(student.id)) return false;
+                if (!l.rawDate) return false;
+                const p = String(l.rawDate).split('.');
+                if (p.length < 2 || parseInt(p[0]) * 100 + parseInt(p[1]) > cutoff) return false;
+                return !jsAllDates.has(l.rawDate);
+            }).length;
+
+            return Math.max(0, rights - jsConsumed - gasConsumed);
+        }
+
+        // 生徒一覧表示
+        function displayStudents() {
+            const container = document.getElementById('tableContainer');
+            const targetOnly = document.getElementById('targetOnlyFilter').checked;
+
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            let nextYear = currentYear, nextMonth = currentMonth + 1;
+            if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+
+            let students = allStudents.filter(student => {
+                if (targetOnly) {
+                    if (student.status !== 'active') return false;
+                    if (!student.freq && student.nonWeekly) return false;
+                }
+                return true;
+            });
+
+            const targetCount = students.filter(s => s.status === 'active' && !(!s.freq && s.nonWeekly)).length;
+
+            if (students.length === 0) {
+                container.innerHTML = '<div class="empty-state">該当する生徒がいません</div>';
+                return;
+            }
+
+            let html = '<div class="table-wrapper"><table class="data-table">';
+
+            html += '<thead><tr>';
+            html += '<th></th>';
+            html += '<th>名前</th>';
+            html += '<th>LINE名</th>';
+            html += '<th>頻度</th>';
+            html += `<th>${currentMonth}月残</th>`;
+            html += `<th>${nextMonth}月残</th>`;
+            html += '<th></th>';
+            html += '</tr></thead>';
+
+            html += '<tbody>';
+
+            students.forEach((student, index) => {
+                const thisMonthRem = calcRemainingUpTo(student, currentYear, currentMonth);
+                const nextMonthRem = calcRemainingUpTo(student, nextYear, nextMonth);
+                const freqLabel = getFreqAtMonth(student, currentYear, currentMonth);
+                const isNonTarget = (!student.freq && student.nonWeekly) || student.status !== 'active';
+                const rowClass = isNonTarget ? 'class="non-target"' : '';
+
+                html += `<tr ${rowClass}>`;
+                html += `<td>${student.id}</td>`;
+                html += `<td class="name">${student.name}</td>`;
+                html += `<td class="line-name">${student.lineName || ''}</td>`;
+                html += `<td style="font-size:0.8rem;color:#7a6f5d">${freqLabel}</td>`;
+                html += thisMonthRem > 0
+                    ? `<td class="remaining has-remaining">${thisMonthRem}</td>`
+                    : `<td class="remaining zero">0</td>`;
+                html += nextMonthRem > 0
+                    ? `<td class="remaining has-remaining">${nextMonthRem}</td>`
+                    : `<td class="remaining zero">0</td>`;
+
+                if (!isNonTarget) {
+                    html += `<td class="expand-cell" onclick="toggleAccordion(${index})">▼</td>`;
+                } else {
+                    html += `<td class="expand-cell disabled">─</td>`;
+                }
+                html += '</tr>';
+
+                // アコーディオン行
+                html += `<tr class="accordion-row" id="accordion-${index}" data-student-id="${student.id}">`;
+                html += `<td colspan="7" class="accordion-content">`;
+                html += `<div class="accordion-3col">`;
+                html += `  <div class="acc-col-history" id="hist-${index}"><div class="acc-col-title">レッスン履歴</div></div>`;
+                html += `  <div class="acc-col-schedule" id="sched-${index}"><div class="acc-col-title">当月・翌月</div></div>`;
+                html += `  <div class="acc-col-line">`;
+                html += `    <div class="acc-col-title">LINEテキスト</div>`;
+                html += `    <textarea class="line-text-box" id="lineText1-${index}" placeholder="読み込み中..."></textarea>`;
+                html += `    <div class="accordion-buttons">`;
+                html += `      <button class="btn-primary" onclick="copyLineText(${index})">テキストをコピー</button>`;
+                if (student.lineUrl) {
+                    html += `      <button onclick="openLineChat(${student.id}, ${index})">🔗 LINEで送信</button>`;
+                }
+                html += `    </div>`;
+                html += `  </div>`;
+                html += `</div>`;
+                html += `</td></tr>`;
+            });
+
+            html += '</tbody>';
+            html += '<tfoot><tr>';
+            html += `<td colspan="7" style="text-align: right; color: #7a6f5d; padding: 8px;">対象者 ${targetCount}名</td>`;
+            html += '</tr></tfoot>';
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+
+        // レッスン履歴HTML生成（左列・権利月に順番に割り当て）
+        function buildLessonHistory(student, accIndex) {
+            if (!student.startMonth) return '<div class="schedule-empty">開始月未設定</div>';
+
+            const today = new Date();
+            const todayNum = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+            const days = ['日','月','火','水','木','金','土'];
+
+            // 全レッスンを時系列で収集（JSON + GAS）
+            const jsonLessons = (student.lessons || []).map(l => ({
+                date: l.date,
+                cancelled: !!(l.cancelled || (l.note && l.note.includes('お休み')))
+            }));
+            const jsonDates = new Set(jsonLessons.map(l => l.date));
+            const gasForStudent = gasLessons
+                .filter(l => String(l.studentId) === String(student.id) && l.rawDate && !jsonDates.has(l.rawDate))
+                .map(l => ({ date: l.rawDate, cancelled: false }));
+
+            const allLessons = [...jsonLessons, ...gasForStudent]
+                .sort((a, b) => {
+                    const pa = a.date.split('.').map(Number);
+                    const pb = b.date.split('.').map(Number);
+                    return pa[0] !== pb[0] ? pa[0] - pb[0]
+                         : pa[1] !== pb[1] ? pa[1] - pb[1]
+                         : pa[2] - pb[2];
+                });
+
+            // 権利月リストを構築（開始月〜最後のレッスンがある月 or 当月）
+            const [sY, sM] = student.startMonth.split('-').map(Number);
+            let cutY = today.getFullYear(), cutM = today.getMonth() + 1;
+            if (allLessons.length > 0) {
+                const lastP = allLessons[allLessons.length - 1].date.split('.').map(Number);
+                if (lastP[0] * 100 + lastP[1] > cutY * 100 + cutM) {
+                    cutY = lastP[0]; cutM = lastP[1];
+                }
+            }
+
+            const rightsMonths = [];
+            let y = sY, m = sM;
+            while (y * 100 + m <= cutY * 100 + cutM) {
+                if (student.endMonth) {
+                    const [eY, eM] = student.endMonth.split('-').map(Number);
+                    if (y * 100 + m > eY * 100 + eM) break;
+                }
+                rightsMonths.push({ year: y, month: m, rights: getMonthRights(student, y, m) });
+                m++; if (m > 12) { m = 1; y++; }
+            }
+
+            // レッスンを権利月に順番に割り当て
+            let lessonIdx = 0;
+            const monthGroups = rightsMonths.map(rm => {
+                const slots = [];
+                for (let i = 0; i < rm.rights && lessonIdx < allLessons.length; i++) {
+                    slots.push(allLessons[lessonIdx++]);
+                }
+                return { ...rm, slots };
+            });
+            // 権利を超えた分（振替超過）があれば最後の月に追加
+            while (lessonIdx < allLessons.length) {
+                monthGroups[monthGroups.length - 1].slots.push(allLessons[lessonIdx++]);
+            }
+
+            const openSet = new Set();
+
+            // HTML生成
+            let html = `<div class="hist-controls">`;
+            html += `<span class="hist-ctrl" onclick="expandAllHistory(${accIndex})">全展開</span>`;
+            html += `<span class="hist-ctrl" onclick="collapseAllHistory(${accIndex})">全折りたたみ</span>`;
+            html += `</div>`;
+
+            monthGroups.forEach((mg, mi) => {
+                const collapsed = !openSet.has(mi);
+                const groupId = `hg-${accIndex}-${mg.year}-${mg.month}`;
+
+                html += `<div class="history-month-group">`;
+                html += `<div class="history-month-label${collapsed ? ' collapsed' : ''}" id="${groupId}-label" onclick="toggleHistoryMonth('${groupId}')">${mg.month}月（${mg.slots.length}/${mg.rights}）</div>`;
+                html += `<div class="history-month-body${collapsed ? ' hidden' : ''}" id="${groupId}-body">`;
+                if (mg.slots.length === 0) {
+                    html += `<div class="schedule-empty">（未消化）</div>`;
+                } else {
+                    mg.slots.forEach(l => {
+                        const p = l.date.split('.').map(Number);
+                        const d = new Date(p[0], p[1] - 1, p[2]);
+                        const label = `${p[1]}/${p[2]}(${days[d.getDay()]})`;
+                        const dateNum = p[0] * 10000 + p[1] * 100 + p[2];
+                        let cls = 'history-lesson-item';
+                        if (l.cancelled) cls += ' cancelled';
+                        else if (dateNum > todayNum) cls += ' future';
+                        html += `<div class="${cls}">${label}</div>`;
+                    });
+                }
+                html += `</div></div>`;
+            });
+
+            // フッター：当月末時点の振替残り
+            const rem = calcRemainingUpTo(student, today.getFullYear(), today.getMonth() + 1);
+            html += `<div class="history-footer${rem === 0 ? ' zero' : ''}">振替残り：${rem}回</div>`;
+
+            return html;
+        }
+
+        function toggleHistoryMonth(groupId) {
+            const label = document.getElementById(groupId + '-label');
+            const body = document.getElementById(groupId + '-body');
+            if (!label || !body) return;
+            const isCollapsed = label.classList.contains('collapsed');
+            label.classList.toggle('collapsed', !isCollapsed);
+            body.classList.toggle('hidden', !isCollapsed);
+        }
+
+        function expandAllHistory(accIndex) {
+            document.querySelectorAll(`[id^="hg-${accIndex}-"][id$="-label"]`).forEach(el => {
+                el.classList.remove('collapsed');
+                document.getElementById(el.id.replace('-label', '-body'))?.classList.remove('hidden');
+            });
+        }
+
+        function collapseAllHistory(accIndex) {
+            document.querySelectorAll(`[id^="hg-${accIndex}-"][id$="-label"]`).forEach(el => {
+                el.classList.add('collapsed');
+                document.getElementById(el.id.replace('-label', '-body'))?.classList.add('hidden');
+            });
+        }
+
+        // 当月・翌月スケジュールHTML生成（中列）
+        // 月のスケジュールを「M/D(曜) HH:MM [振替分]」形式の文字列配列で返す
+        function getScheduleLines(student, year, month) {
+            const lessons = getGasLessonsForMonth(student.id, year, month);
+            const monthRights = getMonthRights(student, year, month);
+            return lessons.map((l, i) => {
+                const label = formatGasDate(l.rawDate, l.date);
+                return i >= monthRights ? `${label} 【振替分】` : label;
+            });
+        }
+
+        function buildScheduleColumn(student) {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            let nextYear = currentYear, nextMonth = currentMonth + 1;
+            if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+
+            const months = [
+                { year: currentYear, month: currentMonth },
+                { year: nextYear, month: nextMonth }
+            ];
+
+            let html = '';
+            months.forEach(({ year, month }) => {
+                const freqLabel = getFreqAtMonth(student, year, month);
+                const rem = calcRemainingUpTo(student, year, month);
+                const lines = getScheduleLines(student, year, month);
+                html += `<div class="schedule-month-label">${month}月（${freqLabel}）残${rem}回</div>`;
+                if (lines.length === 0) {
+                    html += `<div class="schedule-empty">（予定なし）</div>`;
+                } else {
+                    lines.forEach(line => {
+                        html += `<div class="schedule-item">${line}</div>`;
+                    });
+                }
+            });
+
+            return html;
+        }
+
+        // 月別GASレッスン取得
+        function getGasLessonsForMonth(studentId, year, month) {
+            return gasLessons
+                .filter(l => {
+                    if (String(l.studentId) !== String(studentId)) return false;
+                    if (!l.rawDate) return false;
+                    const p = l.rawDate.split('.').map(Number);
+                    return p[0] === year && p[1] === month;
+                })
+                .sort((a, b) => {
+                    const pa = a.rawDate.split('.').map(Number);
+                    const pb = b.rawDate.split('.').map(Number);
+                    return pa[2] - pb[2];
+                });
+        }
+
+        // GAS日付を「M/D(曜) HH:MM」形式に整形
+        function formatGasDate(rawDate, dateStr) {
+            const days = ['日','月','火','水','木','金','土'];
+            const p = rawDate.split('.').map(Number);
+            const d = new Date(p[0], p[1] - 1, p[2]);
+            const youbi = days[d.getDay()];
+            const timeMatch = (dateStr || '').match(/(\d{1,2}:\d{2})/);
+            const time = timeMatch ? ' ' + timeMatch[1] : '';
+            return `${p[1]}/${p[2]}(${youbi})${time}`;
+        }
+
+        // LINE用テキスト生成
+        function generateLineText(student) {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            const todayStr = `${currentMonth}/${today.getDate()}`;
+
+            const remaining = calcRemainingUpTo(student, currentYear, currentMonth);
+            const displayName = student.lineName || student.name;
+            const totalLessons = (student.lessons || []).length;
+
+            const schedLines = getScheduleLines(student, currentYear, currentMonth);
+            let monthlyDetail;
+            if (schedLines.length > 0) {
+                const lines = schedLines.join('\n');
+                monthlyDetail = remaining > 0
+                    ? `${lines}\n\n振替分残り：${remaining}回`
+                    : lines;
+            } else {
+                monthlyDetail = `振替分残り：${remaining}回`;
+            }
+
+            const template = allTemplates.reminderDetail || getDefaultTemplate();
+            return template
+                .replace(/#NAME#/g, displayName)
+                .replace(/#TODAY#/g, todayStr)
+                .replace(/#TOTAL#/g, totalLessons)
+                .replace(/#MONTHLY_DETAIL#/g, monthlyDetail);
+        }
+
+        // デフォルトテンプレート
+        function getDefaultTemplate() {
+            return `本日(#TODAY#)時点のご状況です💡
+
+#MONTHLY_DETAIL#
+
+期限なしで蓄積されていますので、
+ご都合のよいタイミングでご利用ください😊
+
+ご不明点はいつでもどうぞ！`;
+        }
+
+        // アコーディオン開閉
+        function toggleAccordion(index) {
+            const row = document.getElementById(`accordion-${index}`);
+            const cell = row.previousElementSibling.querySelector('.expand-cell');
+
+            if (row.classList.contains('open')) {
+                row.classList.remove('open');
+                cell.textContent = '▼';
+            } else {
+                row.classList.add('open');
+                cell.textContent = '▲';
+
+                const studentId = parseInt(row.dataset.studentId);
+                const student = allStudents.find(s => s.id === studentId);
+                if (!student) return;
+
+                const histCol = document.getElementById(`hist-${index}`);
+                if (histCol && !histCol.dataset.filled) {
+                    histCol.innerHTML = '<div class="acc-col-title">レッスン履歴</div>' + buildLessonHistory(student, index);
+                    histCol.dataset.filled = '1';
+                }
+
+                const schedCol = document.getElementById(`sched-${index}`);
+                if (schedCol && !schedCol.dataset.filled) {
+                    schedCol.innerHTML = '<div class="acc-col-title">当月・翌月</div>' + buildScheduleColumn(student);
+                    schedCol.dataset.filled = '1';
+                }
+
+                const ta = document.getElementById(`lineText1-${index}`);
+                if (ta && !ta.dataset.filled) {
+                    ta.value = generateLineText(student);
+                    ta.dataset.filled = '1';
+                }
+            }
+        }
+
+        // テキストコピー
+        function copyLineText(index) {
+            const text = document.getElementById(`lineText1-${index}`).value;
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('テキストをコピーしました！');
+            }).catch(() => {
+                alert('コピーに失敗しました');
+            });
+        }
+
+        // LINEで送信
+        function openLineChat(studentId, index) {
+            const student = allStudents.find(s => s.id === studentId);
+            if (!student || !student.lineUrl) {
+                copyLineText(index);
+                return;
+            }
+            const text = document.getElementById(`lineText1-${index}`).value;
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('テキストをコピーしました！LINEを開きます');
+                window.open(student.lineUrl, '_blank');
+            }).catch(() => {
+                alert('コピーに失敗しました');
+            });
+        }
+
+        // テーブルデータをコピー
+        function copyTableData() {
+            const targetOnly = document.getElementById('targetOnlyFilter').checked;
+
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth() + 1;
+            let nextYear = currentYear, nextMonth = currentMonth + 1;
+            if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+
+            let students = allStudents.filter(student => {
+                if (targetOnly) {
+                    if (student.status !== 'active') return false;
+                    if (!student.freq && student.nonWeekly) return false;
+                }
+                return true;
+            });
+
+            if (students.length === 0) {
+                showMessage('コピーするデータがありません');
+                return;
+            }
+
+            const targetCount = students.filter(s => s.status === 'active' && !(!s.freq && s.nonWeekly)).length;
+
+            let rows = [['ID', '名前', 'LINE名', '頻度', `${currentMonth}月残`, `${nextMonth}月残`].join('\t')];
+
+            students.forEach(student => {
+                const thisMonthRem = calcRemainingUpTo(student, currentYear, currentMonth);
+                const nextMonthRem = calcRemainingUpTo(student, nextYear, nextMonth);
+                const freqLabel = getFreqAtMonth(student, currentYear, currentMonth);
+                rows.push([
+                    student.id,
+                    student.name,
+                    student.lineName || '',
+                    freqLabel,
+                    thisMonthRem,
+                    nextMonthRem
+                ].join('\t'));
+            });
+
+            rows.push(['', '', '', '', '', `対象者 ${targetCount}名`].join('\t'));
+
+            navigator.clipboard.writeText(rows.join('\n')).then(() => {
+                showMessage('コピーしました');
+            }).catch(() => {
+                showMessage('コピーに失敗しました');
+            });
+        }
+
+        // 成功メッセージ
+        function showMessage(message) {
+            const msgElement = document.getElementById('successMessage');
+            msgElement.textContent = message;
+            msgElement.style.display = 'block';
+            setTimeout(() => {
+                msgElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+    <script>
+        // パスワード認証
+        const AUTH_KEY = 'peraAdminAuth';
+        
+        async function checkAuth() {
+            const input = document.getElementById('authPassword').value;
+            const r = await fetch('/api/legacy/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: input }) }).catch(() => null);
+            if (r && r.ok) {
+                sessionStorage.setItem(AUTH_KEY, 'true');
+                location.reload();
+                document.getElementById('authOverlay').style.display = 'none';
+            } else {
+                document.getElementById('authError').style.display = 'block';
+                document.getElementById('authPassword').value = '';
+            }
+        }
+        
+        // 認証済みならオーバーレイを非表示
+        if (sessionStorage.getItem(AUTH_KEY) === 'true') {
+            document.getElementById('authOverlay').style.display = 'none';
+        } else {
+            document.getElementById('authPassword').focus();
+        }
+    </script>
+</body>
+</html>

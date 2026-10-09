@@ -1,0 +1,2564 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ペラトレ受講生管理</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --accent: #A296AF;
+  --accent-dark: #8a7e9a;
+  --bg: #F1F1F1;
+  --text: #423929;
+  --sub: #7a6f5d;
+  --border: #d8d8d8;
+  --border-light: #eeecf0;
+}
+
+body {
+  font-family: 'BIZ UDGothic', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ===== LOGIN ===== */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+.login-box {
+  background: white;
+  padding: 50px 40px;
+  width: 360px;
+  max-width: 90%;
+  text-align: center;
+}
+.login-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 20px;
+  opacity: 0.4;
+  object-fit: contain;
+}
+.login-title { font-size: 1.1rem; font-weight: 400; color: var(--text); margin-bottom: 25px; }
+.login-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
+  margin-bottom: 20px;
+  outline: none;
+  text-align: center;
+  letter-spacing: 3px;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.login-btn:hover { background: var(--accent); color: white; }
+.login-error { color: #c44; font-size: 0.85rem; margin-top: 15px; display: none; }
+
+/* ===== APP ===== */
+.app { display: none; flex-direction: column; height: 100vh; max-width: 1200px; margin: 0 auto; }
+
+/* ===== HEADER ===== */
+.header {
+  height: 56px;
+  background: white;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.header-title {
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+.header-title:hover { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.role-badge {
+  font-size: 0.78rem;
+  color: var(--sub);
+  background: var(--bg);
+  padding: 3px 10px;
+  border-radius: 2px;
+}
+
+/* ===== LAYOUT ===== */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 210px;
+  min-width: 210px;
+  max-width: 210px;
+  background: white;
+  border-right: 1px solid var(--border);
+  overflow-y: scroll;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-search { padding: 10px 12px; border-bottom: 1px solid var(--border-light); }
+.sidebar-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+}
+.sidebar-search input:focus { border-color: var(--accent); }
+
+.s-section { border-bottom: 1px solid var(--border-light); }
+.s-header {
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  user-select: none;
+  transition: background 0.15s;
+}
+.s-header:hover { background: #faf9fb; }
+.s-arrow { font-size: 0.65rem; color: var(--accent); transition: transform 0.2s; flex-shrink: 0; }
+.s-count { font-size: 0.75rem; color: var(--sub); margin-left: auto; }
+.s-body { display: none; }
+.s-body.open { display: block; }
+
+.s-item {
+  padding: 6px 12px 6px 22px;
+  font-size: 0.82rem;
+  color: var(--sub);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.s-item:hover { background: #faf9fb; color: var(--text); }
+.s-item.active { background: #f5f3f7; color: var(--accent); font-weight: 500; }
+.s-item.s-link { color: var(--accent); }
+.p-nav-item {
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.p-nav-item:hover { background: #faf9fb; }
+.p-nav-item.active { background: #f5f3f7; color: var(--accent); font-weight: 500; }
+.s-dash-btn {
+  display: inline-block;
+  margin: 2px 8px 6px 20px;
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  background: white;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.s-dash-btn:hover { background: var(--accent); color: white; }
+.s-dash-btn.active { background: var(--accent); color: white; }
+
+/* ===== CONTENT ===== */
+.content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  background: white;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: inherit;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1.4;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.btn:hover { background: var(--accent); color: white; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn-sm { padding: 0 10px; font-size: 0.78rem; height: 28px; line-height: 28px; }
+button.btn { -webkit-appearance: none; appearance: none; }
+.btn-danger { border-color: #c0392b; color: #c0392b; }
+.btn-danger:hover { background: #c0392b; color: white; border-color: #c0392b; }
+
+/* ===== CARD ===== */
+.card { background: white; margin-bottom: 12px; padding: 22px 26px; }
+
+/* ===== DETAIL ===== */
+.det-name { font-size: 1.4rem; font-weight: 400; margin-bottom: 4px; }
+.det-meta { font-size: 0.88rem; color: var(--sub); }
+
+.sec-title {
+  font-size: 0.85rem;
+  color: var(--sub);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 14px;
+  margin-top: 22px;
+}
+.sec-title:first-child { margin-top: 0; }
+
+.inst-grid {
+  display: grid;
+  grid-template-columns: 90px 36px auto;
+  gap: 5px 16px;
+  font-size: 0.9rem;
+  width: fit-content;
+  align-items: center;
+}
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ===== TABS ===== */
+.tab-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.tab-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--accent);
+  background: white;
+  color: var(--accent);
+  font-size: 0.78rem;
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.tab-btn.active, .tab-btn:hover { background: var(--accent); color: white; }
+
+/* ===== LESSON ROWS ===== */
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.86rem;
+}
+.lesson-row:last-child { border-bottom: none; }
+.lesson-date { color: var(--text); min-width: 140px; }
+.lesson-inst { color: var(--sub); font-size: 0.8rem; }
+
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.84rem;
+}
+.hist-row:last-child { border-bottom: none; }
+.hist-num {
+  min-width: 72px;
+  font-size: 0.75rem;
+  color: white;
+  background: var(--accent);
+  padding: 2px 6px;
+  border-radius: 2px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.hist-num.cancelled { background: #bbb; }
+.hist-date { color: var(--sub); min-width: 90px; }
+.hist-inst { color: var(--sub); font-size: 0.8rem; flex: 1; }
+.hist-links { display: flex; gap: 5px; margin-left: auto; }
+.hist-tag {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.hist-tag-cancel { background: #f5f5f5; color: #999; border: 1px solid #ddd; }
+.hist-tag-note { background: #f0eef4; color: var(--accent); border: 1px solid var(--border-light); }
+
+.show-more {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 7px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  margin-top: 2px;
+}
+.show-more:hover { text-decoration: underline; }
+
+/* ===== NOTE ===== */
+.note-area { font-size: 0.86rem; color: var(--text); white-space: pre-wrap; line-height: 1.7; min-height: 24px; }
+.note-empty { color: #c0b8c8; font-size: 0.82rem; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; padding: 10px 24px;
+  border-radius: 20px; font-size: 0.88rem; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none; z-index: 9999;
+}
+.toast.show { opacity: 1; }
+.note-ta {
+  width: 100%;
+  min-height: 70px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+}
+.note-ta:focus { border-color: var(--accent); }
+
+/* ===== TABLE ===== */
+.tbl-wrap { background: white; overflow-x: auto; }
+table { width: auto; min-width: 100%; border-collapse: collapse; font-size: 0.83rem; white-space: nowrap; }
+thead th {
+  padding: 9px 13px;
+  text-align: center;
+  background: #faf9fb;
+  color: var(--sub);
+  font-weight: 400;
+  border-bottom: 1px solid var(--border);
+}
+.tbl-wrap thead th {
+  position: sticky;
+  top: 0;
+}
+tbody td { padding: 8px 13px; border-bottom: 1px solid var(--border-light); vertical-align: middle; text-align: center; }
+.td-left { text-align: left; }
+.note-cell { text-align: left; font-size: 0.8rem; color: var(--text); white-space: normal; max-width: 200px; }
+tbody tr:hover { background: #faf9fb; }
+tbody tr:last-child td { border-bottom: none; }
+.filter-sel {
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  background: white;
+  font-family: inherit;
+  color: var(--sub);
+  background: white;
+  outline: none;
+  margin-left: 4px;
+}
+
+/* ===== MODAL ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: white;
+  width: 500px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 26px;
+}
+.modal-title { font-size: 0.95rem; font-weight: 400; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.f-group { margin-bottom: 14px; }
+.f-label { display: block; font-size: 0.8rem; color: var(--sub); margin-bottom: 5px; }
+.f-input {
+  width: 100%;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 0.86rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+}
+.f-input:focus { border-color: var(--accent); }
+.f-input:disabled { background: #f5f5f5; color: #aaa; cursor: not-allowed; }
+.f-sel {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  color: var(--text);
+  background: white;
+  outline: none;
+}
+.f-sel:focus { border-color: var(--accent); }
+.inst-edit-row { display: flex; gap: 6px; align-items: center; margin-bottom: 7px; flex-wrap: wrap; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* Empty */
+.empty { text-align: center; padding: 80px 20px; color: var(--sub); font-size: 0.88rem; }
+
+/* ===== ADMIN ACCORDION ===== */
+.admin-row { cursor: pointer; }
+.admin-row:hover { background: #faf9fb; }
+.admin-expand-row { background: #fafafa; }
+.admin-form { padding: 16px 20px 20px; text-align: left; }
+.status-ok { color: var(--sub); font-size: 0.78rem; }
+.status-ng { color: #bbb; font-size: 0.78rem; }
+.admin-tog { color: var(--accent); font-size: 0.75rem; user-select: none; }
+.header-search {
+  padding: 0 10px; border: 1px solid var(--border);
+  border-radius: 2px; font-size: 0.82rem; font-family: inherit;
+  color: var(--text); outline: none; width: 140px; height: 28px;
+}
+.header-search:focus { border-color: var(--accent); }
+
+/* ===== MODE BUTTONS ===== */
+.mode-btn {
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  background: white;
+  color: var(--accent);
+  font-size: 0.82rem;
+  cursor: pointer !important;
+  border-radius: 2px;
+  font-family: inherit;
+  transition: all 0.2s;
+  height: 28px;
+  line-height: 28px;
+  white-space: nowrap;
+}
+.mode-btn:hover { background: var(--accent); color: white; }
+.mode-btn.active { background: var(--accent); color: white; }
+.mode-switch { font-size:1rem; cursor:pointer; transition:color 0.2s; }
+.mode-switch:hover { color: var(--accent) !important; }
+
+/* ===== PORTAL ===== */
+.p-box {
+  background: #f5f2f9;
+  border-left: 3px solid var(--accent);
+  padding: 13px 16px;
+  margin: 12px 0;
+  font-size: 0.86rem;
+  line-height: 1.75;
+}
+.p-warn {
+  background: #fdf4f4;
+  border-left: 3px solid #c0392b;
+  padding: 13px 16px;
+  margin: 12px 0;
+  font-size: 0.86rem;
+  line-height: 1.75;
+}
+.p-white {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 13px 16px;
+  margin: 12px 0;
+  font-size: 0.86rem;
+  line-height: 1.75;
+}
+.p-h2 {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: white;
+  background: var(--accent);
+  padding: 7px 14px;
+  margin: 36px 0 12px;
+}
+.p-h2:first-child { margin-top: 0; }
+.p-h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 20px 0 8px;
+}
+.p-link {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-decoration: none;
+  padding: 5px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  margin: 3px 3px 3px 0;
+  transition: all 0.2s;
+}
+.p-link:hover { background: var(--accent); color: white; }
+ .p-link-sm { display: inline-block; color: var(--accent); font-size: 0.82rem; text-decoration: none; padding: 1px 8px; border: 1px solid var(--accent); border-radius: 2px; margin: 0 3px; transition: all 0.2s; }
+ .p-link-sm:hover { background: var(--accent); color: white; }
+.p-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.84rem; white-space: normal; }
+.p-table th { background: #f5f3f7; color: var(--accent-dark); padding: 8px 12px; text-align: left; font-weight: 500; border-bottom: 1px solid var(--border); }
+.p-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); vertical-align: top; text-align: left; }
+.p-table tr:last-child td { border-bottom: none; }
+.p-table tbody tr:hover td { background: #faf9fb; }
+.p-acc-wrap { border: 1px solid var(--border); margin: 12px 0; overflow: hidden; }
+.p-acc-header {
+  padding: 11px 16px; cursor: pointer; display: flex;
+  justify-content: space-between; align-items: center;
+  font-size: 0.88rem; font-weight: 500; background: white; user-select: none;
+}
+.p-acc-header:hover { background: #faf9fb; }
+.p-acc-body { display: none; padding: 14px 16px; border-top: 1px solid var(--border-light); }
+.p-faq-item + .p-faq-item { border-top: 1px solid var(--border-light); }
+.p-faq-q {
+  padding: 11px 0;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text);
+  user-select: none;
+  gap: 8px;
+}
+.p-faq-q:hover { color: var(--accent); }
+.p-faq-toggle { color: var(--accent); font-size: 0.9rem; flex-shrink: 0; transition: transform 0.2s; }
+.p-faq-a { display: none; padding: 8px 12px 12px 14px; font-size: 0.84rem; line-height: 1.8; color: var(--sub); border-left: 3px solid var(--border); margin-bottom: 4px; }
+.p-faq-a.open { display: block; }
+.p-template-wrap { border: 1px solid var(--border); margin: 12px 0; overflow: hidden; }
+.p-template-header {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--accent); color: white; padding: 8px 14px; font-size: 0.83rem;
+}
+.p-copy-btn {
+  background: white; color: var(--accent); border: none; padding: 4px 12px;
+  border-radius: 10px; cursor: pointer; font-size: 0.78rem; font-family: inherit; transition: all 0.2s;
+  min-width: 52px; text-align: center;
+}
+.p-copy-btn:hover { background: #f0eef4; }
+.p-copy-btn.copied { background: #e8e8e8; color: var(--sub); }
+.p-template-body { padding: 14px 16px; font-size: 0.84rem; line-height: 2; white-space: pre-wrap; background: #fafafa; color: var(--text); }
+.update-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 0.84rem;
+}
+.update-item:last-child { border-bottom: none; }
+.update-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 10px; color: white; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.update-date { color: var(--sub); font-size: 0.79rem; min-width: 76px; flex-shrink: 0; padding-top: 2px; }
+.update-text { flex: 1; line-height: 1.6; }
+.p-cat-title { font-size: 0.88rem; font-weight: 600; color: var(--accent-dark); background: #f0eef4; margin: 20px 0 8px; padding: 6px 10px; border-radius: 3px; }
+
+/* ===== MOBILE ===== */
+.hamburger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 36px; height: 36px; cursor: pointer; padding: 6px; border: none; background: white; border-radius: 4px; flex-shrink: 0; }
+.hamburger span { display: block; height: 3px; background: #A296AF; border-radius: 2px; width: 100%; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 99; }
+.sidebar-overlay.open { display: block; }
+
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    left: -220px;
+    height: calc(100vh - 56px);
+    z-index: 100;
+    transition: left 0.25s ease;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+  }
+  .sidebar.open { left: 0; }
+  .content { padding: 14px; }
+  .header-right a.btn { display: none; }
+  .card { padding: 14px; }
+  .modal-box { width: 96vw !important; max-width: 96vw !important; max-height: 90vh; overflow-y: auto; }
+  .hist-row { gap: 6px; flex-wrap: wrap; }
+  .hist-date { min-width: 70px; font-size: 0.8rem; }
+  .hist-links { margin-left: auto; }
+  .app { height: 100svh; }
+  body { overscroll-behavior: none; }
+  #list2View .tbl-wrap table { min-width: 580px; width: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="toast" id="toast"></div>
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <img src="/myportal/icon_key.png" alt="" class="login-icon">
+    <div class="login-title">ペラトレ受講生管理</div>
+    <input type="password" class="login-input" id="loginInput" placeholder="パスワード" autocomplete="off"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="loginError">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <header class="header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="hamburger" onclick="toggleSidebar()" aria-label="メニュー">
+        <span></span><span></span><span></span>
+      </button>
+      <span id="btnStudents" class="mode-switch" onclick="switchMode('students')">受講生管理</span>
+      <img src="本棚の無料アイコン%201.png" style="width:20px;height:20px;object-fit:contain;opacity:0.85;flex-shrink:0">
+      <span id="btnPortal" class="mode-switch" onclick="switchMode('portal')">講師ポータル</span>
+    </div>
+    <div class="header-right">
+      <a href="https://peratore-dashboard.vercel.app/teacher" target="_blank" class="btn btn-sm btn-primary">Pattern Practice ↗</a>
+      <a href="/myportal/admin-VideoManagement00.html" target="_blank" class="btn btn-sm">Lesson Archive ↗</a>
+      <button class="btn btn-sm" onclick="doLogout()">ログアウト</button>
+    </div>
+  </header>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div id="sidebarBody"></div>
+    </aside>
+    <main class="content" id="mainContent">
+      <div class="empty" id="emptyMsg">← 受講生を選択してください</div>
+      <div id="listView" style="display:none"></div>
+      <div id="list2View" style="display:none"></div>
+      <div id="instDashView" style="display:none"></div>
+      <div id="detailView" style="display:none"></div>
+      <div id="adminView" style="display:none"></div>
+      <div id="portalView" style="display:none"></div>
+    </main>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-title" id="editTitle">受講生を編集</div>
+    <div id="editBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" id="deleteBtn" onclick="doDelete()" style="margin-right:auto;display:none">削除</button>
+      <button class="btn" onclick="closeEdit()">キャンセル</button>
+      <button class="btn btn-primary" onclick="doSave()">保存</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="dayList">
+  <option value="月"><option value="火"><option value="水">
+  <option value="木"><option value="金"><option value="土"><option value="日">
+</datalist>
+
+<script>
+// パスワード照合・GAS呼び出しはサーバー（/api/legacy/*）で行う
+const PORTAL_BASE = location.origin + '/myportal/myportal.html?key=';
+
+let isAdmin = false;
+let students = [];
+let instructorList = [];
+let staffData = {};
+let gasData = [];
+let currentId = null;
+let currentInstructor = null;
+let currentView = 'top';
+let searchQ = '';
+let editingId = null;
+let listInstFilter = '';
+let navList = [];
+let instUpFilter = '';
+let instHistFilter = '';
+let sidebarState = { '受講生': false };
+
+function hideAllViews() {
+  ['emptyMsg','listView','list2View','instDashView','detailView','adminView','portalView'].forEach(id => hide(id));
+  closeSidebar();
+}
+
+// ===== AUTH =====
+async function doLogin() {
+  const v = document.getElementById('loginInput').value.trim();
+  let ok = false;
+  try {
+    const r = await fetch('/api/legacy/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ password: v }) });
+    ok = r.ok;
+  } catch(e) {}
+  if (ok) {
+    isAdmin = true;
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    init();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+function doLogout() {
+  isAdmin = false; currentId = null; currentInstructor = null; currentView = 'top'; searchQ = '';
+  fetch('/api/legacy/logout', { method: 'POST' }).catch(() => {});
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// ===== INIT =====
+async function init() {
+  await Promise.all([loadStudents(), loadStaff(), loadUpdates()]);
+  showList();
+  loadGAS();
+  switchMode('students');
+}
+
+// 自動ログイン
+fetch('/api/legacy/session').then(r => r.json()).then(j => {
+  if (!j.ok) return;
+  isAdmin = true;
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  init();
+}).catch(() => {});
+
+async function loadStudents() {
+  try {
+    const r = await fetch('/api/legacy/store/students?t=' + Date.now());
+    const d = await r.json();
+    students = (d.students || []).sort((a,b) => a.id - b.id);
+    instructorList = d.instructors || [];
+  } catch(e) { console.error('students load error', e); }
+}
+
+async function loadStaff() {
+  try {
+    const r = await fetch('/api/legacy/store/staff?t=' + Date.now());
+    staffData = await r.json();
+  } catch(e) { staffData = {}; }
+}
+
+async function loadGAS() {
+  try {
+    const cached = sessionStorage.getItem('gas_cache');
+    if (cached) {
+      gasData = JSON.parse(cached);
+    } else {
+      const r = await fetch('/api/legacy/gas');
+      gasData = await r.json();
+      if (Array.isArray(gasData)) sessionStorage.setItem('gas_cache', JSON.stringify(gasData));
+    }
+    if (currentId) renderUpcoming(currentId);
+  } catch(e) { console.error('GAS error', e); }
+}
+
+// ===== SIDEBAR =====
+function renderSidebar() {
+  const q = searchQ.toLowerCase();
+  const filtered = q ? students.filter(s => s.name.includes(q) || String(s.id).includes(q)) : students;
+
+  // instructor map
+  const instMap = {};
+  students.forEach(s => {
+    const sd = staffData[String(s.id)];
+    if (sd && sd.instructors) {
+      sd.instructors.forEach(i => {
+        if (!instMap[i.name]) instMap[i.name] = [];
+        instMap[i.name].push(s);
+      });
+    }
+  });
+
+  const activeFiltered = filtered.filter(s => s.status !== 'retired');
+  const retiredFiltered = filtered.filter(s => s.status === 'retired');
+
+  const sec = (key, def) => sidebarState[key] !== undefined ? sidebarState[key] : def;
+  let html = '';
+
+  // 一覧リンク
+  html += `<div class="s-section">
+    <div style="padding:6px 8px 2px"><div class="s-dash-btn ${currentView==='list'?'active':''}" style="margin:0;display:block;text-align:center" onclick="showList()">全受講生一覧１</div></div>
+    <div style="padding:2px 8px 8px"><div class="s-dash-btn ${currentView==='list2'?'active':''}" style="margin:0;display:block;text-align:center" onclick="showList2()">全受講生一覧２</div></div>
+  </div>`;
+
+  // 受講生（state保持）
+  const stuOpen = sec('受講生', true);
+  html += `<div class="s-section">
+    <div class="s-header" onclick="toggleSec(this)" data-key="受講生">
+      <span class="s-arrow">${stuOpen?'▼':'▶'}</span><span>受講生</span>
+      <span class="s-count">${activeFiltered.length}名</span>
+    </div>
+    <div class="s-body ${stuOpen?'open':''}">
+      ${activeFiltered.map(s => `<div class="s-item ${currentId===s.id?'active':''}" onclick="showDetail(${s.id})">${h(s.name)}</div>`).join('')}
+    </div>
+  </div>`;
+
+  // 講師別（担当一覧リンク付き・state保持）
+  const sortedInstEntries = Object.entries(instMap).sort(([a], [b]) => {
+    const ai = instructorList.indexOf(a);
+    const bi = instructorList.indexOf(b);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  sortedInstEntries.forEach(([name, list]) => {
+    const fl = q ? list.filter(s => s.name.includes(q) && s.status !== 'retired') : list.filter(s => s.status !== 'retired');
+    if (fl.length === 0) return;
+    const isOpen = sec('inst_'+name, false);
+    html += `<div class="s-section">
+      <div class="s-header" data-key="inst_${h(name)}">
+        <span class="s-arrow" onclick="event.stopPropagation();openInstAndDash('${h(name)}')">${isOpen?'▼':'▶'}</span>
+        <span style="flex:1;cursor:pointer;color:${currentView==='instDash'&&currentInstructor===name?'var(--accent)':'inherit'};font-weight:${currentView==='instDash'&&currentInstructor===name?'500':'400'}" onclick="openInstAndDash('${h(name)}')">${h(name)}</span>
+        <span class="s-count">${fl.length}名</span>
+      </div>
+      <div class="s-body ${isOpen?'open':''}">
+        ${fl.sort((a,b)=>a.id-b.id).map(s => `<div class="s-item ${currentId===s.id?'active':''}" onclick="showDetail(${s.id})">${h(s.name)}</div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  // 退会者（state保持）
+  if (retiredFiltered.length > 0) {
+    const retOpen = sec('退会者', false);
+    html += `<div class="s-section">
+      <div class="s-header" onclick="toggleSec(this)" data-key="退会者">
+        <span class="s-arrow">${retOpen?'▼':'▶'}</span><span>退会者</span>
+        <span class="s-count">${retiredFiltered.length}名</span>
+      </div>
+      <div class="s-body ${retOpen?'open':''}">
+        ${retiredFiltered.map(s => `<div class="s-item ${currentId===s.id?'active':''}" onclick="showDetail(${s.id})">${h(s.name)}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('sidebarBody').innerHTML = html;
+}
+
+function toggleSec(el) {
+  const body = el.nextElementSibling;
+  const arrow = el.querySelector('.s-arrow');
+  body.classList.toggle('open');
+  const isOpen = body.classList.contains('open');
+  arrow.textContent = isOpen ? '▼' : '▶';
+  const key = el.dataset.key;
+  if (key) sidebarState[key] = isOpen;
+}
+
+function openInstAndDash(name) {
+  if (currentView === 'instDash' && currentInstructor === name) {
+    sidebarState['inst_'+name] = false;
+    showList();
+    return;
+  }
+  sidebarState['inst_'+name] = true;
+  showInstDash(name);
+}
+
+function formatTime(val) {
+  const v = val.replace(/[^0-9]/g, '');
+  if (v.length === 3) return v[0] + ':' + v.slice(1);
+  if (v.length === 4) return v.slice(0,2) + ':' + v.slice(2);
+  return val;
+}
+
+function onSearch(v) {
+  searchQ = v;
+  renderSidebar();
+  if (currentView === 'list') renderList();
+  else if (currentView === 'list2') renderList2();
+}
+
+// ===== TOP =====
+function showTop() {
+  currentId = null; currentInstructor = null; currentView = 'top';
+  hideAllViews(); show('emptyMsg');
+  renderSidebar();
+}
+
+// ===== LIST VIEW =====
+function showList() {
+  currentId = null; currentInstructor = null; currentView = 'list';
+  hideAllViews(); show('listView');
+  listInstFilter = '';
+  renderList();
+  renderSidebar();
+}
+
+function showList2() {
+  currentId = null; currentInstructor = null; currentView = 'list2';
+  hideAllViews(); show('list2View');
+  renderList2();
+  renderSidebar();
+}
+
+function makeInstNameCell(insts) {
+  if (!insts.length) return '<span style="color:#ccc">未登録</span>';
+  return insts.map(i => `<div style="font-size:0.85rem">${h(i.name)}</div>`).join('');
+}
+function makeInstDayCell(insts) {
+  if (!insts.length) return '<span style="color:#ccc">─</span>';
+  return insts.map(i => {
+    if (i.type === '都度') return `<div style="font-size:0.78rem;color:var(--sub)">都度</div>`;
+    return `<div style="font-size:0.78rem;color:var(--sub)">${h(i.day||'')} ${h(i.time||'')}</div>`;
+  }).join('');
+}
+function makeInstFreqCell(insts) {
+  if (!insts.length) return '<span style="color:#ccc">─</span>';
+  return insts.map(i => `<div style="font-size:0.78rem;color:var(--sub)">${i.freq||'月4'}</div>`).join('');
+}
+
+function renderList() {
+  const allInst = new Set();
+  students.forEach(s => {
+    const sd = staffData[String(s.id)];
+    if (sd && sd.instructors) sd.instructors.forEach(i => allInst.add(i.name));
+  });
+
+  const makeRow = s => {
+    const sd = staffData[String(s.id)] || {};
+    const portal = PORTAL_BASE + s.accessKey;
+    return `<tr style="cursor:pointer" onclick="showDetail(${s.id})">
+      <td style="color:var(--sub)">${s.id}</td>
+      <td>${h(s.name)}</td>
+      <td style="vertical-align:middle">${makeInstNameCell(sd.instructors||[])}</td>
+      <td style="vertical-align:middle">${makeInstDayCell(sd.instructors||[])}</td>
+      <td>${s.freq || '月4'}</td>
+      <td>${sd.level||'－'}</td>
+      <td>${s.lineUrl?`<a href="${h(s.lineUrl)}" target="_blank" class="btn btn-sm btn-primary" onclick="event.stopPropagation()">LINE ↗</a>`:'－'}</td>
+      <td>${sd.folderUrl?`<a href="${h(sd.folderUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">Drive ↗</a>`:'－'}</td>
+      <td>${sd.hearingUrl?`<a href="${h(sd.hearingUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">Sheet ↗</a>`:'－'}</td>
+      <td><a href="${h(portal)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">portal ↗</a></td>
+      <td>${s.ppUrl?`<a href="${h(s.ppUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">PP ↗</a>`:'－'}</td>
+    </tr>`;
+  };
+
+  const q = searchQ.toLowerCase();
+  let filtered = students.filter(s => {
+    if (s.status === 'retired') return false;
+    if (q && !s.name.includes(q)) return false;
+    if (!listInstFilter) return true;
+    const sd = staffData[String(s.id)];
+    return sd && sd.instructors && sd.instructors.some(i => i.name === listInstFilter);
+  });
+  let retiredFiltered = students.filter(s => {
+    if (s.status !== 'retired') return false;
+    if (q && !s.name.includes(q)) return false;
+    if (!listInstFilter) return true;
+    const sd = staffData[String(s.id)];
+    return sd && sd.instructors && sd.instructors.some(i => i.name === listInstFilter);
+  });
+
+  const retiredAccordion = retiredFiltered.length ? `
+    <div style="margin-top:16px;border-top:2px solid var(--border-light)">
+      <div style="padding:10px 4px;font-size:0.82rem;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:6px"
+        onclick="const b=this.nextElementSibling;const open=b.style.display==='none';b.style.display=open?'block':'none';this.querySelector('.ret-arrow').textContent=open?'▼':'▶'">
+        <span class="ret-arrow">▶</span>退会者（${retiredFiltered.length}名）
+      </div>
+      <div style="display:none">
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>#</th><th>氏名</th><th>担当講師</th><th>日時</th><th>頻度</th><th>レベル</th><th>LINE</th><th>フォルダ</th><th>ヒアリング</th><th>portal</th><th>PP</th></tr></thead>
+          <tbody>${retiredFiltered.map(makeRow).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>` : '';
+
+  const html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:0.82rem;color:var(--sub)">${filtered.length}名</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:0.8rem;color:var(--sub)">講師：</span>
+        <select class="filter-sel" onchange="listInstFilter=this.value;renderList()">
+          <option value="">全員</option>
+          ${Array.from(allInst).map(n=>`<option value="${h(n)}"${listInstFilter===n?' selected':''}>${h(n)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>氏名</th><th>担当講師</th><th>日時</th><th>頻度</th><th>レベル</th><th>LINE</th>
+          <th>フォルダ</th><th>ヒアリング</th><th>portal</th><th>PP</th>
+        </tr></thead>
+        <tbody>${filtered.map(makeRow).join('')}</tbody>
+      </table>
+    </div>
+    ${retiredAccordion}`;
+
+  document.getElementById('listView').innerHTML = html;
+}
+
+// ===== INST DASH =====
+function showInstDash(name) {
+  currentId = null; currentInstructor = name; currentView = 'instDash';
+  instUpFilter = ''; instHistFilter = '';
+  hideAllViews(); show('instDashView');
+  renderInstDash(name);
+  renderSidebar();
+}
+
+// ===== LIST2 VIEW =====
+function renderList2() {
+  const q = searchQ.toLowerCase();
+  const makeRow2 = s => {
+    const sd = staffData[String(s.id)] || {};
+    return `<tr style="cursor:pointer" onclick="showDetail(${s.id})">
+      <td>${s.id}</td>
+      <td class="td-left">${h(s.name)}</td>
+      <td>${makeInstNameCell(sd.instructors||[])}</td>
+      <td class="note-cell" style="cursor:pointer" onclick="event.stopPropagation();startCellEdit(${s.id},'noteLecturer',this)">${sd.noteLecturer?h(sd.noteLecturer):'<span style="color:#ccc">─</span>'}</td>
+      <td class="note-cell" style="cursor:pointer" onclick="event.stopPropagation();startCellEdit(${s.id},'noteAdmin',this)">${sd.noteAdmin?h(sd.noteAdmin):'<span style="color:#ccc">─</span>'}</td>
+    </tr>`;
+  };
+  const active = students.filter(s => s.status!=='retired' && (!q||s.name.includes(q)));
+  const retired = students.filter(s => s.status==='retired' && (!q||s.name.includes(q)));
+  const retiredAccordion = retired.length ? `
+    <div style="margin-top:16px;border-top:2px solid var(--border-light)">
+      <div style="padding:10px 4px;font-size:0.82rem;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:6px"
+        onclick="const b=this.nextElementSibling;const open=b.style.display==='none';b.style.display=open?'block':'none';this.querySelector('.ret-arrow').textContent=open?'▼':'▶'">
+        <span class="ret-arrow">▶</span>退会者（${retired.length}名）
+      </div>
+      <div style="display:none">
+        <div class="tbl-wrap"><table style="table-layout:fixed;width:100%">
+          <colgroup>
+            <col style="width:40px"><col style="width:100px"><col style="width:90px"><col><col>
+          </colgroup>
+          <thead><tr>
+            <th>#</th><th>氏名</th><th>担当講師</th>
+            <th>備考（講師）</th><th>備考（運営）</th>
+          </tr></thead>
+          <tbody>${retired.map(makeRow2).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>` : '';
+  document.getElementById('list2View').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:0.82rem;color:var(--sub)">${active.length}名</div>
+      <button class="s-dash-btn" style="margin:0" onclick="showAdmin()">管理</button>
+    </div>
+    <div class="tbl-wrap"><table style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:40px"><col style="width:100px"><col style="width:90px"><col><col>
+      </colgroup>
+      <thead><tr>
+        <th>#</th><th>氏名</th><th>担当講師</th>
+        <th>備考（講師）</th><th>備考（運営）</th>
+      </tr></thead>
+      <tbody>${active.map(makeRow2).join('')}</tbody>
+    </table></div>
+    ${retiredAccordion}`;
+}
+
+// ===== INST DASH VIEW =====
+function renderInstDash(name) {
+  const parseRaw = raw => { if(!raw) return null; const p=raw.split('.').map(Number); return new Date(p[0],p[1]-1,p[2]); };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d60 = new Date(); d60.setDate(d60.getDate()+60);
+  const days = ['日','月','火','水','木','金','土'];
+  const getInstName = item => { if(item.title){const p=item.title.split(/[／\/]/);const l=p[p.length-1].trim();if(l)return l;} return item.instructor||item.instructorName||''; };
+  const fmtDate = item => { const d=parseRaw(item.rawDate); if(!d)return item.rawDate||''; const t=item.date?(item.date.match(/(\d{1,2}:\d{2})/)||[])[1]||'':''; return `${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})${t?' '+t:''}`; };
+
+  const myStudents = students.filter(s => {
+    if (s.status==='retired') return false;
+    const sd = staffData[String(s.id)];
+    return sd && sd.instructors && sd.instructors.some(i=>i.name===name);
+  });
+
+  const allUp = Array.isArray(gasData) ? gasData.filter(item => {
+    const d = parseRaw(item.rawDate);
+    return d && d>=today && d<=d60 && getInstName(item)===name;
+  }).sort((a,b)=>parseRaw(a.rawDate)-parseRaw(b.rawDate)) : [];
+
+  const getStudentName = id => { const s=students.find(s=>String(s.id)===String(id)); return s?s.name:''; };
+
+  const allHist = [];
+  myStudents.forEach(s => {
+    (s.lessons||[]).forEach(l => { if(l.instructor===name) allHist.push({...l,studentName:s.name}); });
+  });
+  allHist.sort((a,b) => { const da=new Date((a.date||'').replace(/\./g,'/')), db=new Date((b.date||'').replace(/\./g,'/')); return db-da; });
+
+  const filtUp = instUpFilter ? allUp.filter(i=>getStudentName(i.studentId)===instUpFilter) : allUp;
+  const filtHist = instHistFilter ? allHist.filter(l=>l.studentName===instHistFilter) : allHist;
+
+  const stuOpts = (cur, varName) => `<select class="filter-sel" onchange="${varName}=this.value;renderInstDash('${h(name)}')">
+    <option value="">全員</option>
+    ${myStudents.map(s=>`<option value="${h(s.name)}"${cur===s.name?' selected':''}>${h(s.name)}</option>`).join('')}
+  </select>`;
+
+  const N = 5;
+  const upRows = list => list.length
+    ? list.map(item=>`<div class="lesson-row"><span class="lesson-date">${fmtDate(item)}</span><span class="lesson-inst">${h(getStudentName(item.studentId))}</span></div>`).join('')
+    : '<div style="color:#ccc;font-size:0.88rem;padding:6px 0">予定なし</div>';
+
+  const histRows = list => list.length
+    ? list.map(l=>`<div class="hist-row">
+        <span class="hist-num${l.cancelled?' cancelled':''}">Lesson ${l.lessonNumber}</span>
+        <span class="hist-date">${h(l.date||'')}</span>
+        <div style="flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0">
+          <span class="hist-inst" style="flex:none">${h(l.studentName)}</span>
+          ${l.cancelled?`<span class="hist-tag hist-tag-cancel">お休み</span>`:''}
+          ${l.note?`<span class="hist-tag hist-tag-note">${h(l.note)}</span>`:''}
+        </div>
+        <div class="hist-links">
+          ${l.videoUrl?`<a href="${h(l.videoUrl)}" target="_blank" class="btn btn-sm">動画↗</a>`:''}
+          ${l.memoUrl?`<a href="${h(l.memoUrl)}" target="_blank" class="btn btn-sm">メモ↗</a>`:''}
+        </div></div>`).join('')
+    : '<div style="color:#ccc;font-size:0.88rem;padding:6px 0">なし</div>';
+
+  const mkSection = (items, rows, moreId, btnId) => {
+    if (items.length<=N) return rows(items);
+    return `${rows(items.slice(0,N))}
+      <div id="${moreId}" style="display:none">${rows(items.slice(N))}</div>
+      <button class="show-more" id="${btnId}" onclick="toggleInstMore('${moreId}','${btnId}')">▼ もっと見る（${items.length-N}件）</button>`;
+  };
+
+  const noteStudents = myStudents.filter(s=>{const sd=staffData[String(s.id)];return sd&&sd.noteLecturer;});
+  const notesHtml = noteStudents.length
+    ? noteStudents.map((s,i)=>{
+        const sd=staffData[String(s.id)];
+        return `${i>0?'<hr style="border:none;border-top:1px solid var(--border-light);margin:10px 0">':''}
+          <div style="font-size:0.88rem;font-weight:500;margin-bottom:6px">${h(s.name)}</div>
+          <div class="note-area">${h(sd.noteLecturer)}</div>`;
+      }).join('')
+    : '<div style="color:#ccc;font-size:0.88rem">なし</div>';
+
+  const stuListRows = myStudents.sort((a,b)=>a.id-b.id).map(s => {
+    const sd = staffData[String(s.id)] || {};
+    const portal = PORTAL_BASE + s.accessKey;
+    return `<tr style="cursor:pointer" onclick="showDetail(${s.id})">
+      <td style="color:var(--sub)">${s.id}</td>
+      <td>${h(s.name)}</td>
+      <td style="vertical-align:middle">${makeInstNameCell(sd.instructors||[])}</td>
+      <td style="vertical-align:middle">${makeInstDayCell(sd.instructors||[])}</td>
+      <td>${s.freq || '月4'}</td>
+      <td>${sd.level||'－'}</td>
+      <td>${s.lineUrl?`<a href="${h(s.lineUrl)}" target="_blank" class="btn btn-sm btn-primary" onclick="event.stopPropagation()">LINE ↗</a>`:'－'}</td>
+      <td>${sd.folderUrl?`<a href="${h(sd.folderUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">Drive ↗</a>`:'－'}</td>
+      <td>${sd.hearingUrl?`<a href="${h(sd.hearingUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">Sheet ↗</a>`:'－'}</td>
+      <td><a href="${h(portal)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">portal ↗</a></td>
+      <td>${s.ppUrl?`<a href="${h(s.ppUrl)}" target="_blank" class="btn btn-sm" onclick="event.stopPropagation()">PP ↗</a>`:'－'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('instDashView').innerHTML = `
+    <div class="card">
+      <div class="det-name">${h(name)}</div>
+      <div class="det-meta">${myStudents.length}名担当</div>
+    </div>
+    <div class="card">
+      <div class="sec-title">担当受講生一覧</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>#</th><th>氏名</th><th>担当講師</th><th>日時</th><th>頻度</th><th>レベル</th>
+          <th>LINE</th><th>フォルダ</th><th>ヒアリング</th><th>portal</th><th>PP</th>
+        </tr></thead>
+        <tbody>${stuListRows}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>今後のレッスン（60日分）</span>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--sub)">受講生：${stuOpts(instUpFilter,'instUpFilter')}</div>
+      </div>
+      ${mkSection(filtUp, upRows, 'instUpMore', 'instUpBtn')}
+
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>レッスン履歴</span>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--sub)">受講生：${stuOpts(instHistFilter,'instHistFilter')}</div>
+      </div>
+      ${mkSection(filtHist, histRows, 'instHistMore', 'instHistBtn')}
+
+      <div class="sec-title">備考（講師）</div>
+      ${notesHtml}
+    </div>`;
+}
+
+function toggleInstMore(moreId, btnId) {
+  const el = document.getElementById(moreId);
+  const btn = document.getElementById(btnId);
+  const open = el.style.display==='none';
+  el.style.display = open?'block':'none';
+  btn.textContent = open ? '▲ 閉じる' : `▼ もっと見る（${el.querySelectorAll('.lesson-row,.hist-row').length}件）`;
+}
+
+// ===== NAVIGATION =====
+function buildNavList() {
+  const q = searchQ.toLowerCase();
+  if (currentView === 'instDash' && currentInstructor) {
+    return students.filter(s => {
+      if (s.status === 'retired') return false;
+      const sd = staffData[String(s.id)];
+      return sd && sd.instructors && sd.instructors.some(i => i.name === currentInstructor);
+    }).sort((a,b) => a.id - b.id).map(s => s.id);
+  }
+  return students.filter(s => {
+    if (s.status === 'retired') return false;
+    if (q && !s.name.includes(q)) return false;
+    if (listInstFilter) {
+      const sd = staffData[String(s.id)];
+      if (!sd || !sd.instructors || !sd.instructors.some(i => i.name === listInstFilter)) return false;
+    }
+    return true;
+  }).map(s => s.id);
+}
+function showPrev() { const i = navList.indexOf(currentId); if (i > 0) showDetail(navList[i-1]); }
+function showNext() { const i = navList.indexOf(currentId); if (i < navList.length-1) showDetail(navList[i+1]); }
+
+// ===== DETAIL VIEW =====
+function showDetail(id) {
+  if (currentView !== 'detail') navList = buildNavList();
+  currentId = id; currentInstructor = null; currentView = 'detail';
+  hideAllViews(); show('detailView');
+  renderDetail(id);
+  renderSidebar();
+}
+
+function renderDetail(id) {
+  const s = students.find(s => s.id === id);
+  if (!s) return;
+  const sd = staffData[String(id)] || {};
+  const insts = sd.instructors || [];
+
+  let monthTxt = '';
+  if (s.startMonth) {
+    const [y, m] = s.startMonth.split('-').map(Number);
+    const now = new Date();
+    const mo = (now.getFullYear()-y)*12 + now.getMonth() - (m-1) + 1;
+    monthTxt = `入会 ${y}年${m}月（${mo}ヶ月目）`;
+  }
+
+  const portal = PORTAL_BASE + s.accessKey;
+
+  const instGridHtml = insts.length
+    ? `<div class="inst-grid">${insts.map(i => {
+        const typeSpan = `<span style="color:var(--sub);font-size:0.8rem">${i.type==='都度'?'都度':'固定'}</span>`;
+        const sched = i.type === '都度'
+          ? `<span></span>`
+          : `<span style="color:var(--sub)">${h(i.day||'')} ${h(i.time||'')}</span>`;
+        return `<span>${h(i.name)}</span>${typeSpan}${sched}`;
+      }).join('')}</div>`
+    : '<span style="color:#ccc;font-size:0.88rem">未登録</span>';
+
+  const html = `
+    <!-- ヘッダー -->
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="det-name">${s.id}　${h(s.name)}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${navList.length > 1 ? `
+                <button class="btn btn-sm" onclick="showPrev()" ${navList.indexOf(id)<=0?'disabled':''}>◀</button>
+                <span style="font-size:0.78rem;color:var(--sub)">${navList.indexOf(id)+1} / ${navList.length}</span>
+                <button class="btn btn-sm" onclick="showNext()" ${navList.indexOf(id)>=navList.length-1?'disabled':''}>▶</button>
+              ` : ''}
+            </div>
+          </div>
+          ${(monthTxt || sd.level) ? `<div class="det-meta">${monthTxt}${sd.level ? `　<span style="font-size:0.82rem;padding:1px 8px;background:var(--bg);border-radius:2px;color:var(--accent)">${h(sd.level)}</span>` : ''}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- メインカード -->
+    <div class="card">
+
+      <div class="sec-title">担当講師</div>
+      ${instGridHtml}
+
+      <div class="sec-title">リンク</div>
+      <div class="btn-row">
+        ${s.lineUrl?`<a href="${h(s.lineUrl)}" target="_blank" class="btn btn-primary">LINE ↗</a>`:''}
+        ${sd.folderUrl?`<a href="${h(sd.folderUrl)}" target="_blank" class="btn">フォルダ ↗</a>`:''}
+        ${sd.hearingUrl?`<a href="${h(sd.hearingUrl)}" target="_blank" class="btn">ヒアリング ↗</a>`:''}
+        <a href="${h(portal)}" target="_blank" class="btn">portal ↗</a>
+        ${s.ppUrl?`<a href="${h(s.ppUrl)}" target="_blank" class="btn">PP ↗</a>`:''}
+      </div>
+
+      <div class="sec-title">今後のレッスン（60日分）</div>
+      <div id="upcomingWrap">読み込み中...</div>
+
+      <div class="sec-title">レッスン履歴</div>
+      ${renderHistory(s)}
+
+      <div class="sec-title">備考（運営）</div>
+      ${isAdmin ? `
+      <div id="noteAdminView" class="note-area" style="cursor:pointer" title="クリックして編集" onclick="editNote('admin',${id})">${sd.noteAdmin?h(sd.noteAdmin):'<span class="note-empty">クリックして入力</span>'}</div>
+      <div id="noteAdminEdit" style="display:none">
+        <textarea class="note-ta" id="noteAdminTa">${h(sd.noteAdmin||'')}</textarea>
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:7px">
+          <button class="btn btn-sm" onclick="cancelNote('admin')">キャンセル</button>
+          <button class="btn btn-sm btn-primary" onclick="saveNote('admin',${id})">保存</button>
+        </div>
+      </div>` : `<div class="note-area">${sd.noteAdmin?h(sd.noteAdmin):'<span class="note-empty">なし</span>'}</div>`}
+
+      <div class="sec-title">備考（講師）</div>
+      <div id="noteLecturerView" class="note-area" style="cursor:pointer" title="クリックして編集" onclick="editNote('lecturer',${id})">${sd.noteLecturer?h(sd.noteLecturer):'<span class="note-empty">クリックして入力</span>'}</div>
+      <div id="noteLecturerEdit" style="display:none">
+        <textarea class="note-ta" id="noteLecturerTa">${h(sd.noteLecturer||'')}</textarea>
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:7px">
+          <button class="btn btn-sm" onclick="cancelNote('lecturer')">キャンセル</button>
+          <button class="btn btn-sm btn-primary" onclick="saveNote('lecturer',${id})">保存</button>
+        </div>
+      </div>
+
+    </div>
+
+    `;
+
+  document.getElementById('detailView').innerHTML = html;
+  renderUpcoming(id);
+}
+
+// ===== HISTORY =====
+function renderHistory(s) {
+  const lessons = (s.lessons||[]).slice().reverse();
+  if (!lessons.length) return '<div style="color:#ccc;font-size:0.82rem">なし</div>';
+  const N = 3;
+  const rows = items => items.map(l => `
+    <div class="hist-row">
+      <span class="hist-num${l.cancelled?' cancelled':''}">Lesson ${l.lessonNumber}</span>
+      <span class="hist-date">${h(l.date||'')}</span>
+      <div style="flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0">
+        <span class="hist-inst" style="flex:none">${h(l.instructor||'')}</span>
+        ${l.cancelled ? `<span class="hist-tag hist-tag-cancel">お休み</span>` : ''}
+        ${l.note ? `<span class="hist-tag hist-tag-note">${h(l.note)}</span>` : ''}
+      </div>
+      <div class="hist-links">
+        ${l.videoUrl?`<a href="${h(l.videoUrl)}" target="_blank" class="btn btn-sm">動画↗</a>`:''}
+        ${l.memoUrl?`<a href="${h(l.memoUrl)}" target="_blank" class="btn btn-sm">メモ↗</a>`:''}
+      </div>
+    </div>`).join('');
+
+  if (lessons.length <= N) return rows(lessons);
+  return `${rows(lessons.slice(0,N))}
+    <div id="histMore" style="display:none">${rows(lessons.slice(N))}</div>
+    <button class="show-more" id="histBtn" onclick="toggleHist()">▼ もっと見る（${lessons.length-N}件）</button>`;
+}
+
+function toggleHist() {
+  const m = document.getElementById('histMore');
+  const b = document.getElementById('histBtn');
+  const open = m.style.display === 'none';
+  m.style.display = open ? 'block' : 'none';
+  b.textContent = open ? '▲ 閉じる' : `▼ もっと見る（${m.querySelectorAll('.hist-row').length}件）`;
+}
+
+// ===== UPCOMING =====
+function renderUpcoming(id) {
+  const el = document.getElementById('upcomingWrap');
+  if (!el) return;
+
+  const parseRaw = raw => {
+    if (!raw) return null;
+    const p = raw.split('.').map(Number);
+    return new Date(p[0], p[1]-1, p[2]);
+  };
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d60 = new Date(); d60.setDate(d60.getDate()+60);
+  const days = ['日','月','火','水','木','金','土'];
+
+  const upcoming = Array.isArray(gasData) ? gasData.filter(item => {
+    const d = parseRaw(item.rawDate);
+    return d && String(item.studentId)===String(id) && d>=today && d<=d60;
+  }).sort((a,b) => parseRaw(a.rawDate)-parseRaw(b.rawDate)) : [];
+
+  const fmtDate = item => {
+    const d = parseRaw(item.rawDate);
+    if (!d) return item.rawDate||'';
+    const t = item.date ? (item.date.match(/(\d{1,2}:\d{2})/)||[])[1]||'' : '';
+    return `${d.getMonth()+1}月${d.getDate()}日(${days[d.getDay()]})${t?' '+t:''}`;
+  };
+
+  const getInstName = item => {
+    if (item.title) {
+      const parts = item.title.split(/[／\/]/);
+      const last = parts[parts.length - 1].trim();
+      if (last) return last;
+    }
+    return item.instructor || item.instructorName || '';
+  };
+
+  const N = 3;
+  const rowsHtml = list => {
+    if (!list.length) return '<div style="color:#ccc;font-size:0.88rem;padding:6px 0">予定なし</div>';
+    return list.map(item => `
+      <div class="lesson-row">
+        <span class="lesson-date">${fmtDate(item)}</span>
+        <span class="lesson-inst">${h(getInstName(item))}</span>
+      </div>`).join('');
+  };
+
+  let content;
+  if (upcoming.length <= N) {
+    content = rowsHtml(upcoming);
+  } else {
+    content = `${rowsHtml(upcoming.slice(0,N))}
+      <div id="upMore" style="display:none">${rowsHtml(upcoming.slice(N))}</div>
+      <button class="show-more" id="upBtn" onclick="toggleUp()">▼ もっと見る（${upcoming.length-N}件）</button>`;
+  }
+
+  el.innerHTML = content;
+}
+
+function toggleUp() {
+  const m = document.getElementById('upMore');
+  const b = document.getElementById('upBtn');
+  const open = m.style.display==='none';
+  m.style.display = open ? 'block' : 'none';
+  b.textContent = open ? '▲ 閉じる' : `▼ もっと見る（${m.querySelectorAll('.lesson-row').length}件）`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ===== DETAIL INLINE SAVE =====
+async function saveDetailInline(id) {
+  const instructors = [];
+  document.getElementById('detailInstRows').querySelectorAll('.inst-edit-row').forEach(row => {
+    const sels = row.querySelectorAll('select');
+    const n = sels[0].value;
+    if (!n) return;
+    const type = sels[1].value;
+    const dayInput = row.querySelector('input[list="dayList"]');
+    const day = dayInput ? dayInput.value.trim() : '';
+    const timeInput = row.querySelector('input[placeholder="20:00"]');
+    const time = timeInput ? timeInput.value.trim() : '';
+    instructors.push({name:n, type, day, time});
+  });
+  const folderUrl = document.getElementById('detailFolderUrl').value.trim();
+  const hearingUrl = document.getElementById('detailHearingUrl').value.trim();
+  if (!staffData[String(id)]) staffData[String(id)] = {};
+  Object.assign(staffData[String(id)], {instructors, folderUrl, hearingUrl});
+  await saveStaff();
+  showToast('保存しました ✓');
+  showDetail(id);
+}
+
+// ===== CELL NOTE EDIT (list2) =====
+function startCellEdit(id, field, el) {
+  const current = (staffData[String(id)] || {})[field] || '';
+  const ta = document.createElement('textarea');
+  ta.className = 'note-ta';
+  ta.style.cssText = 'width:100%;min-height:50px;font-size:0.78rem';
+  ta.value = current;
+  ta.onblur = () => saveCellNote(id, field, ta, el);
+  el.innerHTML = '';
+  el.appendChild(ta);
+  ta.focus();
+}
+async function saveCellNote(id, field, ta, el) {
+  const val = ta.value;
+  if (!staffData[String(id)]) staffData[String(id)] = {};
+  staffData[String(id)][field] = val;
+  await saveStaff();
+  el.innerHTML = val ? h(val) : '<span style="color:#ccc">─</span>';
+  el.onclick = () => startCellEdit(id, field, el);
+}
+
+// ===== NOTES =====
+function editNote(type, id) {
+  const k = type==='admin' ? 'Admin' : 'Lecturer';
+  document.getElementById(`note${k}View`).style.display = 'none';
+  document.getElementById(`note${k}Edit`).style.display = 'block';
+  document.getElementById(`note${k}Ta`).focus();
+}
+function cancelNote(type) {
+  const k = type==='admin' ? 'Admin' : 'Lecturer';
+  document.getElementById(`note${k}View`).style.display = 'block';
+  document.getElementById(`note${k}Edit`).style.display = 'none';
+}
+async function saveNote(type, id) {
+  const k = type==='admin' ? 'Admin' : 'Lecturer';
+  const key = type==='admin' ? 'noteAdmin' : 'noteLecturer';
+  const val = document.getElementById(`note${k}Ta`).value;
+  if (!staffData[String(id)]) staffData[String(id)] = {};
+  staffData[String(id)][key] = val;
+  await saveStaff();
+  const view = document.getElementById(`note${k}View`);
+  showToast('保存しました ✓');
+  view.innerHTML = val ? h(val) : '<span class="note-empty">なし</span>';
+  document.getElementById(`note${k}View`).style.display = 'block';
+  document.getElementById(`note${k}Edit`).style.display = 'none';
+}
+
+// ===== ADMIN EDIT =====
+function openAdd() {
+  editingId = null;
+  document.getElementById('editTitle').textContent = '受講生を追加';
+  document.getElementById('deleteBtn').style.display = 'none';
+  renderEditForm(null);
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function openEdit(id) {
+  editingId = id;
+  document.getElementById('editTitle').textContent = '受講生を編集';
+  renderEditForm(id);
+  document.getElementById('editOverlay').classList.add('open');
+}
+
+function closeEdit() {
+  document.getElementById('editOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function renderEditForm(id) {
+  const s = id ? students.find(s=>s.id===id) : null;
+  const sd = id ? (staffData[String(id)]||{}) : {};
+  const insts = sd.instructors || [];
+
+  document.getElementById('editBody').innerHTML = `
+    <div style="font-size:0.78rem;color:var(--sub);background:#faf9fb;padding:7px 10px;border-radius:2px;margin-bottom:12px">グレーの項目はマイポータルで管理されています</div>
+    <div class="f-group"><label class="f-label">氏名</label>
+      <input class="f-input" id="fName" value="${h(s?s.name:'')}" disabled></div>
+    <div class="f-group"><label class="f-label">LINE URL</label>
+      <input class="f-input" id="fLine" value="${h(s?s.lineUrl||'':'')}" disabled></div>
+    <div class="f-group"><label class="f-label">保存フォルダ URL</label>
+      <input class="f-input" id="fFolder" value="${h(sd.folderUrl||'')}"></div>
+    <div class="f-group"><label class="f-label">ヒアリングシート URL</label>
+      <input class="f-input" id="fHearing" value="${h(sd.hearingUrl||'')}"></div>
+    <div class="f-group"><label class="f-label">パターンプラクティス URL</label>
+      <input class="f-input" id="fPp" value="${h(s?s.ppUrl||'':'')}" disabled></div>
+    <div class="f-group"><label class="f-label">入会月</label>
+      <input class="f-input" id="fStart" value="${h(s && s.startMonth ? s.startMonth : '')}" disabled></div>
+    <div class="f-group">
+      <label class="f-label">担当講師</label>
+      <div id="instRows">${(insts.length ? insts : [{name:'',type:'固定',day:'',time:''}]).map((inst,i)=>instRowHtml(inst,i)).join('')}</div>
+      <button type="button" class="btn btn-sm" style="margin-top:7px" onclick="addInstRow()">＋ 講師を追加</button>
+    </div>`;
+}
+
+function instRowHtml(inst, idx) {
+  const instOpts = instructorList.map(n =>
+    `<option value="${h(n)}"${inst.name===n?' selected':''}>${h(n)}</option>`
+  ).join('');
+  return `<div class="inst-edit-row" id="ir${idx}">
+    <select class="f-sel" style="width:110px">
+      <option value="">選択</option>
+      ${instOpts}
+    </select>
+    <select class="f-sel" onchange="toggleFixed(this,${idx})">
+      <option value="固定"${inst.type==='固定'?' selected':''}>固定</option>
+      <option value="都度"${inst.type==='都度'?' selected':''}>都度</option>
+    </select>
+    <div class="if${idx}" style="display:${inst.type==='都度'?'none':'flex'};gap:5px;align-items:center">
+      <input type="text" class="f-input" style="width:110px;flex:none" placeholder="曜日" list="dayList" value="${h(inst.day||'')}">
+      <input type="text" class="f-input" style="width:65px;flex:none" placeholder="20:00" value="${h(inst.time||'')}" onblur="this.value=formatTime(this.value)">
+    </div>
+
+    <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('ir${idx}').remove()" style="margin-left:auto">✕</button>
+  </div>`;
+}
+
+let instIdx = 100;
+function addInstRow(containerId) {
+  const idx = instIdx++;
+  const container = document.getElementById(containerId || 'instRows');
+  const d = document.createElement('div');
+  d.innerHTML = instRowHtml({name:'',type:'固定',day:'',time:''}, idx);
+  container.appendChild(d.firstElementChild);
+}
+
+function toggleFixed(sel, idx) {
+  const el = document.querySelector(`.if${idx}`);
+  if (el) el.style.display = sel.value==='固定' ? 'flex' : 'none';
+}
+
+async function doSave() {
+  const folderUrl = document.getElementById('fFolder').value.trim();
+  const hearingUrl = document.getElementById('fHearing').value.trim();
+
+  // collect instructors
+  const instructors = [];
+  document.getElementById('instRows').querySelectorAll('.inst-edit-row').forEach(row => {
+    const sels = row.querySelectorAll('select');
+    const n = sels[0].value;
+    if (!n) return;
+    const type = sels[1].value;
+    const dayInput = row.querySelector('input[list="dayList"]');
+    const day = dayInput ? dayInput.value.trim() : '';
+    const timeInput = row.querySelector('input[placeholder="20:00"]');
+    const time = timeInput ? timeInput.value.trim() : '';
+    instructors.push({name:n, type, day, time});
+  });
+
+  if (editingId) {
+    if (!staffData[String(editingId)]) staffData[String(editingId)] = {};
+    Object.assign(staffData[String(editingId)], {instructors, folderUrl, hearingUrl});
+  } else {
+    // add not supported (students come from myportal)
+    alert('受講生の追加はマイポータルで行ってください');
+    return;
+  }
+
+  const savedId = editingId;
+  await saveStaff();
+  closeEdit();
+  renderSidebar();
+  if (savedId) { showDetail(savedId); } else { showList(); }
+}
+
+async function doDelete() {
+  if (!editingId) return;
+  const s = students.find(s=>s.id===editingId);
+  if (!s || !confirm(`「${s.name}」を削除しますか？`)) return;
+  students = students.filter(s=>s.id!==editingId);
+  delete staffData[String(editingId)];
+  await saveStaff();
+  closeEdit();
+  currentId = null;
+  renderSidebar();
+  showList();
+}
+
+async function saveStaff() {
+  try {
+    await fetch('/api/legacy/store/staff', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(staffData)
+    });
+  } catch(e) { console.error('save error', e); }
+}
+
+// ===== ADMIN ACCORDION =====
+let adminExpanded = new Set();
+
+function showAdmin() {
+  currentId = null; currentInstructor = null; currentView = 'admin';
+  hideAllViews(); show('adminView');
+  renderAdmin();
+  renderSidebar();
+}
+
+function renderAdmin() {
+  const active = students.filter(s => s.status !== 'retired');
+  const st = val => val
+    ? '<span class="status-ok">済</span>'
+    : '<span class="status-ng">未登録</span>';
+
+  const rows = active.map(s => {
+    const sd = staffData[String(s.id)] || {};
+    const insts = sd.instructors || [];
+    const hasInst = insts.some(i => i.name);
+    const hasDay = insts.some(i => i.type === '都度' || i.day);
+    const isOpen = adminExpanded.has(s.id);
+
+    const expandFormHtml = (() => {
+      const expandInsts = insts.length ? insts : [{name:'',type:'固定',day:'',time:''}];
+      const rowsHtml = expandInsts.map(inst => { const idx = instIdx++; return instRowHtml(inst, idx); }).join('');
+      return `
+      <tr id="admin-expand-${s.id}" class="admin-expand-row" style="display:${isOpen?'table-row':'none'}">
+        <td colspan="8">
+          <div class="admin-form">
+            <div class="f-group">
+              <label class="f-label">担当講師</label>
+              <div id="adminInstRows${s.id}">${rowsHtml}</div>
+              <button type="button" class="btn btn-sm" style="margin-top:7px" onclick="addInstRow('adminInstRows${s.id}')">＋ 講師を追加</button>
+            </div>
+            <div class="f-group"><label class="f-label">フォルダ URL</label>
+              <input class="f-input" id="adminFolder${s.id}" value="${h(sd.folderUrl||'')}"></div>
+            <div class="f-group"><label class="f-label">ヒアリング URL</label>
+              <input class="f-input" id="adminHearing${s.id}" value="${h(sd.hearingUrl||'')}"></div>
+            <div class="f-group"><label class="f-label">レベル</label>
+              <select class="f-input" id="adminLevel${s.id}">
+                <option value="">未設定</option>
+                ${sd.level && !/^P[1-7]$/.test(sd.level) ? `<option value="${h(sd.level)}" selected>${h(sd.level)}（旧）</option>` : ''}
+                ${[1,2,3,4,5,6,7].map(n => `<option value="P${n}"${sd.level==='P'+n?' selected':''}>P${n}</option>`).join('')}
+              </select></div>
+            <div class="f-group"><label class="f-label">備考（運営）</label>
+              <textarea class="note-ta" id="adminNote${s.id}">${h(sd.noteAdmin||'')}</textarea></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn btn-primary btn-sm" onclick="saveAdminRow(${s.id})">保存</button>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    })();
+
+    return `
+    <tr class="admin-row" onclick="toggleAdminRow(${s.id})">
+      <td><span id="admin-arrow-${s.id}" class="admin-tog">${isOpen ? '▼' : '▶'}</span></td>
+      <td class="td-left">${h(s.name)}</td>
+      <td>${st(hasInst)}</td><td>${st(hasDay)}</td>
+      <td>${st(sd.folderUrl)}</td><td>${st(sd.hearingUrl)}</td>
+      <td style="font-size:0.82rem">${sd.level||'－'}</td>
+    </tr>
+    ${expandFormHtml}`;
+  }).join('');
+
+  document.getElementById('adminView').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:0.82rem;color:var(--sub)">${active.length}名</div>
+    </div>
+    <div class="tbl-wrap"><table style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:28px"><col style="width:115px"><col style="width:50px">
+        <col style="width:50px"><col style="width:68px"><col style="width:72px"><col style="width:55px">
+      </colgroup>
+      <thead><tr>
+        <th></th><th style="text-align:left">氏名</th>
+        <th>講師</th><th>日時</th><th>フォルダ</th><th>ヒアリング</th><th>レベル</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function toggleAdminRow(id) {
+  if (adminExpanded.has(id)) adminExpanded.delete(id);
+  else adminExpanded.add(id);
+  renderAdmin();
+}
+
+async function saveAdminRow(id) {
+  const instructors = [];
+  document.getElementById(`adminInstRows${id}`).querySelectorAll('.inst-edit-row').forEach(row => {
+    const sels = row.querySelectorAll('select');
+    const n = sels[0].value; if (!n) return;
+    const type = sels[1].value;
+    const dayInput = row.querySelector('input[list="dayList"]');
+    const day = dayInput ? dayInput.value.trim() : '';
+    const timeInput = row.querySelector('input[placeholder="20:00"]');
+    const time = timeInput ? timeInput.value.trim() : '';
+    instructors.push({name:n, type, day, time});
+  });
+  const folderUrl = document.getElementById(`adminFolder${id}`).value.trim();
+  const hearingUrl = document.getElementById(`adminHearing${id}`).value.trim();
+  const noteAdmin = document.getElementById(`adminNote${id}`).value.trim();
+  const level = document.getElementById(`adminLevel${id}`).value;
+  if (!staffData[String(id)]) staffData[String(id)] = {};
+  Object.assign(staffData[String(id)], {instructors, folderUrl, hearingUrl, noteAdmin, level});
+  await saveStaff();
+  showToast('保存しました ✓');
+  renderAdmin();
+}
+
+// ===== UTILS =====
+function h(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function show(id) { document.getElementById(id).style.display = 'block'; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeEdit(); }
+});
+
+// ===== MODE SWITCHING =====
+let currentMode = 'students';
+let portalPage = 'home';
+let portalUpdates = [];
+let portalAdminMode = false;
+
+function switchMode(mode) {
+  currentMode = mode;
+  const bs = document.getElementById('btnStudents');
+  const bp = document.getElementById('btnPortal');
+  bs.style.color = mode === 'students' ? 'var(--text)' : '#bbb';
+  bs.style.fontWeight = '400';
+  bp.style.color = mode === 'portal' ? 'var(--text)' : '#bbb';
+  bp.style.fontWeight = '400';
+  if (mode === 'students') {
+    currentId = null; currentInstructor = null; currentView = 'list';
+    listInstFilter = '';
+    hideAllViews(); show('listView');
+    renderList(); renderSidebar();
+  } else {
+    portalAdminMode = false;
+    showPortalPage('top');
+  }
+}
+
+// ===== UPDATES =====
+async function loadUpdates() {
+  try {
+    const r = await fetch('/api/legacy/store/updates?t=' + Date.now());
+    portalUpdates = await r.json();
+  } catch(e) { portalUpdates = []; }
+}
+async function saveUpdates() {
+  try {
+    await fetch('/api/legacy/store/updates', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(portalUpdates)
+    });
+  } catch(e) { console.error('save updates error', e); }
+}
+function togglePortalAdmin() {
+  portalAdminMode = !portalAdminMode;
+  showPortalPage('top');
+}
+async function addUpdate() {
+  const date = document.getElementById('newUpdateDate').value;
+  const badge = document.getElementById('newUpdateBadge').value;
+  const text = document.getElementById('newUpdateText').value.trim();
+  if (!text) return;
+  portalUpdates.push({ id: Date.now().toString(), date, badge, text });
+  await saveUpdates();
+  showPortalPage('top');
+}
+async function deleteUpdate(id) {
+  if (!confirm('削除しますか？')) return;
+  portalUpdates = portalUpdates.filter(u => u.id !== id);
+  await saveUpdates();
+  showPortalPage('top');
+}
+
+// ===== PORTAL NAVIGATION =====
+function showPortalPage(page) {
+  portalPage = page;
+  currentMode = 'portal';
+  hideAllViews(); show('portalView');
+  renderPortalSidebar();
+  document.getElementById('portalView').innerHTML = renderPortalContent(page);
+  initPortalPage(page);
+  document.getElementById('mainContent').scrollTop = 0;
+}
+
+function renderPortalSidebar() {
+  const pages = [
+    { key: 'getting-started', label: 'はじめに' },
+    { key: 'lesson-guide', label: 'レッスンの進め方' },
+    { key: 'lesson-management', label: '業務フロー' },
+    { key: 'cancel-policy', label: 'キャンセル・時間変更' },
+    { key: 'initial-setup', label: '初期設定' },
+    { key: 'faq', label: 'FAQ' },
+  ];
+  const items = pages.map(p =>
+    `<div class="p-nav-item ${portalPage === p.key ? 'active' : ''}" onclick="showPortalPage('${p.key}')"><span style="color:var(--accent);font-size:0.7rem;margin-right:6px">▶</span>${p.label}</div>`
+  ).join('');
+  document.getElementById('sidebarBody').innerHTML =
+    `<div class="s-section" style="border-bottom:none"><div style="padding:14px 0 4px">${items}</div></div>`;
+}
+
+function renderPortalContent(page) {
+  const map = {
+    'top': renderPortalTop,
+    'home': renderPortalHome,
+    'getting-started': renderPortalGettingStarted,
+    'lesson-guide': renderPortalLessonGuide,
+    'lesson-management': renderPortalLessonManagement,
+    'cancel-policy': renderPortalCancelPolicy,
+    'initial-setup': renderPortalInitialSetup,
+    'faq': renderPortalFaq,
+  };
+  return (map[page] || renderPortalTop)();
+}
+
+function initPortalPage(page) {
+  // FAQ accordion
+  document.querySelectorAll('.p-faq-q').forEach(q => {
+    q.onclick = function() {
+      const a = this.nextElementSibling;
+      const t = this.querySelector('.p-faq-toggle');
+      const open = a.classList.toggle('open');
+      if (t) t.textContent = open ? '▲' : '▼';
+    };
+  });
+  // White box accordion
+  document.querySelectorAll('.p-acc-header').forEach(h => {
+    h.onclick = function() {
+      const body = this.nextElementSibling;
+      const t = this.querySelector('.p-faq-toggle');
+      const open = body.style.display === 'none';
+      body.style.display = open ? 'block' : 'none';
+      if (t) t.textContent = open ? '▲' : '▼';
+    };
+  });
+  // Copy buttons
+  document.querySelectorAll('.p-copy-btn').forEach(btn => {
+    btn.onclick = function() {
+      const text = this.closest('.p-template-wrap').querySelector('.p-template-body').textContent;
+      navigator.clipboard.writeText(text.trim()).then(() => {
+        const orig = this.textContent;
+        this.textContent = 'OK';
+        this.classList.add('copied');
+        setTimeout(() => { this.textContent = orig; this.classList.remove('copied'); }, 2000);
+      });
+    };
+  });
+}
+
+// ===== PORTAL TOP =====
+function renderPortalTop() {
+  const badgeMap = {
+    update: { label: '更新', color: 'var(--accent)' },
+    important: { label: '重要', color: '#c0392b' },
+    info: { label: 'お知らせ', color: '#555' }
+  };
+  const today = new Date().toISOString().slice(0, 10);
+
+  const updateItems = portalUpdates.length
+    ? portalUpdates.slice().reverse().map(u => {
+        const b = badgeMap[u.badge] || badgeMap.update;
+        return `<div class="update-item">
+          <span class="update-badge" style="background:${b.color}">${h(b.label)}</span>
+          <span class="update-date">${h(u.date)}</span>
+          <span class="update-text">${h(u.text)}</span>
+          ${portalAdminMode ? `<button class="btn btn-sm btn-danger" onclick="deleteUpdate('${h(u.id)}')">削除</button>` : ''}
+        </div>`;
+      }).join('')
+    : '<div style="color:#ccc;font-size:0.85rem;padding:8px 0">更新履歴はありません</div>';
+
+  const adminForm = portalAdminMode ? `
+    <div class="card" style="margin-top:12px">
+      <div class="sec-title">更新を追加</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:4px">
+        <div><label class="f-label">日付</label>
+          <input type="date" class="f-input" id="newUpdateDate" style="width:140px" value="${today}"></div>
+        <div><label class="f-label">バッジ</label>
+          <select class="f-sel" id="newUpdateBadge">
+            <option value="update">更新</option>
+            <option value="important">重要</option>
+            <option value="info">お知らせ</option>
+          </select></div>
+        <div style="flex:1;min-width:200px"><label class="f-label">内容</label>
+          <input type="text" class="f-input" id="newUpdateText" placeholder="更新内容を入力"></div>
+        <button class="btn btn-sm btn-primary" onclick="addUpdate()">追加</button>
+      </div>
+    </div>` : '';
+
+  const pageList = [
+    { key: 'getting-started', label: 'はじめに', desc: 'ペラトレの概要・指導方針・報酬ルール' },
+    { key: 'lesson-guide', label: 'レッスンの進め方', desc: '初回ヒアリング・レッスン構成・月末レッスン' },
+    { key: 'lesson-management', label: '業務フロー', desc: 'タイムライン・役割分担・注意事項' },
+    { key: 'cancel-policy', label: 'キャンセル・時間変更', desc: 'キャンセル時の対応・LINEテンプレート' },
+    { key: 'initial-setup', label: '初期設定', desc: 'TimeRex・Slack・LINE設定' },
+    { key: 'faq', label: 'FAQ', desc: 'よくある質問' },
+  ];
+
+  return `
+  <div class="card" style="padding:14px 18px">
+    <div style="font-size:0.82rem;color:var(--sub);margin-bottom:10px">更新履歴</div>
+    ${updateItems}
+  </div>
+  ${adminForm}
+  <div class="card">
+    <div style="font-size:0.82rem;color:var(--sub);margin-bottom:10px">ページ一覧</div>
+    <div>
+      ${pageList.map(p => `
+      <div onclick="showPortalPage('${p.key}')" style="cursor:pointer;border-bottom:1px solid var(--border-light);padding:12px 8px;display:flex;align-items:center;gap:10px;" onmouseover="this.style.background='#faf9fb'" onmouseout="this.style.background=''">
+        <span style="color:var(--accent);font-size:0.7rem">▶</span>
+        <span style="font-size:0.85rem;font-weight:500;color:var(--text);min-width:130px;white-space:nowrap">${p.label}</span>
+        <span style="font-size:0.82rem;color:var(--sub)">${p.desc}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:0.82rem;color:var(--sub);margin-bottom:10px">関連リンク</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="https://docs.google.com/spreadsheets/d/1dO0TgPFr_4QJsAYaROInXVfXYhYKeYou7I5PFoT_IwQ/edit" target="_blank" class="btn btn-sm btn-primary">請求書の雛形 ↗</a>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLScUfyKb4bgco3sIiTyrly3YGwghoJ7VizUxbmEypZ1QPGkthQ/viewform" target="_blank" class="btn btn-sm btn-primary">請求フォーム ↗</a>
+      <a href="https://docs.google.com/document/d/1gbQfXWfByD32dhwhxJAEaBpsKWI0yn-6YxunNqk-lhI/edit" target="_blank" class="btn btn-sm btn-primary">Google Meetマニュアル ↗</a>
+    </div>
+  </div>
+  <div style="text-align:right;margin-top:4px">
+    <button class="btn btn-sm${portalAdminMode ? ' btn-primary' : ''}" onclick="togglePortalAdmin();showPortalPage('top')">管理</button>
+  </div>`;
+}
+
+// ===== PORTAL HOME (旧) =====
+function renderPortalHome() {
+  const badgeMap = {
+    update: { label: '更新', color: 'var(--accent)' },
+    important: { label: '重要', color: '#c0392b' },
+    info: { label: 'お知らせ', color: '#555' }
+  };
+  const today = new Date().toISOString().slice(0, 10);
+
+  const items = portalUpdates.length
+    ? portalUpdates.slice().reverse().map(u => {
+        const b = badgeMap[u.badge] || badgeMap.update;
+        return `<div class="update-item">
+          <span class="update-badge" style="background:${b.color}">${h(b.label)}</span>
+          <span class="update-date">${h(u.date)}</span>
+          <span class="update-text">${h(u.text)}</span>
+          ${portalAdminMode ? `<button class="btn btn-sm btn-danger" onclick="deleteUpdate('${h(u.id)}')">削除</button>` : ''}
+        </div>`;
+      }).join('')
+    : '<div style="color:#ccc;font-size:0.85rem;padding:8px 0">更新履歴はありません</div>';
+
+  const adminForm = portalAdminMode ? `
+    <div class="card" style="margin-top:12px">
+      <div class="sec-title">更新を追加</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:4px">
+        <div><label class="f-label">日付</label>
+          <input type="date" class="f-input" id="newUpdateDate" style="width:140px" value="${today}"></div>
+        <div><label class="f-label">バッジ</label>
+          <select class="f-sel" id="newUpdateBadge">
+            <option value="update">更新</option>
+            <option value="important">重要</option>
+            <option value="info">お知らせ</option>
+          </select></div>
+        <div style="flex:1;min-width:200px"><label class="f-label">内容</label>
+          <input type="text" class="f-input" id="newUpdateText" placeholder="更新内容を入力"></div>
+        <button class="btn btn-sm btn-primary" onclick="addUpdate()">追加</button>
+      </div>
+    </div>` : '';
+
+  return `<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:0.88rem;color:var(--sub)">更新履歴</div>
+      <button class="btn btn-sm${portalAdminMode ? ' btn-primary' : ''}" onclick="togglePortalAdmin()">管理</button>
+    </div>
+    ${items}
+  </div>${adminForm}`;
+}
+
+// ===== はじめに =====
+function renderPortalGettingStarted() {
+  return `<div class="card">
+  <div class="p-h2">1. ペラトレとは</div>
+  <div class="p-h3">サービスコンセプト</div>
+  <p style="font-size:0.88rem;line-height:1.8">ペラトレは<strong>「英語がペラペラ話せるようになるトレーニング」</strong>を提供する英会話プログラムです。</p>
+  <div class="p-white" style="margin-top:10px">
+    <strong>基本コンセプト</strong><br>
+    • 正確さより自然に話し続ける力を養う<br>
+    • 「気軽に・継続的にアウトプットできる場所」として機能<br>
+    • MasaEnglishとは独立したサブスクプログラム<br>
+    • アウトプット（口から出す力）に特化
+  </div>
+  <div class="p-h3">受講生の特徴</div>
+  <ul style="font-size:0.88rem;line-height:2;padding-left:20px">
+    <li><strong>英会話レベル：</strong>中学英文法は理解済みだが話せない初心者〜中級者</li>
+    <li><strong>年齢層：</strong>20代〜70代と幅広い</li>
+    <li><strong>目的：</strong>日常会話、旅行、ビジネスなど多様</li>
+    <li><strong>受講頻度：</strong>週1回／月4回</li>
+    <li><strong>学習スタイル：</strong>オンラインでのレッスン＋自己学習</li>
+  </ul>
+
+  <div class="p-h2">2. レッスンの目的と位置づけ</div>
+  <ul style="font-size:0.88rem;line-height:2;padding-left:20px">
+    <li><strong>実践練習の場</strong> — 学んだことを実際に使ってみる</li>
+    <li><strong>フィードバックの提供</strong> — 発音や表現を改善するアドバイス</li>
+    <li><strong>モチベーション維持</strong> — 成長を実感できる褒めと励まし、自習プランの提供</li>
+  </ul>
+  <div class="p-box" style="margin-top:10px">
+    <strong>レッスン進行の基本方針</strong><br>
+    • 1レッスン50分の厳守<br>
+    　（アイスブレイク5分＋パターンプラクティス20分＋フリートーク15分＋日本語ケア10分）<br>
+    • 英語発話量の最大化<br>
+    　（英語で進め、日本語での質疑応答はレッスンの最後にまとめる）<br>
+    • 具体的で迷わせない宿題指示
+  </div>
+
+  <div class="p-h2">3. 指導方針</div>
+  <ul style="font-size:0.88rem;line-height:2;padding-left:20px">
+    <li><strong>褒めて伸ばす</strong> — できたことを積極的に褒める</li>
+    <li><strong>丁寧な添削</strong> — 発音・文法の細かい改善点も指摘</li>
+    <li><strong>実用性重視</strong> — 実際の会話で使える表現を優先</li>
+    <li><strong>継続を応援</strong> — 小さな成長も認めてモチベーションを維持</li>
+    <li><strong>英語発話量の最大化</strong> — 英語で進め、日本語での質疑応答はレッスンの最後にまとめる</li>
+    <li><strong>具体的な宿題指示</strong> — 実施回数・方法・次回チェック内容を明記し、迷わせない</li>
+  </ul>
+
+  <div class="p-h2">4. MasaEnglishとの違い</div>
+  <table class="p-table">
+    <thead><tr><th>項目</th><th>ペラトレ</th><th>MasaEnglish</th></tr></thead>
+    <tbody>
+      <tr><td>対象者</td><td>中学英文法理解済みだが話せない人</td><td>より幅広いレベル</td></tr>
+      <tr><td>レッスン形式</td><td>マンツーマン50分・週1回</td><td>グループ・マンツーマン混在</td></tr>
+      <tr><td>目的</td><td>アウトプット特化で瞬発力UP</td><td>体系的に基礎から構築（総合型）</td></tr>
+      <tr><td>教材</td><td>完全自由・会話テーマから展開</td><td>個別構築（7Step→5Step法等）</td></tr>
+      <tr><td>サポート</td><td>より手厚いフォロー</td><td>標準的なサポート</td></tr>
+    </tbody>
+  </table>
+
+  <div class="p-h2">5. 報酬ルール</div>
+  <div class="p-white">
+    <strong>レッスン報酬</strong><br>
+    • 1レッスン（50分）：<strong>2,000円</strong><br>
+    • 初回ヒアリング（30分）：<strong>1,000円</strong>
+  </div>
+  <p style="font-size:0.88rem;line-height:1.8;margin-top:10px">運営から義務付けられた依頼については別途報酬が発生します。任意の勉強会・視聴は報酬なし。</p>
+  <div class="p-white">
+    <strong>報酬請求の流れ</strong><br>
+    1. 報酬発生（レッスン・その他）<br>
+    2. 運営からの報酬金額連絡を確認<br>
+    3. <a href="https://docs.google.com/spreadsheets/d/1dO0TgPFr_4QJsAYaROInXVfXYhYKeYou7I5PFoT_IwQ/edit" target="_blank" class="p-link-sm">請求書の雛形</a> をコピーして作成<br>
+    4. 毎月5日までに <a href="https://docs.google.com/forms/d/e/1FAIpQLScUfyKb4bgco3sIiTyrly3YGwghoJ7VizUxbmEypZ1QPGkthQ/viewform" target="_blank" class="p-link-sm">フォーム</a> に提出<br>
+    5. 当月25日に報酬振込
+  </div>
+  <div class="p-box">⚠️ 毎月5日の締切を過ぎると、その月の25日には報酬が支払われません。</div>
+
+</div>`;
+}
+
+// ===== レッスンの進め方 =====
+function renderPortalLessonGuide() {
+  return `<div class="card">
+  <div class="p-h2">1. 初回ヒアリング</div>
+  <div class="p-acc-wrap">
+    <div class="p-acc-header">
+      <span>初回ヒアリングについて</span>
+      <span class="p-faq-toggle">▼</span>
+    </div>
+    <div class="p-acc-body">
+      <div class="p-white">
+        <strong>概要</strong><br>
+        • 時間：30分<br>
+        • 目的：担当講師と受講生のアイスブレイク、<br>
+        　英語レベルの判定、今後のレッスン方針の決定
+      </div>
+      <div class="p-h3">担当講師決定までの流れ</div>
+      <p style="font-size:0.88rem;line-height:1.8">受講生のレッスンは原則として<strong>「固定曜日・固定時間」</strong>で行います。</p>
+      <ol style="font-size:0.88rem;line-height:2;padding-left:20px">
+        <li>運営が受講生の希望日時を確認し、該当時間帯の講師を紹介</li>
+        <li>受講生が講師紹介ページを確認し、希望する講師を1名指名</li>
+        <li>指名された講師が初回ヒアリングおよび以降のレッスンを担当</li>
+      </ol>
+      <div class="p-h3">進行ガイド【30分】</div>
+      <table class="p-table">
+        <thead><tr><th>ステップ</th><th>時間</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td><strong>あいさつ＆ヒアリング深掘り</strong></td><td>10分</td><td>ヒアリングシートをベースに目標・動機を深掘りしてシートに記入</td></tr>
+          <tr><td><strong>ペラトレへの期待値確認</strong></td><td>5分</td><td>①入会の決め手 ②期待することをヒアリングしてシートに記入</td></tr>
+          <tr><td><strong>英語での自己紹介タイム</strong></td><td>5分</td><td>スピーキングレベル判定をしてシートに記入<br>あわせて、講師サイトの「<a href="/teacher/students" target="_blank">受講生一覧</a>」で該当の生徒様のPレベル（P1〜P7）を選択</td></tr>
+          <tr><td><strong>レッスンの説明</strong></td><td>10分</td><td>判定したPレベルを生徒様にお伝えし、パターンプラクティスのサイトでもご自身のレベルを確認できることをご案内<br>レベルへのフィードバック、レッスンプラン提示、質疑応答<br>※パターンプラクティスとアーカイブサイトのURLは<br>初回レッスン終了後に運営から受講生へ共有（事前の予習指示は不要）</td></tr>
+        </tbody>
+      </table>
+      <div class="p-h3">レベル判定表（ペラトレ Pレベル）</div>
+      <p style="font-size:0.88rem;line-height:1.8">質問例：「休日は何をしていますか？（What do you do on weekends?）」<br>説明・発音の基準は <a href="/p-level.html" target="_blank">レベル判定基準（P1〜P7）</a> をご確認ください。</p>
+      <table class="p-table">
+        <thead><tr><th>レベル</th><th>目安</th><th>回答例</th></tr></thead>
+        <tbody>
+          <tr><td><strong>P1</strong></td><td>超入門（単語でかろうじて答える）</td><td>"Game... and sleep."</td></tr>
+          <tr><td><strong>P2</strong></td><td>入門（一文なら言える）</td><td>"I play game." / "I sleep."</td></tr>
+          <tr><td><strong>P3</strong></td><td>CEFR: A1相当</td><td>"I play games at home. And I sleep a lot."</td></tr>
+          <tr><td><strong>P4</strong></td><td>CEFR: A2相当</td><td>"I usually play video games with my child. Sometimes we go to the park."</td></tr>
+          <tr><td><strong>P5</strong></td><td>CEFR: B1相当</td><td>"Usually I try to take it easy at home, but if the weather is nice, I like taking my child to the park."</td></tr>
+          <tr><td><strong>P6</strong></td><td>CEFR: B2相当</td><td>"It depends on the week, really. If I'm tired, I just chill at home, but otherwise I try to get out with my kid so we can do something fun together. How about you?"</td></tr>
+          <tr><td><strong>P7</strong></td><td>CEFR: C1相当</td><td>"To be honest, my weekends are largely centered around family activities. Engaging in playful activities with my child serves as a great reset button, allowing me to fully recharge."</td></tr>
+        </tbody>
+      </table>
+      <div class="p-h3">ヒアリング終了後</div>
+      <div class="p-box">
+        シートが完成しましたら、Slackの <strong>英会話講師-業務連絡用</strong> チャンネルで<br>
+        <strong>@Masa</strong> と <strong>@エディングトン朋世_ペラトレ講師/運営サポート</strong> 宛にシートのご共有をお願いいたします。
+      </div>
+      <p style="font-size:0.88rem;line-height:1.8;margin-top:8px">初回レッスン後、パターンプラクティスのサイトおよびアーカイブサイトのURLは運営から受講生へ共有されます。</p>
+    </div>
+  </div>
+
+  <div class="p-h2">2. レッスン前の準備</div>
+  <div class="p-h3">1. 前回の内容を確認</div>
+  <div class="p-white">
+    受講生管理を確認して、パターンプラクティスのサイトや保存フォルダ等から<br>
+    前回のレッスン内容を確認してください。<br>
+    「どこまでやったか」「どんな添削をしたか」を把握しておきましょう。
+  </div>
+  <div class="p-h3">2. Google Meet録画</div>
+  <ul style="font-size:0.88rem;line-height:2;padding-left:20px">
+    <li>予定時間になったらGoogle Meetに入室</li>
+    <li>共有のGoogleアカウント（peratore1234@〜）でログイン</li>
+    <li>レッスンは録画を含め講師が実施</li>
+    <li>⚠️ Meetへの参加は<strong>PCのみ</strong>。スマホ・iPadからの参加は禁止です。</li>
+  </ul>
+  <div class="p-box">⚠️ 録画が開始されているか<strong>必ず確認</strong>してください。録画が開始されない場合は、必ず手動で開始してください。再参加後は録画が自動で開始されないことが多いため、ご注意ください。</div>
+  <div class="p-warn" style="margin-top:10px">
+    <strong>【重要】録画の停止・再開確認</strong><br>
+    ① <strong>退出時：</strong>レッスン終了後や途中退出の際は、録画が停止されているか必ず確認してください。<br>
+    　講師が先に退出した場合でも、受講生がMeetに残っていると録画が継続されることがあります。<br>
+    ② <strong>再入室時：</strong>途中でMeetに入り直した場合は、再参加後に録画が開始されているか必ず確認してください。<br>
+    　録画が開始されていない場合は、手動で録画を開始してください。
+  </div>
+  <div style="margin-top:8px">
+    <a href="https://docs.google.com/document/d/1gbQfXWfByD32dhwhxJAEaBpsKWI0yn-6YxunNqk-lhI/edit" target="_blank" class="p-link">Google Meetマニュアル</a>
+  </div>
+
+  <div class="p-acc-wrap">
+    <div class="p-acc-header">
+      <span>録画が失敗した場合</span>
+      <span class="p-faq-toggle">▼</span>
+    </div>
+    <div class="p-acc-body">
+      <p style="font-size:0.88rem;line-height:1.8">録画が失敗した際は、動画（5分程度）の作成をお願いいたします。共有アカウントで作成してください。</p>
+      <ol style="font-size:0.88rem;line-height:2;padding-left:20px;margin-top:12px;display:flex;flex-direction:column;gap:8px">
+        <li>録画ファイルがアップされていない場合、運営よりご連絡いたします。</li>
+        <li><strong>共有アカウントで5分程度の動画を作成してください</strong>（<a href="https://drive.google.com/file/d/1ySOMtUHKrWhG_f_iJogFGRSdSbOArCWG/view?usp=sharing" target="_blank" class="p-link-sm">参考動画↗</a>）</li>
+        <li><strong>作成した動画のURLを講師からLINEで受講生に送付してください</strong><br>
+          送付後、運営にもご連絡ください。</li>
+      </ol>
+      <div class="p-h3" style="margin-top:16px">動画の構成例</div>
+      <p style="font-size:0.88rem;line-height:1.8;margin-bottom:8px">短い時間のためオールイングリッシュが望ましいです。画面共有のテキストを見せながら話すと、視覚的にも復習しやすくなります。</p>
+      <table class="p-table">
+        <thead><tr><th>パート</th><th>目安時間</th><th>内容</th></tr></thead>
+        <tbody>
+          <tr><td>① オープニング＆お詫び</td><td>約30秒</td><td>挨拶と、録画が残せなかったことへのお詫びを簡潔に伝える</td></tr>
+          <tr><td>② 褒めポイント</td><td>約30秒</td><td>レッスン中で良かった点（発音・積極性・新表現への挑戦など）を具体的に褒める</td></tr>
+          <tr><td>③ リピート・発音練習</td><td>約1分半</td><td>レッスンで扱ったキーフレーズを読み上げ、発音・イントネーションのコツを伝える</td></tr>
+          <tr><td>④ フォロー</td><td>約1分半</td><td>言い淀んでいた文や聞き取れなかった部分の自然な模範解答を提示する</td></tr>
+          <tr><td>⑤ ワンポイント＆クロージング</td><td>約30秒</td><td>③④に関連するミニ知識、次回への応援メッセージで締めくくる</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="p-h2">3. レッスン構成（50分）</div>
+  <table class="p-table">
+    <thead><tr><th>パート</th><th>時間</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td><strong>①アイスブレイクトーク</strong></td><td>5分</td><td>最近の出来事や近況など、自由に話してウォームアップ</td></tr>
+      <tr><td><strong>②パターンプラクティス</strong></td><td>20分</td><td>専用サイトの例文を参考に繰り返し練習（<a href="https://peratore-dashboard.vercel.app/teacher-manual.html" target="_blank" class="p-link-sm">使い方はこちら↗</a>）</td></tr>
+      <tr><td><strong>③フリートーク</strong></td><td>15分</td><td>テーマを決めずに自由に英会話。練習した表現を使う機会に</td></tr>
+      <tr><td><strong>④日本語ケア</strong></td><td>10分</td><td>レッスンの振り返り・気になった表現の確認・次回の目標設定</td></tr>
+      <tr><td colspan="2"><strong>合計</strong></td><td><strong>50分</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="p-box" style="margin-top:12px">
+    <strong>注意事項</strong><br>
+    • すぐ日本語で解説せず、簡単な英語への言い換え・使用例・ジェスチャーで対応<br>
+    • フリートーク＋パターンプラクティスは英語のみ。日本語での質疑応答はクロージングにまとめる<br>
+    • 受講生が日本語に頼らず英語で伝えようとする姿勢を優しくサポート<br>
+    • 難しい質問で黙らせない / 間違いを細かく指摘しすぎて会話を止めない<br>
+    • ※超初級の受講生についてはお気軽に運営までご相談ください
+  </div>
+
+  <div class="p-h2">よくある質問</div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">受講生がまったく話せない場合は？<span class="p-faq-toggle">▼</span></div>
+    <div class="p-faq-a">焦らず超初心者向けのアプローチを取りましょう。日本語を交えながらゆっくり進め、簡単な表現から始めてください。「リピートアフターミー」形式で練習し、小さな成功体験を積み重ねることが大切です。<br><br><a href="https://notepm.jp/sharing/93447f7e-6e29-4ae4-99ef-d9d002dd91d8" target="_blank" class="p-link">超初心者向けレッスン動画</a></div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">時間内に終わらない場合は？<span class="p-faq-toggle">▼</span></div>
+    <div class="p-faq-a">無理に終わらせず、次回に続きをやりましょう。質を重視（量より実践の深さ）し、次回「前回の続きから」でOKです。</div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">Google Meet接続トラブルが発生したら？<span class="p-faq-toggle">▼</span></div>
+    <div class="p-faq-a">再接続を試し、解決しない場合は運営Slackに連絡してください。<br><br><a href="https://docs.google.com/document/d/1gbQfXWfByD32dhwhxJAEaBpsKWI0yn-6YxunNqk-lhI/edit" target="_blank" class="p-link">Google Meetマニュアル</a></div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">受講生が遅刻・欠席した場合は？<span class="p-faq-toggle">▼</span></div>
+    <div class="p-faq-a">
+      <p style="font-size:0.88rem;line-height:1.8;margin-top:4px">レッスン開始時に受講生が参加していない場合は、すぐに受講生へLINEで連絡し、運営にも報告。<br>その後はレッスン時間中待機し、途中から参加した場合は残り時間でレッスンを実施してください。</p>
+    </div>
+  </div>
+  <div class="p-faq-item">
+    <div class="p-faq-q">受講生におすすめの教材はありますか？<span class="p-faq-toggle">▼</span></div>
+    <div class="p-faq-a">はい、市販教材のおすすめリストを用意しています。<br><br><a href="https://notepm.jp/sharing/59cfae30-36a5-4185-b6dc-9fc6f1bac490" target="_blank" class="p-link">おすすめ教材リストを見る</a></div>
+  </div>
+</div>`;
+}
+
+// ===== 業務フロー =====
+function renderPortalLessonManagement() {
+  return `<div class="card">
+  <div class="p-h2">レッスンの流れ（タイムライン）</div>
+  <div class="p-white">
+    <ol style="font-size:0.88rem;line-height:2.2;padding-left:20px">
+      <li><strong>予約確認</strong> — Gmail / Slackで確認</li>
+      <li><strong>レッスン実施</strong> — レッスンの進め方を確認</li>
+      <li><strong>レッスン後1時間以内</strong> — パターンプラクティスの「復習集」と「宿題」の登録</li>
+    </ol>
+  </div>
+
+  <div class="p-h2">予約確認</div>
+  <p style="font-size:0.88rem;line-height:1.8">TimeRexからの予約・キャンセル通知がGmailと <strong>#ペラトレ-予約</strong> Slackチャンネルに届きます。</p>
+  <div class="p-box">⚠️ <strong>予約確認は1日1回（朝）必ず行うこと</strong><br>受講生と直接LINEまたはレッスン中に日程調整をした場合は、<strong>#ペラトレ-予約</strong> までご連絡ください</div>
+
+  <div class="p-h2">レッスン実施</div>
+  <p style="font-size:0.88rem;line-height:1.8">詳細なレッスンの進め方については「レッスンの進め方」ページをご確認ください。</p>
+
+  <div class="p-h2">レッスン後1時間以内：パターンプラクティスの「復習集」と「宿題」の登録</div>
+  <p style="font-size:0.88rem;line-height:1.8">レッスン完了後、サイト内の「レッスン後フォーム」より復習集を作成してください。作成後は、当日実施したパターンプラクティスに加え、こちらの復習集もまとめて「宿題」に登録してください。</p>
+  <div class="p-box">
+    <strong>期限：レッスン終了後1時間以内</strong><br>
+    1時間以内に間に合わない場合は、受講生に直接LINEで「入力が遅れる旨」を一言お伝えください。
+  </div>
+  <div class="p-h3">宿題の伝え方</div>
+  <p style="font-size:0.88rem;line-height:1.8">パターンプラクティス以外の宿題はレッスン内で口頭で伝えてください。どうしても文章で送りたい場合は公式LINE経由で任意対応いただいて構いません（追加報酬なし、ご自身の負担にならない範囲で）。</p>
+  <div class="p-h3">フィードバックについて</div>
+  <p style="font-size:0.88rem;line-height:1.8">レッスン後の手厚いシート作成に時間をかけるのではなく、<strong>「レッスン時間内にどれだけパターンプラクティスで定着させられるか」</strong>に重きを置いてください。アーカイブ動画もお送りするので受講生はそちらもご活用できます。</p>
+  <p style="font-size:0.88rem;line-height:1.8">操作方法の詳細はパターンプラクティスサイトのマニュアルをご参照ください。</p>
+
+  <div class="p-h2">役割分担</div>
+  <div class="p-white">
+    <strong>運営が対応</strong><br>
+    • 受講生との窓口（質問・日程調整）<br>
+    • Google Meetリンク作成・共有<br>
+
+    • レッスン動画の送付
+  </div>
+  <div class="p-box" style="margin-top:8px">
+    <strong>講師が対応</strong><br>
+    • 予約確認（Gmail / Slack）<br>
+    • レッスン実施（録画含む）<br>
+    • パターンプラクティスの「復習集」と「宿題」の登録
+  </div>
+
+  <div class="p-h2">Googleドライブ（資料の管理・共有）</div>
+  <p style="font-size:0.88rem;line-height:1.8">ペラトレGoogleドライブに講師ごとのフォルダーを作成しています。受講生に共有したい資料がある場合は、以下のルールに従って管理をお願いいたします。</p>
+  <div class="p-white">
+    <strong>① 資料は自分の名前のフォルダーへ保存</strong>（例：専用フォルダ：TOMOYO先生）<br>
+    • 受講生への共有有無にかかわらず、ご自身が作成した資料はすべて自分の名前のフォルダーへ保存してください（共有アカウントのため、作成者が不明にならないようにするためです）<br>
+    • フォルダー内に保存してリンク共有することで、受講生が閲覧できます
+  </div>
+  <div class="p-box" style="margin-top:8px">
+    <strong>② 他講師のフォルダーの閲覧禁止</strong><br>
+    • 他の講師のフォルダーは開かないようにしてください<br>
+    • <a href="https://drive.google.com/drive/folders/1xr1kBoxHVQ0RzYRjictHA-Sh7KGyjfJL" target="_blank" class="p-link-sm">専用フォルダ：TOMOYO先生</a> のみ参照OKです（誤削除・編集にご注意ください）
+  </div>
+
+  <div class="p-h2">注意事項</div>
+  <div class="p-box">
+    • 連絡は<strong>必ず公式LINE内で</strong>行う（個人LINE・SNS禁止）<br>
+    • 受講生にLINEする際は、<strong>講師名を名乗ってください</strong>（受講生側には誰からのメッセージか表示されないため）<br>
+    • <strong>パターンプラクティスへの入力や受講生への連絡不備</strong>が続いた場合は運営から確認が入ります
+  </div>
+</div>`;
+}
+
+// ===== キャンセル・時間変更 =====
+function renderPortalCancelPolicy() {
+  return `<div class="card">
+  <div class="p-h2" style="margin-top:0">キャンセル・時間変更ルール</div>
+  <div class="p-warn">
+    レッスン開始 <strong>24時間前以降</strong>のキャンセル・時間変更は <strong>受付不可</strong> です。<br>
+    この場合、受講生は1回分消化・講師は1回分の報酬（2,000円）が発生します。
+  </div>
+
+  <div class="p-h3">キャンセル時の講師対応</div>
+  <p style="font-size:0.88rem;line-height:1.8">お休みの際は、講師判断でその受講生に合った動画（5分程度）の作成をお願いいたします。共有アカウントで作成してください。</p>
+  <ol style="font-size:0.88rem;line-height:2;padding-left:20px;margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <li><strong>レッスン時間中（50分間）は待機してください</strong><br>
+      途中参加の可能性があるため。</li>
+    <li><strong>パターンプラクティスのサイトに宿題を登録してください</strong></li>
+    <li><strong>途中参加がなかった場合、共有アカウントで5分程度の動画を作成してください</strong></li>
+    <li><strong>作成した動画のURLを講師からLINEで受講生に送付してください</strong></li>
+  </ol>
+  <div class="p-h3" style="margin-top:16px">動画の構成例</div>
+  <p style="font-size:0.88rem;line-height:1.8;margin-bottom:8px">短い時間のためオールイングリッシュが望ましいです。画面共有のテキストを見せながら話してください。</p>
+  <table class="p-table">
+    <thead><tr><th style="width:12em">パート</th><th style="width:7em">目安時間</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><td>① オープニング<br>　＆アイスブレイク</td><td style="white-space:nowrap">約30秒</td><td>ご挨拶をして、最近あったことを話す</td></tr>
+      <tr><td>② メイン</td><td style="white-space:nowrap">約3分</td><td>レッスンで扱おうとしていたフレーズを読み上げ、発音・イントネーションのコツや日常会話での応用方法を伝える</td></tr>
+      <tr><td>③ 宿題提示</td><td style="white-space:nowrap">約1分</td><td>次回までの宿題と取り組む際のポイントを伝える</td></tr>
+      <tr><td>④ クロージング</td><td style="white-space:nowrap">約30秒</td><td>次回に向けた応援メッセージで締めくくる</td></tr>
+    </tbody>
+  </table>
+
+  <div class="p-template-wrap">
+    <div class="p-template-header">
+      <span>キャンセル時 LINEテンプレート</span>
+      <button class="p-copy-btn">コピー</button>
+    </div>
+    <div class="p-template-body">〇〇さん、こんにちは！
+講師の△△です 😊
+
+パターンプラクティスのサイトに新しく宿題を登録しました✨
+次回のレッスンで確認しますので、ぜひやってみてくださいね 😊
+
+また、動画をお送りします。
+ぜひご活用ください！
+
+（他、受講生へのメッセージ）
+
+【メモまたは動画のURLをここに添付】</div>
+  </div>
+  <div class="p-box">
+    <strong>ポイント</strong><br>
+    • 「キャンセル」という言葉は使わないでください<br>
+    • 不要な行は削除してアレンジ可
+  </div>
+
+  <div class="p-h3">例外（特別対応）</div>
+  <p style="font-size:0.88rem;line-height:1.8">24時間前以降の時間変更は本来受付不可ですが、<strong>講師がOKした場合に限り</strong>特別に対応できます。<br>OK・NGは遠慮なくお知らせください。一貫性のため、特別対応は運営経由で行います。</p>
+
+  <div class="p-h3">当日のトラブル・リスケ時の連絡フロー</div>
+  <p style="font-size:0.88rem;line-height:1.8">以下の場合は、受講生さんへできる限り早くお伝えするため、<strong>講師から直接ペラトレLINEにてご連絡ください。</strong><br>ご連絡後、運営にも状況をご共有ください。</p>
+  <ul style="font-size:0.88rem;line-height:2;padding-left:20px;margin-top:8px">
+    <li>講師都合でリスケする場合</li>
+    <li>通信環境や講師都合により、開始時間に遅れる場合</li>
+    <li>受講生さんが開始時間を過ぎても参加されていない場合</li>
+    <li>レッスン中に接続が切れ、すぐに再開できない場合</li>
+  </ul>
+  <div class="p-box" style="margin-top:10px">
+    深夜・早朝帯になる場合は、LINEの<strong>予約送信</strong>をご使用いただいて問題ございません。
+  </div>
+
+  <div class="p-h3">レッスンリンクの予約送信について</div>
+  <p style="font-size:0.88rem;line-height:1.8">レッスンリンクは基本的に<strong>前日20時</strong>に予約送信されます。<br>前日20時より前にリスケが決まった場合は、変更前のリンクが送信されないよう、<strong>予約送信のキャンセルもお願いいたします。</strong><br>すでに送信済みの場合は、キャンセル対応は不要です。</p>
+</div>`;
+}
+
+// ===== 初期設定 =====
+function renderPortalInitialSetup() {
+  return `<div class="card">
+  <div class="p-h2">1. レッスン可能時間枠の送信</div>
+  <p style="font-size:0.88rem;line-height:1.8">担当可能なレッスン時間枠を以下のフォームから送信してください。変更があれば何回でも同じフォームから再送信いただいて構いません。</p>
+  <div style="margin:8px 0">
+    <a href="https://forms.gle/V4nKsQeUEUDrJwgg8" target="_blank" class="p-link">レッスン可能時間枠フォーム ↗</a>
+  </div>
+
+  <div class="p-h2">2. 講師一覧表記載</div>
+  <p style="font-size:0.88rem;line-height:1.8">受講生はこのページをみて講師情報の確認や予約を行います。掲載する情報をアンケートフォームにてご回答ください。<br>HPへのアップは運営が行います。修正したい場合は運営にご連絡ください。</p>
+  <div style="margin:8px 0">
+    <a href="/peratore/teachers.html" target="_blank" class="p-link">講師一覧ページ</a>
+    <a href="https://forms.gle/GmQYJnBjUkBxMjzB9" target="_blank" class="p-link">講師情報記載用アンケートフォーム</a>
+  </div>
+
+  <div class="p-h2">3. TimeRex設定</div>
+  <p style="font-size:0.88rem;line-height:1.8">TimeRexは受講生がレッスン日時を予約するためのシステムです。講師のGoogleカレンダーと自動連携し、空いている時間だけが予約可能になります。</p>
+  <div style="margin:8px 0">
+    <a href="https://www.loom.com/share/57853fb4219d463abc34305cb32df8a5" target="_blank" class="p-link">動画：TimeRex登録方法</a>
+    <a href="https://www.loom.com/share/8e4cb42769eb466e83d3cd934071201e" target="_blank" class="p-link">動画：TimeRex注意点</a>
+    <a href="https://www.loom.com/share/f355d20a4d4c449f9dbe6d0ec8036b93" target="_blank" class="p-link">動画：ブロックスケジュールの重要性</a>
+    <a href="https://docs.google.com/document/d/1hEHO2td4KgQRM_XmRJIIBW4pdTuXRGeWQmsZF7E2Plg/edit" target="_blank" class="p-link">詳細手順：Slack連携方法</a>
+  </div>
+  <ol style="font-size:0.88rem;line-height:2;padding-left:20px">
+    <li>上記の動画を必ず視聴</li>
+    <li>自分のGoogleアカウントでTimeRexアカウント作成・設定</li>
+    <li>カレンダーとSlackを連携</li>
+    <li>カレンダーのURLをSlackで運営に共有</li>
+  </ol>
+  <div class="p-box">⚠️ 海外在住の方はタイムゾーン設定の動画を必ず視聴してください。ブロックスケジュールは「All day（終日）」ではなく<strong>時間指定</strong>で設定してください。<br>★ 連携チャンネルは <strong>#ペラトレ-予約</strong> まで設定してください</div>
+
+  <div class="p-h2">4. 公式LINEメンバー登録</div>
+  <p style="font-size:0.88rem;line-height:1.8">ペラトレの公式LINEに講師としてメンバー登録します。受講生とのやり取りはすべてこの公式LINEを通じて行いますので、必ず最初に登録してください。</p>
+  <div style="margin:8px 0">
+    <a href="https://www.loom.com/share/b49b73974f5c4b0aa4d26675afb99b0a" target="_blank" class="p-link">動画：公式LINEメンバー登録方法</a>
+  </div>
+  <p style="font-size:0.88rem;line-height:1.8">運営から送付される公式LINE招待リンクに参加し、自分のLINEアカウントでログインしてください。</p>
+
+  <div class="p-white" style="margin-top:20px">
+    <strong>初期設定完了チェックリスト</strong><br><br>
+    ☐ レッスン可能時間枠フォームを送信した<br>
+    ☐ 講師情報をアンケートフォームに回答した<br>
+    ☐ 公式LINEメンバー登録が完了し、チャットが確認できる<br>
+    ☐ TimeRexで空き時間を登録し、Slack連携を完了、カレンダーのURLを運営に共有した<br><br>
+    <strong>すべての設定を確認したら、いよいよレッスン開始です！</strong>
+  </div>
+</div>`;
+}
+
+// ===== FAQ =====
+function renderPortalFaq() {
+  const faqData = [
+    {
+      cat: 'スケジュール・勤務条件',
+      items: [
+        { q: '講師や受講生は固定ですか？', a: '原則として<strong>「固定曜日・固定時間・固定講師」</strong>です。受講生が講師紹介ページを確認し、希望する講師を指名 → 指名された講師が初回ヒアリングおよび以降のレッスンを担当します。受講生はいつでも講師や曜日・時間の変更が可能です。' },
+        { q: '勤務可能時間は何時から何時までですか？', a: '基本的には<strong>9:00〜23:00の間</strong>でお願いしております。' },
+        { q: '日程変更したいとき、どれくらい前までに連絡すればいいですか？', a: '基本的には<strong>1週間前まで</strong>に連絡してください。' },
+        { q: '講師側から日程変更を提案できますか？', a: 'はい、可能です。受講生と相談の上、調整してください。' },
+        { q: '契約期間はどのくらいですか？', a: '契約期間は<strong>1年間</strong>です。' },
+        { q: 'TimeRexのスケジュールを変更したい', a: 'Googleカレンダーと連携していれば自動で更新されます。再登録は不要です。' },
+      ]
+    },
+    {
+      cat: '受講生について',
+      items: [
+        { q: '受講生の情報は、事前にどの程度わかりますか？', a: '担当が決まり次第、運営からヒアリングシートが共有されます。受講生の目標・動機・レベルなどを事前に確認できます。' },
+        { q: 'どのようなレベルや目的を持った受講生が多いですか？', a: 'ある程度の英文法は理解しているものの、アウトプットの機会が少ない方が多いです。英会話レベルでいうと初心者の方が中心となります。' },
+        { q: '受講生との連絡手段は？', a: '<strong>公式LINEアカウント</strong>を通じてやり取りします。個人LINE・SNSでの直接連絡は禁止です。' },
+        { q: '受講生がほとんど話してくれない。どう対応すればいい？', a: '初級者は英語を話すことへの不安から受け身になりがちです。先生から積極的に質問を投げかけてリードしてください。"How was your day?" に "Good" しか返ってこなくても、次の質問でどんどん盛り上げていくのが基本スタイルです。' },
+      ]
+    },
+    {
+      cat: 'レッスン準備・内容',
+      items: [
+        { q: '受講生におすすめの教材はありますか？', a: 'はい、市販教材のおすすめリストを用意しています。<br><br><a href="https://notepm.jp/sharing/59cfae30-36a5-4185-b6dc-9fc6f1bac490" target="_blank" class="p-link">おすすめ教材リストを見る</a>' },
+        { q: 'レッスンの時間配分は？', a: '50分レッスンは<strong>4パート構成</strong>です。<br><br>• アイスブレイクトーク（5分）<br>• パターンプラクティス（20分）<br>• フリートーク（15分）<br>• 日本語ケア（10分）<br><br>詳しくは「レッスンの進め方」ページをご覧ください。' },
+        { q: 'レッスンの引き継ぎはどうすればいいですか？', a: '受講生管理を確認して、パターンプラクティスのサイトや保存フォルダ等から前回のレッスン内容を確認してください。' },
+        { q: '教材に日本語を入れていい？', a: 'レッスン教材は英語のみにしてください。パターンプラクティスの復習ページは除きます。' },
+        { q: '教材の文字サイズはどのくらいにすればいい？', a: '60〜70代の受講生もいるため、大きめに設定してください。ブラウザのズーム機能で拡大できます。' },
+        { q: '教材はペラトレのパターンプラクティス以外を使っていい？', a: '自由に準備してOKです。ただしパターンプラクティスから選ぶと受講生が復習しやすく、準備の負担も少なくなります。' },
+        { q: 'レッスンメモとは何ですか？どう使えばいい？', a: 'レッスン中に画面共有しながら使う講師用メモです。レッスン後フォームに入力する内容のメモとしても活用できます。受講生に送る必要はありません。共有アカウント（Googleドキュメント）での作成を推奨します。' },
+        { q: 'レッスンメモとレッスン後フォームの違いは？', a: 'レッスンメモは講師の作業用メモです。レッスン後フォームはレッスンで扱った内容を入力するとAIがパターンチャンクに変換してくれるものです。' },
+        { q: '宿題はどうやって決めればいい？', a: 'その日のレッスン内容に加え、フリートークで出てきた受講生が言えなかった表現を組み合わせて設定するのがおすすめです。' },
+      ]
+    },
+    {
+      cat: 'レッスン進行・指導方法',
+      items: [
+        { q: '英語だけでレッスンを行うのでしょうか？', a: '基本方針として、<strong>アイスブレイク・パターンプラクティス・フリートークはAll English</strong>で進めてください。日本語での質疑応答は<strong>日本語ケア（10分）にまとめて</strong>行ってください。超初級の受講生についてはお気軽に運営までご相談ください。' },
+        { q: '受講生がまったく話せない場合は？', a: '焦らず超初心者向けのアプローチを取りましょう。日本語を交えながらゆっくり進め、簡単な表現から始めてください。<br><br><a href="https://notepm.jp/sharing/93447f7e-6e29-4ae4-99ef-d9d002dd91d8" target="_blank" class="p-link">超初心者向けレッスンを見る</a>' },
+        { q: '時間内に終わらない場合は？', a: '<strong>無理に終わらせず、次回に続きを</strong>やりましょう。質を重視し、次回「前回の続きから」でOKです。' },
+        { q: '1回のレッスンで扱う表現はどのくらいが適切？', a: '10個こなすより2個を何度も繰り返す方が定着します。「今日これが言えた」という達成感で終われるレッスンを意識してください。' },
+        { q: '受講生のレベルに応じて教材の量はどう調整すればいい？', a: '初級者には量を絞り繰り返しを重視してください。中級以上であればフル活用でOKです。受講生の反応を見ながら調整してください。' },
+        { q: 'レッスン中にリアルタイムで英語を書いて見せるべき？', a: '効果的です。受講生が言った表現をそのまま書き、文法を直して見せると理解が深まります。' },
+        { q: '同じ繰り返し練習で受講生が飽きてきたら？', a: '発音練習を挟む、テキストを隠して答えさせるなど、少し変化をつけると「さっきより上手になった」という実感につながります。' },
+        { q: 'フリートーク中に受講生が言えなかった表現はどうする？', a: 'その場で一緒に練習し、宿題にも追加してください。' },
+        { q: 'レッスン終了後のフィードバックはどうすればいい？', a: '「以上です」で終わるより、「今日〇〇ができていました。どうでしたか？」と具体的に伝えてから受講生に感想を聞くと満足度が上がります。日本語ケアの時間内で行ってください。' },
+        { q: '文法の細かい質問に自信を持って答えられない場合は？', a: '「わかりません」とは言わずに自信を持って答えてください。どうしても確認が必要な場合は、別タブでGemini/ChatGPTをこっそり調べながら答えるのもOKです。' },
+        { q: 'スペルがわからない時はどうする？', a: '別タブのGemini/ChatGPTで確認してください。「ちょっと忘れてた」というスタンスで自信を持って書けばOKです。Googleドキュメントの予測変換も活用できます。' },
+      ]
+    },
+    {
+      cat: 'トラブル対応・業務',
+      items: [
+        { q: 'レッスンのレコーディングはいつからいつまで行えばいいですか？', a: 'レッスンが始まった時から終了するまで全ての時間をレコーディングしてください。' },
+        { q: 'Google Meet接続トラブルが発生したら？', a: '落ち着いて対処し、必要に応じて運営に連絡してください。<br><br>• 音声が聞こえない → マイク・スピーカーの設定を確認、マイクボタンを押し直す<br>• 映像が映らない → カメラの設定を確認、他のアプリがカメラを使用していないか確認<br>• 接続が不安定 → Wi-Fi接続を確認、可能であれば有線接続に切り替え、一度退出して再接続' },
+        { q: '受講生が遅刻・欠席した場合は？', a: 'レッスン開始時に受講生が参加していない場合は、すぐに受講生へLINEで連絡し、運営にも報告。<br>その後はレッスン時間中待機し、途中から参加した場合は残り時間でレッスンを実施してください。' },
+        { q: '録画は自分でボタンを押す必要がありますか？', a: '共有アカウント（運営ペラトレ）でGoogle Meetに入ると自動で録画されます。レッスン開始時に録画されていることを必ず確認し、録画されていない場合は手動で録画ボタンを押下してください。' },
+        { q: 'LINE Official AccountにiPhoneからログインするとペラトレアカウントが表示されない', a: 'PCからアクセスすると表示されます。' },
+        { q: 'TimeRexとSlackの連携はどうやってすればいい？', a: 'Googleカレンダー内での連携と、#ペラトレ-予約チャンネルへの連携の両方が必要です。どちらか一方だけでは連携が完了しません。' },
+        { q: '共有アカウントにログインしようとすると本人確認が表示される', a: 'ログイン前にSlackで運営にご連絡ください。本人確認が必要なため、事前連絡なしではログインを承認できない場合があります。' },
+      ]
+    },
+    {
+      cat: '報酬について',
+      items: [
+        { q: '勉強会に参加した場合も報酬がありますか？', a: '運営から「依頼」している場合のみ対象です。自主参加は対象外です。' },
+        { q: '給与の支払日はいつですか？', a: '毎月25日に前月分をお支払いします。毎月5日の締切を過ぎると、その月の25日には報酬が支払われませんのでご注意ください。' },
+      ]
+    },
+    {
+      cat: 'その他',
+      items: [
+        { q: '不明点はどこに相談すればいいですか？', a: '運営Slack窓口（#英会話講師-業務連絡用）にいつでも相談してください。' },
+        { q: '自己紹介動画はどう撮ればいい？', a: '明るい場所で撮影してください。他の講師の自己紹介動画も参考にしてみてください。' },
+        { q: 'Google Meetのレッスン画面を明るくしたい', a: '画面右上の3点メニュー →「背景とエフェクト」→「スタイル」から明るさを調整できます。' },
+      ]
+    }
+  ];
+  const html = faqData.map(cat => `
+    <div class="p-cat-title">${h(cat.cat)}</div>
+    <div>${cat.items.map(item => `
+      <div class="p-faq-item">
+        <div class="p-faq-q">${item.q}<span class="p-faq-toggle">▼</span></div>
+        <div class="p-faq-a">${item.a}</div>
+      </div>`).join('')}
+    </div>`).join('');
+
+  return `<div class="card"><div class="p-h2" style="margin-top:0">よくある質問（FAQ）</div>${html}</div>`;
+}
+</script>
+</body>
+</html>
+

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レッスン詳細 - ペラトレ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'BIZ UDGothic', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+            background: #F1F1F1;
+            color: #423929;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #A296AF;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #8a7e9a;
+        }
+
+        .lesson-header {
+            border-bottom: 1px solid #d0d0d0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 400;
+            color: #423929;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #423929;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            margin-bottom: 10px;
+        }
+
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .memo-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #d8d8d8;
+        }
+
+        .memo-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .external-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #A296AF;
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding: 6px 14px;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+
+        .external-link:hover {
+            background: #8a7e9a;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            .memo-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="#" class="back-link" id="backLink">← レッスン一覧に戻る</a>
+
+        <div class="lesson-header">
+            <h1 id="lessonTitle">Lesson</h1>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Video</div>
+            <div id="videoSection"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Lesson Memo</div>
+            <div id="memoSection">
+                <p style="padding: 20px; color: #7a6f5d;">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const lessonNumber = parseInt(params.get('lesson'));
+            const accessKey = params.get('key');
+
+            if (!lessonNumber || !accessKey) {
+                showError('レッスン情報が無効です');
+                return;
+            }
+
+            // 戻るリンクを設定
+            document.getElementById('backLink').href = `myportal.html?key=${accessKey}`;
+
+            loadLesson(accessKey, lessonNumber);
+        });
+
+        async function loadLesson(accessKey, lessonNumber) {
+            try {
+                const response = await fetch('/api/legacy/portal?key=' + encodeURIComponent(accessKey) + '&t=' + new Date().getTime());
+                const data = await response.json();
+                const students = data.students || data;  // 新旧データ構造に対応
+
+                const student = students.find(s => s.accessKey === accessKey);
+                if (!student) {
+                    showError('アクセスが許可されていません');
+                    return;
+                }
+
+                const lesson = student.lessons.find(l => l.lessonNumber === lessonNumber);
+                if (!lesson) {
+                    showError('レッスンが見つかりません');
+                    return;
+                }
+
+                displayLesson(lesson);
+            } catch (error) {
+                showError('データの読み込みに失敗しました');
+            }
+        }
+
+        function displayLesson(lesson) {
+            const instructor = lesson.instructor || '';
+            const titlePart = lesson.title ? ` ${lesson.title}` : '';
+            document.getElementById('lessonTitle').textContent =
+                `[Lesson ${lesson.lessonNumber}] ${lesson.date || ''} | ${instructor}${titlePart}`;
+
+            // 動画
+            const videoSection = document.getElementById('videoSection');
+            const videoUrls = (lesson.videoUrl || '').split('\n').filter(u => u.trim() !== '');
+            const multiVideo = videoUrls.length > 1;
+
+            if (videoUrls.length === 0) {
+                videoSection.innerHTML = `<p style="padding: 20px; color: #7a6f5d;">動画がアップロードされていません</p>`;
+            } else {
+                videoSection.innerHTML = videoUrls.map((videoUrl, i) => {
+                    const label = multiVideo ? `<div style="font-size: 0.9rem; color: #7a6f5d; margin-bottom: 8px; margin-top: ${i > 0 ? '24px' : '0'};">動画 ${i + 1}</div>` : '';
+                    let player = '';
+                    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+                        const videoId = extractYouTubeId(videoUrl);
+                        player = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    } else if (videoUrl.includes('drive.google.com')) {
+                        const fileId = extractGoogleDriveId(videoUrl);
+                        const isMob = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                        const appStoreUrl = isIOS
+                            ? 'https://apps.apple.com/jp/app/google-drive/id507874739'
+                            : 'https://play.google.com/store/apps/details?id=com.google.android.apps.docs';
+                        if (isMob) {
+                            player = `<a href="https://drive.google.com/open?id=${fileId}"
+                                style="position:absolute;top:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                                width:100%;height:100%;background:#111;text-decoration:none;gap:12px;padding:20px;text-align:center;">
+                                <span style="color:white;font-size:2.5rem;">▶</span>
+                                <span style="color:white;font-size:0.9rem;line-height:1.6;">スマートフォンでご覧の方は、<br>Googleドライブアプリよりご視聴ください。</span>
+                            </a>`;
+                            return `${label}<div class="video-container">${player}</div>
+                                <div style="text-align:center;margin-top:14px;margin-bottom:4px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                                    <a href="https://drive.google.com/open?id=${fileId}"
+                                       style="display:inline-block;background:#A296AF;color:white;padding:10px 20px;border-radius:4px;text-decoration:none;font-size:0.9rem;">
+                                        ▶ Googleドライブアプリで開く
+                                    </a>
+                                    <a href="${appStoreUrl}" target="_blank"
+                                       style="color:#aaa;font-size:0.78rem;text-decoration:underline;">
+                                        アプリをお持ちでない方はこちら
+                                    </a>
+                                </div>`;
+                        } else {
+                            player = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+                        }
+                    } else {
+                        player = `<video controls><source src="${videoUrl}" type="video/mp4">お使いのブラウザは動画タグをサポートしていません。</video>`;
+                    }
+                    return `${label}<div class="video-container">${player}</div>`;
+                }).join('');
+            }
+
+            // メモ
+            const memoSection = document.getElementById('memoSection');
+            const memoUrls = (lesson.memoUrl || '').split('\n').filter(u => u.trim() !== '');
+            const multiMemo = memoUrls.length > 1;
+
+            if (memoUrls.length === 0) {
+                memoSection.innerHTML = `<p style="padding: 20px; color: #7a6f5d;">レッスンメモがアップロードされていません</p>`;
+            } else {
+                memoSection.innerHTML = memoUrls.map((memoUrl, i) => {
+                    const label = multiMemo ? `<div style="font-size: 0.9rem; color: #7a6f5d; margin-bottom: 8px; margin-top: ${i > 0 ? '24px' : '0'};">メモ ${i + 1}</div>` : '';
+                    let previewUrl = memoUrl.includes('/edit') ? memoUrl.replace('/edit', '/preview') : memoUrl;
+                    const openLink = `<a href="${memoUrl}" class="external-link" target="_blank" style="margin-bottom: 10px; display: inline-flex;">→ 印刷と全画面表示はこちらから</a>`;
+                    return `${label}${openLink}<div class="memo-container"><iframe src="${previewUrl}" frameborder="0"></iframe></div>`;
+                }).join('');
+            }
+        }
+
+        function extractYouTubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function extractGoogleDriveId(url) {
+            const match = url.match(/[-\w]{25,}/);
+            return match ? match[0] : null;
+        }
+
+        function showError(message) {
+            document.querySelector('.container').innerHTML = `
+                <div style="padding: 100px 20px; text-align: center;">
+                    <p style="font-size: 1.2em; color: #7a6f5d;">${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

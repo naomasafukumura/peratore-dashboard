@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson Archive管理 - ペラトレ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'BIZ UDGothic', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+            background: #F1F1F1;
+            color: #423929;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px 40px 40px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .header {
+            border-bottom: 1px solid #d0d0d0;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .title-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: #423929;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #423929;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        /* フォーム */
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #d8d8d8;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            color: #423929;
+            font-family: 'BIZ UDGothic', sans-serif;
+        }
+
+        input[type="text"].input-narrow {
+            flex: none;
+            width: 120px;
+        }
+
+        input[type="text"].input-medium {
+            flex: none;
+            width: 120px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #A296AF;
+        }
+
+        input[type="text"]::placeholder {
+            color: #b0b0b0;
+        }
+
+        /* ボタン */
+        button, .btn {
+            padding: 10px 20px;
+            border: 1px solid #A296AF;
+            background: white;
+            color: #A296AF;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            font-family: 'BIZ UDGothic', sans-serif;
+            text-decoration: none;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        button:hover, .btn:hover {
+            background: #A296AF;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .btn-primary:hover {
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .btn-manage {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .btn-manage:hover {
+            background: #8a7e9a;
+            border-color: #8a7e9a;
+        }
+
+        /* 検索とフィルター */
+        .search-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding-left: 35px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #A296AF;
+            font-size: 0.9rem;
+        }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #7a6f5d;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .filter-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* 開始月セレクト */
+        .start-month-selects {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .start-month-selects select {
+            padding: 8px 10px;
+            border: 1px solid #d8d8d8;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            color: #423929;
+            background: white;
+            font-family: 'BIZ UDGothic', sans-serif;
+        }
+
+        .start-month-selects span {
+            color: #7a6f5d;
+            font-size: 0.9rem;
+        }
+
+        /* 生徒一覧 */
+        .student-list {
+            margin-top: 20px;
+        }
+
+        .student-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e8e8e8;
+            gap: 20px;
+            transition: background 0.2s;
+        }
+
+        .student-row:hover {
+            background: #f9f9f9;
+        }
+
+        .student-row.retired {
+            opacity: 0.5;
+        }
+
+        .student-cell {
+            color: #423929;
+            font-size: 0.9rem;
+        }
+
+        .student-cell.id {
+            min-width: 40px;
+            font-weight: 400;
+        }
+
+        .student-cell.name {
+            min-width: 120px;
+        }
+
+        .student-cell.line-name {
+            min-width: 100px;
+            color: #7a6f5d;
+        }
+
+        .student-cell.start {
+            min-width: 100px;
+            color: #7a6f5d;
+            font-size: 0.85rem;
+        }
+
+        .student-cell.total {
+            min-width: 80px;
+            color: #7a6f5d;
+            font-size: 0.85rem;
+        }
+
+        .student-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+
+        .pagination button {
+            min-width: 35px;
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+
+        .pagination button.active {
+            background: #A296AF;
+            color: white;
+        }
+
+        .pagination button.dots {
+            border: none;
+            cursor: default;
+        }
+
+        .pagination button.dots:hover {
+            background: white;
+            color: #A296AF;
+        }
+
+        /* モーダル */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 2px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 9999;
+            min-width: 400px;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #423929;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        .modal-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #7a6f5d;
+            font-size: 0.9rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* 成功メッセージ */
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #A296AF;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 2px;
+            font-size: 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 10000;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7a6f5d;
+            font-size: 0.95rem;
+        }
+
+        /* アコーディオン */
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 0;
+            user-select: none;
+        }
+
+        .accordion-header:hover {
+            color: #A296AF;
+        }
+
+        .accordion-icon {
+            transition: transform 0.3s;
+            font-size: 0.8rem;
+        }
+
+        .accordion-icon.open {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .accordion-content.open {
+            max-height: 1000px;
+        }
+
+        /* 講師一覧 */
+        .instructor-list {
+            margin-top: 20px;
+        }
+
+        .instructor-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e8e8e8;
+            gap: 15px;
+        }
+
+        .instructor-row:hover {
+            background: #f9f9f9;
+            margin: 0 -20px;
+            padding: 12px 20px;
+        }
+
+        .instructor-name {
+            flex: 1;
+            color: #423929;
+            font-size: 0.9rem;
+        }
+
+        .instructor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .suffix-label {
+            color: #7a6f5d;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .search-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .student-row {
+                flex-wrap: wrap;
+            }
+
+            .student-actions {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .modal {
+                min-width: 90%;
+            }
+        }
+
+        /* パスワード保護 */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #F1F1F1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .auth-box {
+            background: white;
+            padding: 50px 40px;
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+        }
+        .auth-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 20px;
+            opacity: 0.4;
+            object-fit: contain;
+        }
+        .auth-title {
+            font-size: 1.1rem;
+            color: #423929;
+            margin-bottom: 25px;
+            font-weight: 400;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #d8d8d8;
+            border-radius: 2px;
+            font-size: 1rem;
+            text-align: center;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            font-family: 'BIZ UDGothic', sans-serif;
+        }
+        .auth-input:focus {
+            outline: none;
+            border-color: #A296AF;
+        }
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #A296AF;
+            border: 1px solid #A296AF;
+            border-radius: 2px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: 'BIZ UDGothic', sans-serif;
+            transition: all 0.2s;
+        }
+        .auth-btn:hover {
+            background: #A296AF;
+            color: white;
+        }
+        .auth-error {
+            color: #c44;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            display: none;
+        }
+
+        /* 未登録レッスン一覧 */
+        .unreg-section {
+            margin-bottom: 40px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+
+        #unregList {
+            background: #f3f0f7;
+            border-radius: 8px;
+            padding: 0 12px;
+        }
+
+        .unreg-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .unreg-title {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #423929;
+        }
+
+        .unreg-badge {
+            font-size: 0.78rem;
+            background: #A296AF;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+        }
+
+        .unreg-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0d8ea;
+            gap: 20px;
+        }
+
+        .unreg-row:last-child {
+            border-bottom: none;
+        }
+
+        .unreg-date {
+            font-size: 0.85rem;
+            color: #7a6f5d;
+        }
+
+        /* ===== サイドバー ===== */
+        #pageLayout { display: block; }
+        #sidebarNav {
+            width: 200px;
+            min-width: 200px;
+            background: white;
+            padding: 40px 8px 12px 8px;
+            border-right: 1px solid #e0dde3;
+            align-self: flex-start;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 10px;
+            margin-bottom: 2px;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .sidebar-item:hover { background: #f3f0f8; }
+        .sidebar-item.active {
+            background: #f3f0f8;
+            border-left: 3px solid #A296AF;
+            padding-left: 7px;
+        }
+        .sidebar-num { font-size: 0.75rem; color: #b0a898; min-width: 16px; flex-shrink: 0; }
+        .sidebar-name { font-size: 0.9rem; color: #423929; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .container { margin: 0 auto; min-width: 0; }
+    </style>
+</head>
+<body>
+<div id="pageLayout">
+    <!-- パスワード認証オーバーレイ -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-box">
+            <img src="icon_key.png" alt="" class="auth-icon">
+            <div class="auth-title">Lesson Archive管理</div>
+            <input type="password" id="authPassword" class="auth-input" placeholder="パスワード" onkeypress="if(event.key==='Enter')checkAuth()">
+            <button class="auth-btn" onclick="checkAuth()">ログイン</button>
+            <div id="authError" class="auth-error">パスワードが違います</div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <img src="icon_movie.png" alt="" class="title-icon">
+                Lesson Archive管理
+            </h1>
+        </div>
+        <div id="successMessage" class="success-message"></div>
+
+        <!-- 未登録レッスン一覧 -->
+        <div class="unreg-section">
+            <div class="unreg-header">
+                <span class="unreg-title">未登録</span>
+                <span class="unreg-badge" id="unregBadge">0</span>
+            </div>
+            <div id="unregList"></div>
+        </div>
+
+        <!-- 生徒検索とフィルター -->
+        <div class="section">
+            <div class="search-row">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="生徒名・LINE名で検索" oninput="filterStudents()">
+                </div>
+                <label class="filter-checkbox">
+                    <input type="checkbox" id="activeOnlyFilter" onchange="filterStudents()" checked>
+                    在籍中のみ表示
+                </label>
+                <a href="admin-VideoManagement02.html" class="btn">未消化管理</a>
+            </div>
+
+            <div id="studentList" class="student-list">
+                <div class="empty-state">まだ生徒が登録されていません</div>
+            </div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+
+        <!-- 生徒追加 -->
+        <div class="section">
+            <div class="form-row">
+                <button class="btn-primary" onclick="addStudent()" style="min-width: 106px;">生徒を追加</button>
+                <input type="text" id="studentName" placeholder="生徒名" class="input-narrow">
+                <input type="text" id="lineName" placeholder="LINE名（管理用）" class="input-narrow">
+                <input type="text" id="addLineUrl" placeholder="LINE URL" class="input-medium">
+                <input type="text" id="addPpUrl" placeholder="PP URL" class="input-medium">
+                <div class="start-month-selects">
+                    <select id="addStartYear"></select>
+                    <span>/</span>
+                    <select id="addStartMonth">
+                        <option value="">月</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select>
+                    <span>～</span>
+                </div>
+                <select id="addFreq" style="padding:8px 12px;border:1px solid #d8d8d8;border-radius:2px;font-family:'BIZ UDGothic',sans-serif;font-size:0.85rem;color:#423929;">
+                    <option value="月4">月4</option>
+                    <option value="月2">月2</option>
+                    <option value="月1">月1</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 講師管理 -->
+        <div class="section">
+            <div class="form-row">
+                <button class="btn-primary" onclick="addInstructor()" style="min-width: 106px;">講師を追加</button>
+                <input type="text" id="instructorName" placeholder="講師名" class="input-narrow">
+                <span class="accordion-icon" id="accordionIcon" onclick="toggleAccordion()" style="cursor: pointer;">▼</span>
+            </div>
+            <div class="accordion-content" id="accordionContent">
+                <div id="instructorList" class="instructor-list">
+                    <div class="empty-state">まだ講師が登録されていません</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- アップロード用テンプレート設定 -->
+        <div class="section">
+            <div class="accordion-header" onclick="toggleTemplateAccordion()">
+                <div class="section-title" style="border: none; margin: 0; padding: 0;">アップロード用テンプレート</div>
+                <span class="accordion-icon" id="templateAccordionIcon">▼</span>
+            </div>
+            <div class="accordion-content" id="templateAccordionContent">
+                <textarea id="lineTemplate" rows="8" style="width: 100%; padding: 15px; border: 1px solid #d8d8d8; border-radius: 2px; font-family: 'BIZ UDGothic', sans-serif; font-size: 0.9rem; resize: vertical; margin-top: 20px;"></textarea>
+                <div style="margin-top: 10px; color: #7a6f5d; font-size: 0.85rem;">
+                    ※ #NAME# = 生徒のLINE名（または生徒名）、#MYPAGE_URL# = myportalのURL、#PP_URL# = Pattern Practice URL
+                </div>
+                <button class="btn-primary" onclick="saveTemplate()" style="margin-top: 15px;">テンプレートを保存</button>
+            </div>
+        </div>
+
+        <!-- 初回案内用テンプレート設定 -->
+        <div class="section">
+            <div class="accordion-header" onclick="toggleFirstGuideAccordion()">
+                <div class="section-title" style="border: none; margin: 0; padding: 0;">初回案内用テンプレート</div>
+                <span class="accordion-icon" id="firstGuideAccordionIcon">▼</span>
+            </div>
+            <div class="accordion-content" id="firstGuideAccordionContent">
+                <textarea id="firstGuideTemplate" rows="12" style="width: 100%; padding: 15px; border: 1px solid #d8d8d8; border-radius: 2px; font-family: 'BIZ UDGothic', sans-serif; font-size: 0.9rem; resize: vertical; margin-top: 20px;"></textarea>
+                <div style="margin-top: 10px; color: #7a6f5d; font-size: 0.85rem;">
+                    ※ #NAME# = 生徒のLINE名（または生徒名）、#MYPAGE_URL# = myportalのURL、#PP_URL# = Pattern Practice URL
+                </div>
+                <button class="btn-primary" onclick="saveFirstGuideTemplate()" style="margin-top: 15px;">テンプレートを保存</button>
+            </div>
+        </div>
+
+        <!-- リマインド用テンプレート設定 -->
+        <div class="section">
+            <div class="accordion-header" onclick="toggleReminderDetailAccordion()">
+                <div class="section-title" style="border: none; margin: 0; padding: 0;">リマインド用テンプレート</div>
+                <span class="accordion-icon" id="reminderDetailAccordionIcon">▼</span>
+            </div>
+            <div class="accordion-content" id="reminderDetailAccordionContent">
+                <textarea id="reminderDetailTemplate" rows="18" style="width: 100%; padding: 15px; border: 1px solid #d8d8d8; border-radius: 2px; font-family: 'BIZ UDGothic', sans-serif; font-size: 0.9rem; resize: vertical; margin-top: 20px;"></textarea>
+                <div style="margin-top: 10px; color: #7a6f5d; font-size: 0.85rem;">
+                    ※ #NAME# = 生徒名、#TODAY# = 本日日付、#TOTAL# = 合計レッスン数、#MONTHLY_DETAIL# = 月別消化状況
+                </div>
+                <button class="btn-primary" onclick="saveReminderDetailTemplate()" style="margin-top: 15px;">テンプレートを保存</button>
+            </div>
+        </div>
+
+        <!-- お問い合わせ文言設定 -->
+        <div class="section">
+            <div class="accordion-header" onclick="toggleInquiryAccordion()">
+                <div class="section-title" style="border: none; margin: 0; padding: 0;">お問い合わせ文言（マイポータル表示用）</div>
+                <span class="accordion-icon" id="inquiryAccordionIcon">▼</span>
+            </div>
+            <div class="accordion-content" id="inquiryAccordionContent">
+                <textarea id="inquiryTemplate" rows="8" style="width: 100%; padding: 15px; border: 1px solid #d8d8d8; border-radius: 2px; font-family: 'BIZ UDGothic', sans-serif; font-size: 0.9rem; resize: vertical; margin-top: 20px;"></textarea>
+                <div style="margin-top: 10px; color: #7a6f5d; font-size: 0.85rem;">
+                    ※ マイポータルの「お問い合わせ」モーダル冒頭に表示される案内文です
+                </div>
+                <button class="btn-primary" onclick="saveInquiryTemplate()" style="margin-top: 15px;">テンプレートを保存</button>
+            </div>
+        </div>
+
+        <!-- レッスンルール設定 -->
+        <div class="section">
+            <div class="accordion-header" onclick="toggleRulesAccordion()">
+                <div class="section-title" style="border: none; margin: 0; padding: 0;">レッスンルール（マイポータル表示用）</div>
+                <span class="accordion-icon" id="rulesAccordionIcon">▼</span>
+            </div>
+            <div class="accordion-content" id="rulesAccordionContent">
+                <textarea id="rulesTemplate" rows="12" style="width: 100%; padding: 15px; border: 1px solid #d8d8d8; border-radius: 2px; font-family: 'BIZ UDGothic', sans-serif; font-size: 0.9rem; resize: vertical; margin-top: 20px;"></textarea>
+                <div style="margin-top: 10px; color: #7a6f5d; font-size: 0.85rem;">
+                    ※ マイポータルの「レッスンルール」モーダルに表示されるテキストです
+                </div>
+                <button class="btn-primary" onclick="saveRulesTemplate()" style="margin-top: 15px;">テンプレートを保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 生徒編集モーダル -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeEditModal()"></div>
+    <div class="modal" id="editModal">
+        <div class="modal-title">生徒情報を編集</div>
+        <div class="modal-group">
+            <label>生徒名</label>
+            <input type="text" id="modalStudentName">
+        </div>
+        <div class="modal-group">
+            <label>LINE名</label>
+            <input type="text" id="modalLineName">
+        </div>
+        <div class="modal-group">
+            <label>LINE URL</label>
+            <input type="text" id="modalLineUrl" placeholder="https://line.me/ti/p/...">
+        </div>
+        <div class="modal-group">
+            <label>Pattern Practice URL</label>
+            <input type="text" id="modalPpUrl" placeholder="https://...">
+        </div>
+        <div class="modal-group">
+            <label>開始月・頻度</label>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <select id="modalStartYear"></select>
+                <span>/</span>
+                <select id="modalStartMonth">
+                    <option value="">月</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+                <select id="modalFreq" style="padding:6px 10px;border:1px solid #d8d8d8;border-radius:2px;font-family:'BIZ UDGothic',sans-serif;font-size:0.85rem;color:#423929;">
+                    <option value="月4">月4</option>
+                    <option value="月2">月2</option>
+                    <option value="月1">月1</option>
+                </select>
+            </div>
+            <div id="modalFreqChanges" style="margin-top:10px"></div>
+            <button type="button" class="btn-small" style="margin-top:8px" onclick="addModalFreqChange('','月4')">＋ 変更を追加</button>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:12px;flex-wrap:wrap">
+                <span style="font-size:0.85rem;color:#7a6f5d">退会月</span>
+                <select id="modalEndYear"></select>
+                <span>/</span>
+                <select id="modalEndMonth">
+                    <option value="">月</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-group">
+            <label>ステータス</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="status" value="active" id="statusActive">
+                    在籍中
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="status" value="retired" id="statusRetired">
+                    退会済み
+                </label>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeEditModal()">キャンセル</button>
+            <button class="btn-primary" onclick="saveEdit()">保存</button>
+        </div>
+    </div>
+
+    <!-- 講師編集モーダル -->
+    <div class="modal" id="instructorModal">
+        <div class="modal-title">講師名を編集</div>
+        <div class="modal-group">
+            <label>講師名</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="modalInstructorName" style="flex: 1;">
+                <span class="suffix-label">先生</span>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button onclick="closeInstructorModal()">キャンセル</button>
+            <button class="btn-primary" onclick="saveInstructorEdit()">保存</button>
+        </div>
+    </div>
+
+    <script>
+        const SCHEDULE_API_URL = '/api/legacy/gas'; // GAS のURL・キーはサーバー側にだけある
+
+        let allStudents = [];
+        let filteredStudents = [];
+        let currentPage = 1;
+        const studentsPerPage = 20;
+        let editingStudentId = null;
+        let editingInstructorIndex = null;
+        let allInstructors = [];
+        let allTemplates = {};
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudents();
+            initYearSelects();
+        });
+
+        // 年セレクトボックスの初期化
+        function initYearSelects() {
+            const years = [];
+            for (let y = 2025; y <= 2029; y++) {
+                years.push(y);
+            }
+            
+            const yearOptions = '<option value="">年</option>' + 
+                years.map(y => `<option value="${y}">${String(y).slice(2)}</option>`).join('');
+            
+            // 追加フォーム用
+            document.getElementById('addStartYear').innerHTML = yearOptions;
+            
+            // モーダル用
+            document.getElementById('modalStartYear').innerHTML = yearOptions;
+            document.getElementById('modalEndYear').innerHTML = yearOptions;
+        }
+
+        // 契約期間のフォーマット（2024-09 ～ 2025-03 → 24/9～25/3）
+        function formatPeriod(startMonth, endMonth) {
+            if (!startMonth) return '';
+            const [sYear, sMonth] = startMonth.split('-');
+            let result = `${sYear.slice(2)}/${parseInt(sMonth)}～`;
+            if (endMonth) {
+                const [eYear, eMonth] = endMonth.split('-');
+                result += `${eYear.slice(2)}/${parseInt(eMonth)}`;
+            }
+            return result;
+        }
+
+        // 生徒データ読み込み
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/legacy/store/students?t=' + new Date().getTime());
+                const data = await response.json();
+                
+                allStudents = data.students || data;
+                allInstructors = data.instructors || [];
+                allTemplates = data.templates || {};
+                
+                // テンプレートを表示
+                loadTemplate();
+                loadFirstGuideTemplate();
+                loadInquiryTemplate();
+                loadRulesTemplate();
+                
+                // マイグレーション: status追加
+                let needsMigration = false;
+                allStudents.forEach(student => {
+                    if (!student.status) {
+                        student.status = 'active';
+                        needsMigration = true;
+                    }
+                });
+
+                if (needsMigration) {
+                    await migrateData();
+                }
+
+                filterStudents(false);  // ページ番号を維持
+                displayInstructors();
+                renderUnregistered();
+            } catch (error) {
+                console.error('読み込みエラー:', error);
+            }
+        }
+
+        // データマイグレーション
+        async function migrateData() {
+            const formData = new FormData();
+            formData.append('action', 'migrate');
+            formData.append('students', JSON.stringify(allStudents));
+            formData.append('instructors', JSON.stringify(allInstructors));
+            
+            try {
+                await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+            } catch (error) {
+                console.log('マイグレーション処理をスキップしました');
+            }
+        }
+
+        // フィルタリング
+        function filterStudents(resetPage = true) {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const activeOnly = document.getElementById('activeOnlyFilter').checked;
+
+            filteredStudents = allStudents.filter(student => {
+                const matchesSearch = 
+                    student.name.toLowerCase().includes(searchTerm) ||
+                    (student.lineName && student.lineName.toLowerCase().includes(searchTerm));
+                
+                const matchesStatus = !activeOnly || student.status === 'active';
+
+                return matchesSearch && matchesStatus;
+            });
+
+            if (resetPage) {
+                currentPage = 1;
+            }
+            displayStudents();
+        }
+
+        // 生徒一覧表示
+        function displayStudents() {
+            const listElement = document.getElementById('studentList');
+
+            if (filteredStudents.length === 0) {
+                listElement.innerHTML = '<div class="empty-state">該当する生徒がいません</div>';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            // ページネーション計算
+            const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
+            const startIndex = (currentPage - 1) * studentsPerPage;
+            const endIndex = startIndex + studentsPerPage;
+            const studentsToDisplay = filteredStudents.slice(startIndex, endIndex);
+
+            listElement.innerHTML = studentsToDisplay.map(student => {
+                const retiredClass = student.status === 'retired' ? 'retired' : '';
+                const lessonCount = student.lessons ? student.lessons.length : 0;
+                const lineUrl = (student.lineUrl || '').replace(/'/g, "\\'");
+                const period = formatPeriod(student.startMonth, student.endMonth);
+                return `
+                    <div class="student-row ${retiredClass}">
+                        <div class="student-cell id">${student.id}</div>
+                        <div class="student-cell name">${student.name}</div>
+                        <div class="student-cell line-name">${student.lineName || ''}</div>
+                        <div class="student-cell start">${period}</div>
+                        <div class="student-cell total">Total: ${lessonCount}</div>
+                        <div class="student-actions">
+                            <button class="btn-small btn-manage" onclick="goToManagement(${student.id})">管理</button>
+                            <button class="btn-small" onclick="window.open('myportal.html?key=${student.accessKey}', '_blank')">portal</button>
+                            ${student.ppUrl ? `<button class="btn-small" onclick="window.open('${(student.ppUrl || '').replace(/'/g, "\\'")}', '_blank')">PP</button>` : '<button class="btn-small" style="visibility:hidden">PP</button>'}
+                            <button class="btn-small" onclick="editStudent(${student.id}, event)">編集</button>
+                            <button class="btn-small" onclick="deleteStudent(${student.id}, '${student.name}', event)">削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // ページネーション表示
+            renderPagination(totalPages);
+        }
+
+        // ページネーション表示
+        function renderPagination(totalPages) {
+            const paginationElement = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                paginationElement.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    const activeClass = i === currentPage ? 'active' : '';
+                    html += `<button class="${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += `<button class="dots">...</button>`;
+                }
+            }
+
+            paginationElement.innerHTML = html;
+        }
+
+        // ページ移動
+        function goToPage(page) {
+            currentPage = page;
+            displayStudents();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 生徒追加
+        async function addStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            const lineName = document.getElementById('lineName').value.trim();
+            const lineUrl = document.getElementById('addLineUrl').value.trim();
+            const ppUrl = document.getElementById('addPpUrl').value.trim();
+            const startYear = document.getElementById('addStartYear').value;
+            const startMonthVal = document.getElementById('addStartMonth').value;
+            const freq = document.getElementById('addFreq').value;
+            const startMonth = startYear && startMonthVal ?
+                `${startYear}-${startMonthVal.padStart(2, '0')}` : '';
+
+            if (!name) {
+                alert('生徒名を入力してください');
+                return;
+            }
+
+            if (!lineName) {
+                alert('LINE名を入力してください');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('name', name);
+            formData.append('lineName', lineName);
+            formData.append('lineUrl', lineUrl);
+            formData.append('ppUrl', ppUrl);
+            formData.append('startMonth', startMonth);
+            formData.append('endMonth', '');
+            formData.append('freq', freq);
+            formData.append('freqChanges', JSON.stringify([]));
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${name}さんを追加しました！`);
+                    document.getElementById('studentName').value = '';
+                    document.getElementById('lineName').value = '';
+                    document.getElementById('addLineUrl').value = '';
+                    document.getElementById('addPpUrl').value = '';
+                    document.getElementById('addStartYear').value = '';
+                    document.getElementById('addStartMonth').value = '';
+                    document.getElementById('addFreq').value = '月4';
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('追加に失敗しました: ' + error);
+            }
+        }
+
+        // URLコピー
+        function copyURL(id, name, accessKey, event) {
+            event.stopPropagation();
+            const url = `${window.location.origin}/myportal/myportal.html?key=${accessKey}`;
+            const textToCopy = `${name} ${url}`;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showMessage(`${name}さんのURLをコピーしました！`);
+            }).catch(err => {
+                alert('コピーに失敗しました');
+            });
+        }
+
+        // 生徒編集
+        function editStudent(id, event) {
+            event.stopPropagation();
+            const student = allStudents.find(s => s.id === id);
+            if (!student) return;
+            editingStudentId = id;
+
+            document.getElementById('modalStudentName').value = student.name;
+            document.getElementById('modalLineName').value = student.lineName || '';
+            document.getElementById('modalLineUrl').value = student.lineUrl || '';
+            document.getElementById('modalPpUrl').value = student.ppUrl || '';
+
+            if (student.startMonth) {
+                const [year, month] = student.startMonth.split('-');
+                document.getElementById('modalStartYear').value = year;
+                document.getElementById('modalStartMonth').value = parseInt(month);
+            } else {
+                document.getElementById('modalStartYear').value = '';
+                document.getElementById('modalStartMonth').value = '';
+            }
+
+            if (student.endMonth) {
+                const [year, month] = student.endMonth.split('-');
+                document.getElementById('modalEndYear').value = year;
+                document.getElementById('modalEndMonth').value = parseInt(month);
+            } else {
+                document.getElementById('modalEndYear').value = '';
+                document.getElementById('modalEndMonth').value = '';
+            }
+
+            if (student.status === 'retired') {
+                document.getElementById('statusRetired').checked = true;
+            } else {
+                document.getElementById('statusActive').checked = true;
+            }
+
+            document.getElementById('modalFreq').value = student.freq || '月4';
+            renderModalFreqChanges(student.freqChanges || []);
+
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function renderModalFreqChanges(changes) {
+            const container = document.getElementById('modalFreqChanges');
+            container.innerHTML = '';
+            changes.forEach(c => addModalFreqChange(c.month, c.freq));
+        }
+
+        function addModalFreqChange(month, freq) {
+            const container = document.getElementById('modalFreqChanges');
+            const div = document.createElement('div');
+            div.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap';
+
+            let changeYear = '', changeMonth = '';
+            if (month) {
+                const [y, m] = month.split('-');
+                changeYear = y; changeMonth = parseInt(m).toString();
+            }
+
+            const sel = 'padding:6px 10px;border:1px solid #d8d8d8;border-radius:2px;font-family:\'BIZ UDGothic\',sans-serif;font-size:0.85rem;color:#423929;';
+            const yearOpts = '<option value="">年</option>' +
+                [2024,2025,2026,2027,2028,2029].map(y => `<option value="${y}"${changeYear==y?' selected':''}>${String(y).slice(2)}</option>`).join('');
+            const moOpts = '<option value="">月</option>' +
+                [1,2,3,4,5,6,7,8,9,10,11,12].map(m => `<option value="${m}"${changeMonth==m?' selected':''}>${m}</option>`).join('');
+
+            div.innerHTML = `
+                <span style="font-size:0.8rem;color:#7a6f5d">から</span>
+                <select style="${sel}">${yearOpts}</select>
+                <span>/</span>
+                <select style="${sel}">${moOpts}</select>
+                <select style="${sel}">
+                    <option value="月4"${(freq||'月4')==='月4'?' selected':''}>月4</option>
+                    <option value="月2"${freq==='月2'?' selected':''}>月2</option>
+                    <option value="月1"${freq==='月1'?' selected':''}>月1</option>
+                </select>
+                <button type="button" class="btn-small" onclick="this.parentElement.remove()" style="color:#c44;border-color:#c44;">✕</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function closeEditModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('editModal').classList.remove('active');
+            editingStudentId = null;
+        }
+
+        async function saveEdit() {
+            const newName = document.getElementById('modalStudentName').value.trim();
+            const newLineName = document.getElementById('modalLineName').value.trim();
+            const newLineUrl = document.getElementById('modalLineUrl').value.trim();
+            const newPpUrl = document.getElementById('modalPpUrl').value.trim();
+            const newStatus = document.querySelector('input[name="status"]:checked').value;
+            const newFreq = document.getElementById('modalFreq').value;
+            const freqChangeRows = document.getElementById('modalFreqChanges').children;
+            const newFreqChanges = [];
+            Array.from(freqChangeRows).forEach(row => {
+                const sels = row.querySelectorAll('select');
+                const y = sels[0].value;
+                const m = sels[1].value;
+                const f = sels[2].value;
+                if (y && m) newFreqChanges.push({month: `${y}-${String(m).padStart(2,'0')}`, freq: f});
+            });
+            const startYear = document.getElementById('modalStartYear').value;
+            const startMonthVal = document.getElementById('modalStartMonth').value;
+            const endYear = document.getElementById('modalEndYear').value;
+            const endMonthVal = document.getElementById('modalEndMonth').value;
+            const newStartMonth = startYear && startMonthVal ? 
+                `${startYear}-${String(startMonthVal).padStart(2, '0')}` : '';
+            const newEndMonth = endYear && endMonthVal ? 
+                `${endYear}-${String(endMonthVal).padStart(2, '0')}` : '';
+            
+            if (!newName) {
+                alert('生徒名を入力してください');
+                return;
+            }
+
+            if (!newLineName) {
+                alert('LINE名を入力してください');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'edit');
+            formData.append('id', editingStudentId);
+            formData.append('name', newName);
+            formData.append('lineName', newLineName);
+            formData.append('lineUrl', newLineUrl);
+            formData.append('ppUrl', newPpUrl);
+            formData.append('status', newStatus);
+            formData.append('startMonth', newStartMonth);
+            formData.append('endMonth', newEndMonth);
+            formData.append('freq', newFreq);
+            formData.append('freqChanges', JSON.stringify(newFreqChanges));
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${newName}さんの情報を更新しました！`);
+                    closeEditModal();
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('更新に失敗しました: ' + error);
+            }
+        }
+
+        // 生徒削除
+        async function deleteStudent(id, name, event) {
+            event.stopPropagation();
+            if (!confirm(`${name}さんを削除してもよろしいですか？\nレッスンデータも全て削除されます。`)) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'delete');
+            formData.append('id', id);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${name}さんを削除しました`);
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('削除に失敗しました: ' + error);
+            }
+        }
+
+        // 管理画面への遷移
+        function goToManagement(studentId) {
+            location.href = `admin-VideoManagement01.html?student=${studentId}`;
+        }
+
+        // 講師管理
+        function toggleAccordion() {
+            const content = document.getElementById('accordionContent');
+            const icon = document.getElementById('accordionIcon');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                icon.classList.add('open');
+            }
+        }
+
+        // テンプレートアコーディオン
+        function toggleTemplateAccordion() {
+            const content = document.getElementById('templateAccordionContent');
+            const icon = document.getElementById('templateAccordionIcon');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                icon.classList.add('open');
+            }
+        }
+
+        // 初回案内用テンプレートアコーディオン
+        function toggleFirstGuideAccordion() {
+            const content = document.getElementById('firstGuideAccordionContent');
+            const icon = document.getElementById('firstGuideAccordionIcon');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                icon.classList.add('open');
+            }
+        }
+
+        // 講師一覧表示
+        function displayInstructors() {
+            const listElement = document.getElementById('instructorList');
+
+            if (allInstructors.length === 0) {
+                listElement.innerHTML = '<div class="empty-state">まだ講師が登録されていません</div>';
+                return;
+            }
+
+            listElement.innerHTML = allInstructors.map((instructor, index) => `
+                <div class="instructor-row">
+                    <div class="instructor-name">${instructor}</div>
+                    <div class="instructor-actions">
+                        <button class="btn-small" onclick="editInstructor(${index}, '${instructor.replace('先生', '')}')">編集</button>
+                        <button class="btn-small" onclick="deleteInstructor(${index}, '${instructor}')">削除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 講師追加
+        async function addInstructor() {
+            const name = document.getElementById('instructorName').value.trim();
+
+            if (!name) {
+                alert('講師名を入力してください');
+                return;
+            }
+
+            const fullName = name + '先生';
+
+            if (allInstructors.includes(fullName)) {
+                alert('この講師名は既に登録されています');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'add_instructor');
+            formData.append('instructor', fullName);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${fullName}を追加しました！`);
+                    document.getElementById('instructorName').value = '';
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('追加に失敗しました: ' + error);
+            }
+        }
+
+        // 講師編集
+        function editInstructor(index, nameWithoutSuffix) {
+            editingInstructorIndex = index;
+            document.getElementById('modalInstructorName').value = nameWithoutSuffix;
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('instructorModal').classList.add('active');
+        }
+
+        function closeInstructorModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('instructorModal').classList.remove('active');
+            editingInstructorIndex = null;
+        }
+
+        async function saveInstructorEdit() {
+            const newName = document.getElementById('modalInstructorName').value.trim();
+
+            if (!newName) {
+                alert('講師名を入力してください');
+                return;
+            }
+
+            const fullName = newName + '先生';
+            const oldName = allInstructors[editingInstructorIndex];
+
+            const formData = new FormData();
+            formData.append('action', 'edit_instructor');
+            formData.append('oldInstructor', oldName);
+            formData.append('newInstructor', fullName);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`講師名を更新しました！`);
+                    closeInstructorModal();
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('更新に失敗しました: ' + error);
+            }
+        }
+
+        // 講師削除
+        async function deleteInstructor(index, instructor) {
+            // 使用件数をカウント
+            let usageCount = 0;
+            allStudents.forEach(student => {
+                if (student.lessons) {
+                    student.lessons.forEach(lesson => {
+                        if (lesson.instructor === instructor) {
+                            usageCount++;
+                        }
+                    });
+                }
+            });
+
+            // 警告メッセージを構築
+            let message = `${instructor}を削除してもよろしいですか？\n\n`;
+            if (usageCount > 0) {
+                message += `この講師名は ${usageCount} 件のレッスンで使用中です。\n`;
+                message += `削除してもレッスン記録には影響ありません。\n`;
+                message += `（過去のレッスンには「${instructor}」として残ります）\n\n`;
+            }
+            message += `※新しいレッスンでは選択できなくなります`;
+
+            if (!confirm(message)) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'delete_instructor');
+            formData.append('instructor', instructor);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`${instructor}を削除しました`);
+                    loadStudents();
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('削除に失敗しました: ' + error);
+            }
+        }
+
+        // テンプレート管理
+        function loadTemplate() {
+            const defaultTemplate = `#NAME#さん、お待たせいたしました😊
+レッスンアーカイブを
+アップロードいたしました！
+ぜひ復習・予習マニュアルと
+あわせてご活用ください✨
+---------------
+📹 レッスンアーカイブ
+#MYPAGE_URL#
+📗復習マニュアル  
+/peratore/manual-review.html
+📕予習マニュアル
+https://masaenglishcompany.com/yosyumanual/yosyumanual_1.htm
+------------
+よろしくお願いいたします😊`;
+            
+            document.getElementById('lineTemplate').value = allTemplates.lineMessage || defaultTemplate;
+        }
+
+        async function saveTemplate() {
+            const template = document.getElementById('lineTemplate').value;
+            
+            const formData = new FormData();
+            formData.append('action', 'save_template');
+            formData.append('templateType', 'lineMessage');
+            formData.append('templateContent', template);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allTemplates.lineMessage = template;
+                    showMessage('テンプレートを保存しました！');
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('保存に失敗しました: ' + error);
+            }
+        }
+
+        // 初回案内用テンプレート管理
+        function loadFirstGuideTemplate() {
+            const defaultTemplate = `#NAME#さん、こんにちは！
+レッスンの復習をより効果的にするために、
+アーカイブ動画をまとめた専用ページを作りました🎬
+▼こちらからご覧いただけます
+👉 #MYPAGE_URL#
+レッスン終了後、随時
+こちらに追加されていきますので、
+「もう一回見たい！」と思った時に
+いつでも復習できるようになってます！
+復習の習慣を作って、
+確実に英語力を伸ばしていきましょう🔥`;
+            
+            document.getElementById('firstGuideTemplate').value = allTemplates.firstGuide || defaultTemplate;
+        }
+
+        async function saveFirstGuideTemplate() {
+            const template = document.getElementById('firstGuideTemplate').value;
+            
+            const formData = new FormData();
+            formData.append('action', 'save_template');
+            formData.append('templateType', 'firstGuide');
+            formData.append('templateContent', template);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allTemplates.firstGuide = template;
+                    showMessage('テンプレートを保存しました！');
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('保存に失敗しました: ' + error);
+            }
+        }
+
+        // リマインド詳細用テンプレートアコーディオン
+        function toggleReminderDetailAccordion() {
+            const content = document.getElementById('reminderDetailAccordionContent');
+            const icon = document.getElementById('reminderDetailAccordionIcon');
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+            
+            if (content.classList.contains('open')) {
+                loadReminderDetailTemplate();
+            }
+        }
+
+        // リマインド詳細用テンプレート管理
+        function loadReminderDetailTemplate() {
+            const defaultTemplate = `本日(#TODAY#)時点の状況についてご案内いたします💡
+
+#NAME#さんはこれまでに 合計#TOTAL#回 のレッスンをご受講されています。
+
+レッスンは未消化分の月から 「古い順」 に自動で消費される仕組みです。
+
+#MONTHLY_DETAIL#
+
+利用期限内であれば、週2回ペースでの
+ご受講も可能ですのでご安心ください。
+
+その他ご不明点があれば、いつでもお知らせくださいね😊`;
+            
+            document.getElementById('reminderDetailTemplate').value = allTemplates.reminderDetail || defaultTemplate;
+        }
+
+        async function saveReminderDetailTemplate() {
+            const template = document.getElementById('reminderDetailTemplate').value;
+            
+            const formData = new FormData();
+            formData.append('action', 'save_template');
+            formData.append('templateType', 'reminderDetail');
+            formData.append('templateContent', template);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allTemplates.reminderDetail = template;
+                    showMessage('テンプレートを保存しました！');
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('保存に失敗しました: ' + error);
+            }
+        }
+
+        // お問い合わせテンプレートアコーディオン
+        function toggleInquiryAccordion() {
+            const content = document.getElementById('inquiryAccordionContent');
+            const icon = document.getElementById('inquiryAccordionIcon');
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        function loadInquiryTemplate() {
+            const defaultTemplate = `【お問い合わせ】
+お名前：#NAME#
+
+内容：
+#CONTENT#`;
+            document.getElementById('inquiryTemplate').value = allTemplates.inquiry || defaultTemplate;
+        }
+
+        async function saveInquiryTemplate() {
+            const template = document.getElementById('inquiryTemplate').value;
+
+            const formData = new FormData();
+            formData.append('action', 'save_template');
+            formData.append('templateType', 'inquiry');
+            formData.append('templateContent', template);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allTemplates.inquiry = template;
+                    showMessage('テンプレートを保存しました！');
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('保存に失敗しました: ' + error);
+            }
+        }
+
+        // レッスンルールアコーディオン
+        function toggleRulesAccordion() {
+            const content = document.getElementById('rulesAccordionContent');
+            const icon = document.getElementById('rulesAccordionIcon');
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        // レッスンルールテンプレート管理
+        function loadRulesTemplate() {
+            const defaultTemplate = `・レッスンの欠席・遅刻は前日までにご連絡ください。
+・無断欠席の場合、レッスン回数の消化となります。
+・録画データは受講後1ヶ月間ご覧いただけます。
+・ご不明な点はお問い合わせよりご連絡ください。`;
+            document.getElementById('rulesTemplate').value = allTemplates.lessonRules || defaultTemplate;
+        }
+
+        async function saveRulesTemplate() {
+            const template = document.getElementById('rulesTemplate').value;
+
+            const formData = new FormData();
+            formData.append('action', 'save_template');
+            formData.append('templateType', 'lessonRules');
+            formData.append('templateContent', template);
+
+            try {
+                const response = await fetch('/api/legacy/save-student', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allTemplates.lessonRules = template;
+                    showMessage('テンプレートを保存しました！');
+                } else {
+                    alert('エラー: ' + result.error);
+                }
+            } catch (error) {
+                alert('保存に失敗しました: ' + error);
+            }
+        }
+
+        // 成功メッセージ表示
+        function showMessage(message) {
+            const msgElement = document.getElementById('successMessage');
+            msgElement.textContent = message;
+            msgElement.style.display = 'block';
+
+            setTimeout(() => {
+                msgElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // 未登録レッスン一覧
+        function parseUnregDate(dateStr) {
+            const p = dateStr.split('.');
+            return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+        }
+
+        function isBeforeApril2026(dateStr) {
+            const p = dateStr.split('.');
+            return parseInt(p[0]) < 2026 || (parseInt(p[0]) === 2026 && parseInt(p[1]) < 4);
+        }
+
+        function formatUnregDate(dateStr) {
+            const p = dateStr.split('.');
+            return `${p[0]}年${p[1]}月${p[2]}日`;
+        }
+
+        async function renderUnregistered() {
+            if (!SCHEDULE_API_URL || SCHEDULE_API_URL === 'ここにデプロイURLを貼り付け') return;
+
+            const list = document.getElementById('unregList');
+            list.innerHTML = '<div style="color:#b0b0b0;font-size:0.9rem;padding:8px 0;">読み込み中...</div>';
+
+            try {
+                const GAS_CACHE_KEY = 'gas_schedule_cache';
+                let scheduleItems;
+                const cached = sessionStorage.getItem(GAS_CACHE_KEY);
+                if (cached) {
+                    scheduleItems = JSON.parse(cached);
+                } else {
+                    const res = await fetch(SCHEDULE_API_URL);
+                    scheduleItems = await res.json();
+                    if (Array.isArray(scheduleItems)) sessionStorage.setItem(GAS_CACHE_KEY, JSON.stringify(scheduleItems));
+                }
+                if (!Array.isArray(scheduleItems)) return;
+
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+                const past60 = new Date();
+                past60.setDate(past60.getDate() - 60);
+                past60.setHours(0, 0, 0, 0);
+
+                const results = [];
+
+                scheduleItems.forEach(item => {
+                    // 直近60日〜本日のみ
+                    const lessonDate = parseUnregDate(item.rawDate);
+                    if (lessonDate > today) return;
+                    if (lessonDate < past60) return;
+
+                    // 生徒を特定
+                    const student = allStudents.find(s => String(s.id) === String(item.studentId));
+                    if (!student) return;
+
+                    // students.json の該当レッスンを検索
+                    const existing = (student.lessons || []).find(l => l.date === item.rawDate);
+
+                    if (existing) {
+                        // 登録済み：動画かメモがあればスキップ
+                        if ((existing.videoUrl || '').trim() || (existing.memoUrl || '').trim()) return;
+                        // noteがあればスキップ
+                        if ((existing.note || '').trim()) return;
+                        // 2026年4月より前のキャンセルはスキップ
+                        if (existing.cancelled === true) return;
+                    }
+                    // students.json に未登録の場合もそのまま表示
+
+                    results.push({ student, rawDate: item.rawDate });
+                });
+
+                // 日付昇順
+                results.sort((a, b) => parseUnregDate(a.rawDate) - parseUnregDate(b.rawDate));
+
+                document.getElementById('unregBadge').textContent = results.length;
+
+                if (results.length === 0) {
+                    list.innerHTML = '<div style="color:#b0b0b0;font-size:0.9rem;padding:8px 0;">未登録のレッスンはありません</div>';
+                    return;
+                }
+
+                list.innerHTML = results.map(({ student, rawDate }) => `
+                    <div class="unreg-row">
+                        <div class="student-cell id">${student.id}</div>
+                        <div class="student-cell name">${student.name}</div>
+                        <div class="student-cell line-name">${student.lineName || ''}</div>
+                        <div class="unreg-date">${formatUnregDate(rawDate)}</div>
+                        <div class="student-actions">
+                            <button class="btn-small btn-manage" onclick="goToManagement(${student.id})">管理</button>
+                            <button class="btn-small" onclick="window.open('myportal.html?key=${student.accessKey}', '_blank')">portal</button>
+                            ${student.ppUrl ? `<button class="btn-small" onclick="window.open('${(student.ppUrl || '').replace(/'/g, "\\'")}', '_blank')">PP</button>` : '<button class="btn-small" style="visibility:hidden">PP</button>'}
+                            <button class="btn-small" onclick="editStudent(${student.id}, event)">編集</button>
+                            <button class="btn-small" onclick="deleteStudent(${student.id}, '${student.name}', event)">削除</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                list.innerHTML = '<div style="color:#b0b0b0;font-size:0.9rem;padding:8px 0;">読み込みに失敗しました</div>';
+                console.error(e);
+            }
+        }
+
+        function scrollToStudent(studentId) {
+            const el = document.getElementById('student-row-' + studentId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        async function loadSidebar() {
+            try {
+                const res = await fetch('/api/legacy/store/students?t=' + new Date().getTime());
+                const data = await res.json();
+                const students = (data.students || data).filter(s => s.status !== 'retired');
+                const params = new URLSearchParams(window.location.search);
+                const currentId = params.get('student');
+                const sidebar = document.getElementById('sidebarNav');
+                sidebar.innerHTML = students.map(s => {
+                    const activeClass = String(s.id) === String(currentId) ? ' active' : '';
+                    return '<a href="admin-VideoManagement01.html?student=' + s.id + '" class="sidebar-item' + activeClass + '">' +
+                        '<span class="sidebar-num">' + s.id + '</span>' +
+                        '<span class="sidebar-name">' + s.name + '</span>' +
+                        '</a>';
+                }).join('');
+            } catch(e) {}
+        }
+
+    </script>
+    <script>
+        // パスワード認証
+        const AUTH_KEY = 'peraAdminAuth';
+        
+        async function checkAuth() {
+            const input = document.getElementById('authPassword').value;
+            const r = await fetch('/api/legacy/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: input }) }).catch(() => null);
+            if (r && r.ok) {
+                sessionStorage.setItem(AUTH_KEY, 'true');
+                location.reload();
+                document.getElementById('authOverlay').style.display = 'none';
+            } else {
+                document.getElementById('authError').style.display = 'block';
+                document.getElementById('authPassword').value = '';
+            }
+        }
+        
+        // 認証済みならオーバーレイを非表示
+        if (sessionStorage.getItem(AUTH_KEY) === 'true') {
+            document.getElementById('authOverlay').style.display = 'none';
+        } else {
+            document.getElementById('authPassword').focus();
+        }
+    </script>
+    </div>
+</div>
+</div>
+</body>
+</html>

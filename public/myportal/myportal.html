@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson Archive - ペラトレ</title>
+    <meta property="og:title" content="Lesson Archive - ペラトレ">
+    <meta property="og:description" content="レッスン動画とメモをいつでも確認できます">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Zen Maru Gothic', 'ヒラギノ丸ゴ ProN', 'Hiragino Maru Gothic ProN', sans-serif;
+            background: #F1F1F1;
+            color: #423929;
+            line-height: 1.6;
+            padding: 20px;
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            min-height: calc(100vh - 40px);
+        }
+
+        .header {
+            padding-bottom: 30px;
+            margin-bottom: 0;
+        }
+
+        .title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .title-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #423929;
+            margin: 0;
+        }
+
+        .student-info {
+            color: #7a6f5d;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .lesson-count {
+            color: #7a6f5d;
+            font-size: 0.9rem;
+        }
+
+        .sort-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sort-btn {
+            background: white;
+            border: 1px solid #A296AF;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            color: #A296AF;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        .sort-btn:hover {
+            background: #f5f3f6;
+        }
+
+        .sort-btn.active {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .lesson-list {
+            margin-top: 30px;
+        }
+
+        .lesson-item {
+            border-bottom: 1px dashed #d8d8d8;
+            padding: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: background 0.2s;
+        }
+
+        .lesson-item:last-child { border-bottom: none; }
+
+        .lesson-item:hover {
+            background: #f9f9f9;
+            margin: 0 -20px;
+            padding: 20px;
+        }
+
+        .lesson-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 90px;
+            padding: 6px 12px;
+            background: #A296AF;
+            color: white;
+            font-size: 0.85rem;
+            border-radius: 2px;
+            flex-shrink: 0;
+            font-weight: 400;
+        }
+
+        .lesson-info {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lesson-date {
+            color: #7a6f5d;
+            font-size: 1rem;
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .lesson-divider {
+            color: #c8c8c8;
+            margin: 0 15px;
+        }
+
+        .lesson-instructor {
+            color: #7a6f5d;
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .watched-badge {
+            display: inline-block;
+            color: #A296AF;
+            font-size: 0.85rem;
+            min-width: 70px;
+            margin-left: 10px;
+        }
+
+        .cancelled-label {
+            display: inline-block;
+            background: #f5f3f7;
+            color: #A296AF;
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+
+        .note-label {
+            color: #7a6f5d;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+
+        .lesson-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: white;
+            border: 1px solid #A296AF;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            color: #A296AF;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            border-radius: 2px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        .action-btn:hover {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #7a6f5d;
+        }
+
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            background: white;
+            border: 1px solid #d0d0d0;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            color: #7a6f5d;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            min-width: 40px;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #f5f3f6;
+            border-color: #A296AF;
+        }
+
+        .pagination-btn.active {
+            background: #A296AF;
+            color: white;
+            border-color: #A296AF;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: #7a6f5d;
+            font-size: 0.9rem;
+            margin: 0 10px;
+        }
+
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            border-radius: 2px;
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #d8d8d8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #423929;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #A296AF;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #8a7e9a;
+        }
+
+        .memo-open-link:hover {
+            background: #8a7e9a !important;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+            margin-bottom: 0;
+        }
+
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+
+        .memo-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #d8d8d8;
+        }
+
+        .memo-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .sort-buttons {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .sort-btn {
+                text-align: center;
+            }
+
+            .lesson-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .lesson-info {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+
+            .lesson-date,
+            .lesson-instructor {
+                font-size: 0.85rem;
+            }
+
+            .lesson-actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .action-btn {
+                justify-content: center;
+                padding: 10px 12px;
+            }
+
+            .modal-content {
+                max-height: 98vh;
+            }
+
+            .modal {
+                padding: 8px;
+            }
+
+            .modal-header {
+                padding: 15px 10px;
+            }
+
+            .memo-open-link {
+                font-size: 0.75rem !important;
+                padding: 5px 10px !important;
+            }
+
+            .modal-body {
+                padding: 10px;
+            }
+
+            .video-container {
+                padding-bottom: 75%;
+                margin-bottom: 10px;
+            }
+
+            .memo-container {
+                height: 550px;
+            }
+
+            .pagination {
+                gap: 5px;
+            }
+
+            .pagination-btn {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+                min-width: 35px;
+            }
+        }
+        /* PPボタン */
+        .pp-btn {
+            background: white;
+            border: 1px solid #A296AF;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            color: #A296AF;
+            cursor: pointer;
+            border-radius: 2px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            text-decoration: none;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .pp-btn:hover { background: #A296AF; color: white; }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #A296AF;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* インラインエラー */
+        .field-error {
+            color: #c0392b;
+            font-size: 0.82rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* NEXTセクション */
+        .next-section {
+            border-top: 1px solid #d0d0d0;
+            border-bottom: 1px solid #d0d0d0;
+            margin-bottom: 30px;
+        }
+
+        .next-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 14px 0;
+        }
+
+        .next-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .next-label {
+            color: #A296AF;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .next-date {
+            font-size: 0.95rem;
+            color: #423929;
+        }
+
+        .next-toggle {
+            background: none;
+            border: none;
+            color: #A296AF;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            white-space: nowrap;
+        }
+
+        .next-toggle:hover { text-decoration: underline; }
+
+        .next-more-list { display: none; padding-bottom: 12px; }
+        .next-more-list.open { display: block; }
+
+        .next-more-item {
+            padding: 5px 0;
+            color: #7a6f5d;
+            font-size: 0.95rem;
+            padding-left: 36px;
+        }
+
+        /* フッター */
+        .footer-links {
+            border-top: 1px solid #d0d0d0;
+            margin-top: 30px;
+            padding-top: 24px;
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .footer-link-btn {
+            background: none;
+            border: none;
+            color: #7a6f5d;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            text-decoration: underline;
+            padding: 0;
+        }
+
+        /* 次回レッスンセクション */
+        .upcoming-section {
+            background: #f5f3f6;
+            border-radius: 4px;
+            padding: 24px;
+            margin-bottom: 0;
+        }
+
+        .upcoming-title {
+            font-size: 0.85rem;
+            color: #A296AF;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .upcoming-next {
+            font-size: 1.15rem;
+            color: #423929;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0dde3;
+        }
+
+        .upcoming-next .upcoming-label {
+            display: inline-block;
+            background: #A296AF;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 2px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .upcoming-more-list {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .upcoming-more-list.open {
+            display: block;
+        }
+
+        .upcoming-more-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e0dde3;
+            color: #7a6f5d;
+            font-size: 0.95rem;
+        }
+
+        .upcoming-more-item:last-child {
+            border-bottom: none;
+        }
+
+        .upcoming-toggle {
+            background: none;
+            border: none;
+            color: #A296AF;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 12px;
+            padding: 0;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        .upcoming-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .upcoming-loading {
+            color: #7a6f5d;
+            font-size: 0.9rem;
+        }
+
+        /* 印刷用CSS */
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .container,
+            .header,
+            .lesson-list,
+            .pagination,
+            #videoModal {
+                display: none !important;
+            }
+
+            .modal.active {
+                display: block !important;
+                position: static;
+                background: none;
+                padding: 0;
+            }
+
+            .modal-content {
+                max-height: none !important;
+                overflow: visible !important;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .modal-body {
+                padding: 0;
+            }
+
+            .modal-header {
+                position: static;
+                border-bottom: 1px solid #ccc;
+                padding: 10px 0;
+            }
+
+            .close-btn,
+            .memo-open-link {
+                display: none !important;
+            }
+
+            .memo-container {
+                height: auto !important;
+                min-height: 100vh;
+                border: none;
+                overflow: visible !important;
+            }
+
+            .memo-container iframe {
+                height: 100vh;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title-container">
+                <img src="家のアイコン素材.png" alt="" class="title-icon">
+                <h1><span id="studentName">Guest</span>さん</h1>
+            </div>
+            <div class="student-info" id="ppButtonRow" style="display:none;">
+                <a id="ppButton" href="#" target="_blank" class="pp-btn">▶ Pattern Practice</a>
+            </div>
+        </div>
+
+        <!-- NEXT + ソート行 -->
+        <div class="next-section" id="nextSection">
+            <div class="next-row">
+                <div class="next-left" id="nextLeft">
+                    <span class="next-label">Next</span>
+                    <span class="next-date" id="nextDate"></span>
+                    <button class="next-toggle" onclick="toggleNext()" id="nextToggleBtn">もっと見る ▼</button>
+                </div>
+                <button class="sort-btn active" onclick="toggleSort('lesson')" id="sortLessonBtn">レッスン順 ↓</button>
+            </div>
+            <div class="next-more-list" id="nextMoreList"></div>
+        </div>
+
+        <div class="lesson-list" id="lessonList">
+            <div class="empty-state">
+                レッスンを読み込み中...
+            </div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display: none;"></div>
+
+        <!-- フッター -->
+        <div class="footer-links">
+            <button class="footer-link-btn" onclick="openFooterModal('rulesModal')">レッスンルール</button>
+            <button class="footer-link-btn" onclick="openFooterModal('inquiryModal')">お問い合わせ</button>
+        </div>
+    </div>
+
+    <!-- レッスンルールモーダル -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">レッスンルール</div>
+                <button class="close-btn" onclick="closeModal('rulesModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="rulesBody" style="color:#7a6f5d; font-size:0.95rem; line-height:2.2; white-space:pre-wrap;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 問い合わせモーダル -->
+    <div class="modal" id="inquiryModal">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header">
+                <div class="modal-title">お問い合わせ</div>
+                <button class="close-btn" onclick="closeModal('inquiryModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="inquiryIntro" style="color:#7a6f5d;font-size:0.9rem;line-height:1.8;margin-bottom:18px;white-space:pre-wrap;display:none;"></div>
+                <div style="margin-bottom:18px;">
+                    <label style="display:block;font-size:0.85rem;color:#7a6f5d;margin-bottom:6px;">お名前</label>
+                    <input id="inquiryName" type="text" placeholder="匿名可" style="width:100%;padding:10px 12px;border:1px solid #d0d0d0;border-radius:2px;font-family:'Zen Maru Gothic',sans-serif;font-size:0.95rem;color:#423929;">
+                    <div style="font-size:0.8rem;color:#aaa;margin-top:4px;">※ 匿名でも送信できます</div>
+                </div>
+                <div style="margin-bottom:18px;">
+                    <label style="display:block;font-size:0.85rem;color:#7a6f5d;margin-bottom:6px;">内容</label>
+                    <textarea id="inquiryBody" placeholder="ご質問・ご要望をご記入ください" style="width:100%;padding:10px 12px;border:1px solid #d0d0d0;border-radius:2px;font-family:'Zen Maru Gothic',sans-serif;font-size:0.95rem;color:#423929;height:140px;resize:vertical;"></textarea>
+                    <div class="field-error" id="inquiryError">⚠ 内容を入力してください</div>
+                </div>
+                <button id="inquirySubmitBtn" onclick="submitInquiry()" style="width:100%;background:#A296AF;color:white;border:none;padding:12px;font-size:0.95rem;font-family:'Zen Maru Gothic',sans-serif;cursor:pointer;border-radius:2px;">送信する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 動画モーダル -->
+    <div class="modal" id="videoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="videoModalTitle">レッスン動画</div>
+                <button class="close-btn" onclick="closeModal('videoModal')">×</button>
+            </div>
+            <div class="modal-body" id="videoModalBody">
+            </div>
+        </div>
+    </div>
+
+    <!-- メモモーダル -->
+    <div class="modal" id="memoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="memoModalTitle">レッスンメモ</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <a id="memoOpenLink" class="memo-open-link" href="#" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #A296AF; color: white; padding: 6px 14px; border-radius: 2px; font-size: 0.85rem; text-decoration: none; white-space: nowrap; transition: background 0.2s;">→ 印刷と全画面表示はこちらから</a>
+                    <button class="close-btn" onclick="closeModal('memoModal')">×</button>
+                </div>
+            </div>
+            <div class="modal-body" id="memoModalBody">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ★ Apps Script URL と シークレットキーをここに設定
+
+        let studentData = null;
+        let allLessons = [];
+        let currentSort = 'lessonDesc';
+        let sortStates = {
+            lesson: 'desc',  // desc or asc
+            instructor: 'desc'
+        };
+        let currentPage = 1;
+        const itemsPerPage = 10;
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const accessKey = params.get('key');
+
+            if (!accessKey) {
+                showError('アクセスキーが無効です');
+                return;
+            }
+
+            loadStudentByKey(accessKey);
+        });
+
+        // アクセスキーから生徒データを読み込み
+        async function loadStudentByKey(accessKey) {
+            try {
+                const response = await fetch('/api/legacy/portal?key=' + encodeURIComponent(accessKey) + '&t=' + new Date().getTime());
+                const data = await response.json();
+                const students = data.students || data;
+                studentData = students.find(s => s.accessKey === accessKey);
+                if (!studentData) { showError('アクセスが許可されていません'); return; }
+                document.getElementById('studentName').textContent = studentData.lineName || studentData.name;
+                allLessons = studentData.lessons || [];
+                if (studentData.ppUrl && studentData.ppUrl.trim() !== '') {
+                    document.getElementById('ppButton').href = studentData.ppUrl;
+                    document.getElementById('ppButtonRow').style.display = 'block';
+                }
+                const templates = data.templates || {};
+                if (templates.lessonRules) {
+                    document.getElementById('rulesBody').textContent = templates.lessonRules;
+                }
+                if (templates.inquiry) {
+                    const intro = document.getElementById('inquiryIntro');
+                    intro.textContent = templates.inquiry;
+                    intro.style.display = 'block';
+                }
+                displayLessons();
+                loadUpcomingLessons(studentData.id);
+            } catch (error) {
+                console.error('error:', error.message, error.stack);
+                showError('データの読み込みに失敗しました');
+            }
+
+        }
+        // レッスン一覧表示
+        function displayLessons() {
+            const listElement = document.getElementById('lessonList');
+
+            if (allLessons.length === 0) {
+                listElement.innerHTML = '<div class="empty-state">No lessons yet</div>';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            // ソート
+            let sortedLessons = [...allLessons];
+            switch (currentSort) {
+                case 'lessonDesc':
+                    sortedLessons.sort((a, b) => b.lessonNumber - a.lessonNumber);
+                    break;
+                case 'lessonAsc':
+                    sortedLessons.sort((a, b) => a.lessonNumber - b.lessonNumber);
+                    break;
+            }
+
+            // ページネーション計算
+            const totalPages = Math.ceil(sortedLessons.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedLessons = sortedLessons.slice(startIndex, endIndex);
+
+            listElement.innerHTML = paginatedLessons.map(lesson => {
+                const watched = isWatched(lesson.lessonNumber);
+                const watchedBadge = watched ? '✓ 視聴済み' : '';
+                
+                // 講師名が未登録の場合は空文字
+                const instructorName = lesson.instructor && lesson.instructor !== 'undefined' ? lesson.instructor : '';
+                
+                // お休みラベル（座布団スタイル）
+                const cancelledLabel = lesson.cancelled ? '<span class="cancelled-label">お休み</span>' : '';
+                
+                // 備考ラベル
+                const noteLabel = lesson.note && lesson.note.trim() !== '' ? `<span class="note-label">${lesson.note}</span>` : '';
+                
+                // 動画URLが有効かチェック（スペース確保のため常にボタンを生成）
+                const hasVideo = lesson.videoUrl && lesson.videoUrl.trim() !== '' && lesson.videoUrl !== 'undefined';
+                const videoButton = `
+                    <button class="action-btn" onclick='openVideoModal(${JSON.stringify(lesson)})' style="visibility: ${hasVideo ? 'visible' : 'hidden'};">
+                        ▶ 動画
+                    </button>
+                `;
+                
+                // メモURLが有効かチェック（スペース確保のため常にボタンを生成）
+                const hasMemo = lesson.memoUrl && lesson.memoUrl.trim() !== '' && lesson.memoUrl !== 'undefined';
+                const memoButton = `
+                    <button class="action-btn" onclick='openMemoModal(${JSON.stringify(lesson)})' style="visibility: ${hasMemo ? 'visible' : 'hidden'};">
+                        📄 メモ
+                    </button>
+                `;
+                
+                // お休みで動画/メモもない場合は別タブボタンも非表示
+                const hasContent = hasVideo || hasMemo;
+                
+                return `
+                    <div class="lesson-item">
+                        <div class="lesson-number">Lesson ${lesson.lessonNumber}</div>
+                        <div class="lesson-info">
+                            <span class="lesson-date">${lesson.date}</span>
+                            <span class="lesson-divider">|</span>
+                            <span class="lesson-instructor">${instructorName}</span>
+                            <span class="watched-badge">${watchedBadge}</span>
+                            ${cancelledLabel}
+                            ${noteLabel}
+                        </div>
+                        <div class="lesson-actions">
+                            ${videoButton}
+                            ${memoButton}
+                            <a class="action-btn" href="lesson.html?lesson=${lesson.lessonNumber}&key=${new URLSearchParams(window.location.search).get('key')}" target="_blank" style="visibility: ${hasContent ? 'visible' : 'hidden'};">
+                                ↗ 別タブ
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // ページネーション表示
+            displayPagination(totalPages);
+        }
+
+        // ページネーション表示
+        function displayPagination(totalPages) {
+            const paginationElement = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                paginationElement.style.display = 'none';
+                return;
+            }
+
+            paginationElement.style.display = 'flex';
+            
+            let paginationHTML = '';
+            
+            // 前へボタン
+            paginationHTML += `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>前へ</button>`;
+            
+            // ページ番号ボタン
+            const maxVisiblePages = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                paginationHTML += `<button class="pagination-btn" onclick="changePage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHTML += `<span class="pagination-info">...</span>`;
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<span class="pagination-info">...</span>`;
+                }
+                paginationHTML += `<button class="pagination-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+            }
+            
+            // 次へボタン
+            paginationHTML += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>次へ</button>`;
+            
+            paginationElement.innerHTML = paginationHTML;
+        }
+
+        // ページ変更
+        function changePage(page) {
+            const totalPages = Math.ceil(allLessons.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            displayLessons();
+            
+            // ページトップにスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // トグル式ソート
+        function toggleSort(type) {
+            // 現在の状態を反転
+            sortStates[type] = sortStates[type] === 'desc' ? 'asc' : 'desc';
+            
+            // 他のボタンを非アクティブに
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // クリックされたボタンをアクティブに
+            event.target.classList.add('active');
+            
+            // ボタンのテキストを更新
+            const arrow = sortStates[type] === 'desc' ? '↓' : '↑';
+            const label = type === 'lesson' ? 'レッスン順' : '講師順';
+            event.target.textContent = `${label} ${arrow}`;
+            
+            // currentSortを更新
+            if (type === 'lesson') {
+                currentSort = sortStates[type] === 'desc' ? 'lessonDesc' : 'lessonAsc';
+            } else {
+                currentSort = sortStates[type] === 'desc' ? 'instructorDesc' : 'instructorAsc';
+            }
+            
+            // ソート変更時は1ページ目に戻る
+            currentPage = 1;
+            displayLessons();
+        }
+
+        // 動画モーダルを開く
+        function openVideoModal(lesson) {
+            const modal = document.getElementById('videoModal');
+            document.getElementById('videoModalTitle').textContent = `Lesson ${lesson.lessonNumber} - Video`;
+
+            const urls = (lesson.videoUrl || '').split('\n').filter(u => u.trim() !== '');
+            const multi = urls.length > 1;
+
+            document.getElementById('videoModalBody').innerHTML = urls.map((videoUrl, i) => {
+                const label = multi ? `<div style="font-size: 0.85rem; color: #7a6f5d; margin-bottom: 8px;">動画 ${i + 1}</div>` : '';
+                const divider = multi && i < urls.length - 1 ? '<hr style="border: none; border-top: 1px solid #e8e8e8; margin: 20px 0;">' : '';
+                let player = '';
+
+                if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+                    const videoId = extractYouTubeId(videoUrl);
+                    player = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                } else if (videoUrl.includes('drive.google.com')) {
+                    const fileId = extractGoogleDriveId(videoUrl);
+                    const isMob = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    if (isMob) {
+                        player = `<a href="https://drive.google.com/open?id=${fileId}"
+                            style="position:absolute;top:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                            width:100%;height:100%;background:#111;text-decoration:none;gap:12px;padding:20px;text-align:center;">
+                            <span style="color:white;font-size:2.5rem;">▶</span>
+                            <span style="color:white;font-size:0.9rem;line-height:1.6;">スマートフォンでご覧の方は、<br>Googleドライブアプリよりご視聴ください。</span>
+                        </a>`;
+                    } else {
+                        player = `<iframe src="https://drive.google.com/file/d/${fileId}/preview" frameborder="0" allow="autoplay" allowfullscreen></iframe>`;
+                    }
+                } else {
+                    player = `<video controls><source src="${videoUrl}" type="video/mp4">お使いのブラウザは動画タグをサポートしていません。</video>`;
+                }
+
+                const driveId = videoUrl.includes('drive.google.com') ? extractGoogleDriveId(videoUrl) : null;
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                const appStoreUrl = isIOS
+                    ? 'https://apps.apple.com/jp/app/google-drive/id507874739'
+                    : 'https://play.google.com/store/apps/details?id=com.google.android.apps.docs';
+
+                const openLink = driveId
+                    ? (isMobile
+                        ? `<div style="text-align:center;margin-top:14px;margin-bottom:4px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                            <a href="https://drive.google.com/open?id=${driveId}"
+                               style="display:inline-block;background:#A296AF;color:white;padding:10px 20px;border-radius:4px;text-decoration:none;font-size:0.9rem;">
+                                ▶ Googleドライブアプリで開く
+                            </a>
+                            <a href="${appStoreUrl}" target="_blank"
+                               style="color:#aaa;font-size:0.78rem;text-decoration:underline;">
+                                アプリをお持ちでない方はこちら
+                            </a>
+                           </div>`
+                        : `<div style="text-align:center;margin-top:10px;margin-bottom:4px;">
+                            <a href="https://drive.google.com/file/d/${driveId}/view" target="_blank"
+                               style="color:#A296AF;font-size:0.85rem;text-decoration:underline;">
+                                ↗ 別タブで開く
+                            </a>
+                           </div>`)
+                    : '';
+                return `${label}<div class="video-container">${player}</div>${openLink}${divider}`;
+            }).join('');
+
+            modal.classList.add('active');
+            markAsWatched(lesson.lessonNumber);
+            displayLessons();
+            // iOS Safari iframe描画バグ対策
+            setTimeout(() => {
+                const body = document.getElementById('videoModalBody');
+                body.style.display = 'none';
+                body.offsetHeight;
+                body.style.display = '';
+            }, 100);
+        }
+
+        // メモモーダルを開く
+        function openMemoModal(lesson) {
+            const modal = document.getElementById('memoModal');
+            document.getElementById('memoModalTitle').textContent = `Lesson ${lesson.lessonNumber} - Lesson Memo`;
+
+            const urls = (lesson.memoUrl || '').split('\n').filter(u => u.trim() !== '');
+            const multi = urls.length > 1;
+
+            // ヘッダーの開くリンク：1つのときのみ表示
+            const openLink = document.getElementById('memoOpenLink');
+            if (!multi && urls.length === 1) {
+                openLink.href = urls[0];
+                openLink.style.display = 'inline-flex';
+            } else {
+                openLink.style.display = 'none';
+            }
+
+            document.getElementById('memoModalBody').innerHTML = urls.map((memoUrl, i) => {
+                const label = multi ? `<div style="font-size: 0.85rem; color: #7a6f5d; margin-bottom: 8px;">メモ ${i + 1}</div>` : '';
+                const divider = multi && i < urls.length - 1 ? '<hr style="border: none; border-top: 1px solid #e8e8e8; margin: 20px 0;">' : '';
+                let previewUrl = memoUrl.includes('/edit') ? memoUrl.replace('/edit', '/preview') : memoUrl;
+                const openBtn = multi ? `<a href="${memoUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 5px; background: #A296AF; color: white; padding: 5px 12px; border-radius: 2px; font-size: 0.8rem; text-decoration: none; margin-bottom: 8px;">→ 別タブで開く</a>` : '';
+                return `${label}${openBtn}<div class="memo-container"><iframe src="${previewUrl}" frameborder="0"></iframe></div>${divider}`;
+            }).join('');
+
+            modal.classList.add('active');
+        }
+
+        // モーダルを閉じる
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            
+            // 動画を停止
+            if (modalId === 'videoModal') {
+                document.getElementById('videoModalBody').innerHTML = '';
+            }
+            // メモを停止
+            if (modalId === 'memoModal') {
+                document.getElementById('memoContainer').innerHTML = '';
+            }
+        }
+
+        // モーダル外クリックで閉じる
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal(modal.id);
+                }
+            });
+        });
+
+        // YouTube ID抽出
+        function extractYouTubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Google Drive ID抽出
+        function extractGoogleDriveId(url) {
+            const match = url.match(/[-\w]{25,}/);
+            return match ? match[0] : null;
+        }
+
+        // 視聴済みマーク
+        function markAsWatched(lessonNumber) {
+            let watched = JSON.parse(localStorage.getItem('watchedLessons') || '[]');
+            const key = `${studentData.accessKey}_${lessonNumber}`;
+            if (!watched.includes(key)) {
+                watched.push(key);
+                localStorage.setItem('watchedLessons', JSON.stringify(watched));
+            }
+        }
+
+        function isWatched(lessonNumber) {
+            let watched = JSON.parse(localStorage.getItem('watchedLessons') || '[]');
+            const key = `${studentData.accessKey}_${lessonNumber}`;
+            return watched.includes(key);
+        }
+
+        // 次回レッスン取得・表示
+        async function loadUpcomingLessons(studentId) {
+            try {
+                // sessionStorageキャッシュ確認（admin pages と共通キー）
+                const GAS_CACHE_KEY = 'gas_schedule_cache_' + studentId;
+                let allLessons;
+                const cached = sessionStorage.getItem(GAS_CACHE_KEY);
+                if (cached) {
+                    allLessons = JSON.parse(cached);
+                } else {
+                    const res = await fetch('/api/legacy/portal-schedule?key=' + encodeURIComponent(new URLSearchParams(location.search).get('key') || ''));
+                    allLessons = await res.json();
+                    if (Array.isArray(allLessons)) sessionStorage.setItem(GAS_CACHE_KEY, JSON.stringify(allLessons));
+                }
+
+                if (!allLessons || allLessons.error) {
+                    document.getElementById('nextLeft').style.visibility = 'hidden';
+                    return;
+                }
+
+                // 今日以降の該当受講生レッスンを最大4件取得
+                const toDate = str => { const p = str.split('.').map(Number); return new Date(p[0], p[1]-1, p[2]); };
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+
+                const upcoming = allLessons
+                    .filter(l => String(l.studentId) === String(studentId) && l.rawDate)
+                    .filter(l => toDate(l.rawDate) >= today)
+                    .sort((a, b) => toDate(a.rawDate) - toDate(b.rawDate))
+                    .slice(0, 4);
+
+                if (upcoming.length === 0) {
+                    document.getElementById('nextLeft').style.visibility = 'hidden';
+                    return;
+                }
+
+                const first = upcoming[0];
+                const rest = upcoming.slice(1);
+
+                document.getElementById('nextDate').textContent = formatDatetime(first.date, first.rawDate);
+
+                if (rest.length === 0) {
+                    document.getElementById('nextToggleBtn').style.display = 'none';
+                } else {
+                    document.getElementById('nextMoreList').innerHTML =
+                        rest.map(l => `<div class="next-more-item">${formatDatetime(l.date, l.rawDate)}</div>`).join('');
+                }
+
+                document.getElementById('nextLeft').style.visibility = 'visible';
+
+            } catch (e) {
+                document.getElementById('nextLeft').style.visibility = 'hidden';
+            }
+        }
+
+        function formatDatetime(dateStr, rawDate) {
+            if (!dateStr) return '';
+            if (rawDate) {
+                const days = ['日','月','火','水','木','金','土'];
+                const p = rawDate.split('.').map(Number);
+                const d = new Date(p[0], p[1]-1, p[2]);
+                const timeMatch = dateStr.match(/(\d{1,2}:\d{2})/);
+                const time = timeMatch ? timeMatch[1] : '';
+                return time
+                    ? `${p[1]}月${p[2]}日(${days[d.getDay()]})${time}`
+                    : `${p[1]}月${p[2]}日(${days[d.getDay()]})`;
+            }
+            return dateStr.replace(/\s*[·・]\s*/, ' ').replace(/～\d+:\d+/, '');
+        }
+
+        function toggleNext() {
+            const list = document.getElementById('nextMoreList');
+            const btn = document.getElementById('nextToggleBtn');
+            const isOpen = list.classList.toggle('open');
+            btn.textContent = isOpen ? '閉じる ▲' : 'もっと見る ▼';
+        }
+
+        function openFooterModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function submitInquiry() {
+            const inputName = document.getElementById('inquiryName').value.trim();
+            const message   = document.getElementById('inquiryBody').value.trim();
+            const errEl     = document.getElementById('inquiryError');
+            const btn       = document.getElementById('inquirySubmitBtn');
+
+            if (!message) {
+                errEl.style.display = 'block';
+                return;
+            }
+            errEl.style.display = 'none';
+
+            btn.textContent = '送信中...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('accessKey', new URLSearchParams(location.search).get('key') || '');
+            formData.append('inputName',   inputName || '匿名');
+            formData.append('studentName', studentData ? studentData.name : '');
+            formData.append('message',     message);
+
+            try {
+                await fetch('/api/legacy/portal-inquiry', { method: 'POST', body: formData });
+            } catch (e) {}
+
+            btn.textContent = '送信する';
+            btn.disabled = false;
+            document.getElementById('inquiryName').value = '';
+            document.getElementById('inquiryBody').value = '';
+            closeModal('inquiryModal');
+            showToast('お問い合わせを送信しました。');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // エラー表示
+        function showError(message) {
+            document.querySelector('.container').innerHTML = `
+                <div class="empty-state" style="padding: 100px 20px;">
+                    <p style="font-size: 1.2em; color: #7a6f5d;">${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
