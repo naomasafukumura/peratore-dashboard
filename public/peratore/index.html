@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ペラトレ ナレッジダッシュボード（完全版）</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --grad-main: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #a855f7 100%);
+            --grad-soft: linear-gradient(160deg, rgba(59,130,246,0.08) 0%, rgba(139,92,246,0.08) 50%, rgba(168,85,247,0.06) 100%);
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #16a34a;
+            --ink: #1f2937;
+            --ink-secondary: #6b7280;
+            --ink-muted: #9ca3af;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans JP', -apple-system, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.6; min-height: 100vh; }
+        header { background: var(--grad-main); color: white; padding: 24px 20px; box-shadow: var(--shadow-md); }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header p { opacity: 0.9; font-size: 0.9rem; margin-top: 4px; }
+        nav {
+            background: var(--card); padding: 12px 20px; display: flex; gap: 6px; flex-wrap: wrap; box-shadow: var(--shadow);
+            position: sticky; top: 0; z-index: 100; max-width: 100%; overflow-x: auto;
+        }
+        nav a {
+            padding: 8px 12px; border-radius: var(--radius-sm); text-decoration: none; color: var(--ink-secondary);
+            font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;
+        }
+        nav a:hover { background: var(--grad-soft); color: var(--ink); }
+        nav a.active { background: var(--grad-main); color: white; }
+        main { max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; }
+        section { display: none; animation: fadeIn 0.3s ease; }
+        section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .card {
+            background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+            box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.04);
+        }
+        .card h2 { font-size: 1.15rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; color: var(--ink); }
+        .card h3 { font-size: 1rem; margin: 16px 0 8px; color: var(--ink-secondary); }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-danger { background: #fef2f2; color: var(--danger); }
+        .badge-warning { background: #fffbeb; color: var(--warning); }
+        .badge-success { background: #f0fdf4; color: var(--success); }
+        .badge-info { background: #eff6ff; color: #2563eb; }
+        ul { margin-left: 20px; margin-top: 8px; }
+        li { margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 12px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; color: var(--ink-secondary); }
+        tr:hover td { background: #fafafa; }
+        .priority-1 { border-left: 4px solid var(--danger); }
+        .priority-2 { border-left: 4px solid var(--warning); }
+        .priority-3 { border-left: 4px solid #3b82f6; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .summary-box { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); text-align: center; }
+        .summary-box .num { font-size: 1.5rem; font-weight: 700; color: #6366f1; }
+        .summary-box .label { font-size: 0.75rem; color: var(--ink-muted); margin-top: 4px; }
+        .insight { background: var(--grad-soft); padding: 12px 16px; border-radius: var(--radius-sm); margin-top: 12px; border-left: 4px solid #6366f1; }
+        .insight strong { color: #4f46e5; }
+        .msg-block { background: #f9fafb; padding: 12px; border-radius: var(--radius-sm); margin: 8px 0; font-size: 0.9rem; white-space: pre-wrap; }
+        .score-5 { color: #16a34a; font-weight: 600; }
+        .score-4 { color: #2563eb; }
+        .score-3 { color: #6b7280; }
+        .score-2 { color: #f59e0b; }
+        .score-1 { color: #dc2626; }
+        footer { text-align: center; padding: 24px; color: var(--ink-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ペラトレ ナレッジダッシュボード（完全版）</h1>
+        <p>全10ナレッジファイルの内容を完全網羅（2026年2月時点）</p>
+    </header>
+    <nav>
+        <a href="#overview" class="nav-link active">概要</a>
+        <a href="#todo" class="nav-link">ToDo</a>
+        <a href="#problems" class="nav-link">問題点</a>
+        <a href="#urgent" class="nav-link">緊急対応</a>
+        <a href="#teachers" class="nav-link">講師評価</a>
+        <a href="#teacher-detail" class="nav-link">講師所感詳細</a>
+        <a href="#students" class="nav-link">受講生一覧</a>
+        <a href="#lesson" class="nav-link">レッスン状況</a>
+        <a href="#survey" class="nav-link">改善アンケート</a>
+        <a href="#satisfaction" class="nav-link">満足度分析</a>
+        <a href="#withdrawal" class="nav-link">退会・嬉しいコメント</a>
+        <a href="#report" class="nav-link">確認事項レポート</a>
+        <a href="#questions" class="nav-link">質問事項</a>
+        <a href="#org" class="nav-link">組織・入金</a>
+        <a href="#line" class="nav-link">LINE定型文</a>
+        <a href="#actions" class="nav-link">アクション</a>
+    </nav>
+    <main>
+
+        <!-- 概要 -->
+        <section id="overview" class="panel active">
+            <div class="summary-grid">
+                <div class="summary-box"><div class="num">29</div><div class="label">総受講生数</div></div>
+                <div class="summary-box"><div class="num">16</div><div class="label">継続中</div></div>
+                <div class="summary-box"><div class="num">9</div><div class="label">解約済</div></div>
+                <div class="summary-box"><div class="num">31%</div><div class="label">解約率</div></div>
+                <div class="summary-box"><div class="num">7.84</div><div class="label">サービス満足度(10)</div></div>
+                <div class="summary-box"><div class="num">9.11</div><div class="label">講師FB満足度(10)</div></div>
+                <div class="summary-box"><div class="num">4.58</div><div class="label">レッスン満足度(5)</div></div>
+            </div>
+            <div class="card">
+                <h2>ペラトレの強み</h2>
+                <ul>
+                    <li><strong>講師の質が圧倒的1位（89%）</strong> — 改善アンケートで最大の強み</li>
+                    <li>レッスン内容・進め方（58%）、全体の雰囲気・安心感（53%）</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>成長計画との乖離</h2>
+                <p>計画：2026/1で<b>187名</b> → 実際：<b>29名</b>（継続16名）。想定解約率5%に対し実際は約31%。</p>
+            </div>
+        </section>
+
+        <!-- ToDo -->
+        <section id="todo" class="panel">
+            <div class="card">
+                <h2>進行中の進捗</h2>
+                <ul>
+                    <li>友野先生に「講師の質が低い人は排除して、質のいい人にはフィードバックをするようにしてください」と伝達済み</li>
+                    <li>横田さんに「レッスンを固定制にする形で受講生と先生を調整してください」と伝達済み。来週中に直轄管理予定</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>ToDo</h2>
+                <ol>
+                    <li><strong>講師の質による選別とフィードバックの実施</strong></li>
+                    <li><strong>レッスン固定制への移行に伴う受講生と講師の調整</strong>（来週中に直轄管理）</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- 問題点 -->
+        <section id="problems" class="panel">
+            <div class="card">
+                <h2>緊急（即対応）</h2>
+                <ul>
+                    <li><span class="badge badge-danger">最優先</span> <strong>レッスンが入らない</strong> → 2月予約が全員0件、予約促進が必要</li>
+                    <li><span class="badge badge-success">解決策</span> <strong>固定制の早期導入</strong> — 固定時間の生徒は全員継続中。入塾時から固定枠を案内することで予約しやすさ・継続率を両立</li>
+                    <li><span class="badge badge-danger">緊急</span> ロバス由貴：2ヶ月受講0で入金継続 → 緊急フォロー</li>
+                    <li><span class="badge badge-danger">バグ</span> 合田桂士のステータスが「学習継続中」のまま</li>
+                    <li><span class="badge badge-danger">運営</span> 退会シートに6名未移行</li>
+                </ul>
+                <h3>運営・データ管理</h3>
+                <ul>
+                    <li>「予約」列と月別消化の合計が不一致（定義不明）</li>
+                    <li>繰越ルールの正式内容未確認、12月だけ5コマの理由不明</li>
+                    <li>解約日未入力6名、板橋奈津子の退会シートデータ重複</li>
+                </ul>
+                <h3>受講生個別・講師・サービス改善</h3>
+                <ul>
+                    <li>多田野薫子（幽霊会員）、富士溪俊之、狩野怜菜、木戸真紀子、山下千恵子、松隈由香、前田結衣</li>
+                    <li>Aya先生だけTimeRex未使用、Alex/りの先生退任状況、Ren先生稼働、Zoom→Meet移行</li>
+                    <li>効果実感しにくい（37%）、時間が取れない（37%）→ 成長の見える化・休会制度</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 緊急対応 -->
+        <section id="urgent" class="panel">
+            <div class="card">
+                <h2>即対応が必要</h2>
+                <table>
+                        <tr class="priority-1"><td><span class="badge badge-danger">1</span></td><td>レッスンが入らない（2月予約0件）</td><td>即時：LINE一斉送信で予約促進 / 中期：固定制の早期導入</td></tr>
+                    <tr class="priority-1"><td><span class="badge badge-danger">2</span></td><td>ロバス由貴</td><td>緊急フォロー・本人の意思確認</td></tr>
+                    <tr class="priority-1"><td><span class="badge badge-danger">3</span></td><td>合田桂士のステータス</td><td>「解約済」に修正</td></tr>
+                    <tr class="priority-1"><td><span class="badge badge-danger">4</span></td><td>退会シート6名未移行</td><td>退会処理の実施</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>早期対応推奨</h2>
+                <p>解約日未入力6名、狩野怜菜・木戸真紀子のフォロー、多田野薫子の契約確認、Ren先生稼働確認</p>
+            </div>
+        </section>
+
+        <!-- 講師評価（Tomoyo先生による5段階） -->
+        <section id="teachers" class="panel">
+            <div class="card">
+                <h2>講師評価サマリー（Tomoyo先生による5段階）</h2>
+                <p style="margin-bottom:12px;font-size:0.9rem;">5=非常に優れている / 4=期待以上 / 3=標準的 / 2=期待未満 / 1=継続検討が必要</p>
+                <table>
+                    <thead>
+                        <tr><th>講師</th><th>シフト</th><th>連絡</th><th>レッスン内容</th><th>FBS明確さ</th><th>レッスン満足度</th><th>話せる実感</th><th>平均</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Akane</td><td>3</td><td>2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr><td>Akiko</td><td>5</td><td>5</td><td>3</td><td>3</td><td>5</td><td>3</td><td>4.0</td></tr>
+                        <tr><td>Aya</td><td>4</td><td>5</td><td>4</td><td>5</td><td>3</td><td>3</td><td>4.0</td></tr>
+                        <tr><td>Ayako</td><td>4</td><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr class="priority-2"><td>Kazuki</td><td>5</td><td>2</td><td>2</td><td>3</td><td>3</td><td>3</td><td>3.0</td></tr>
+                        <tr><td>Ken</td><td>4</td><td>2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr><td>Mai</td><td>5</td><td>5</td><td>4</td><td>3</td><td>5</td><td>3</td><td>4.2</td></tr>
+                        <tr><td>Miku</td><td>5</td><td>5</td><td>3</td><td>4</td><td>4</td><td>3</td><td>4.0</td></tr>
+                        <tr><td>Ren</td><td>3</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr class="priority-2"><td>Sakino</td><td>3</td><td>5</td><td>2</td><td>3</td><td>5</td><td>2</td><td>3.3</td></tr>
+                        <tr><td>Shinobu</td><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr><td>Taro</td><td>4</td><td>5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+                    </tbody>
+                </table>
+                <div class="insight"><strong>傾向：</strong>「話せる実感評価」が全体的に低い（2〜3）→ ペラトレ全体の課題。レッスン内容はKazuki・Sakinoが2で要改善。</div>
+            </div>
+            <div class="card">
+                <h2>講師満足度（受講生アンケート・5点満点）</h2>
+                <table>
+                    <thead><tr><th>順位</th><th>講師</th><th>回答数</th><th>累積平均</th><th>5点率</th><th>直近1ヶ月</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>Akiko先生</td><td>2件</td><td>5.00</td><td>100%</td><td>-</td></tr>
+                        <tr><td>2</td><td>Tomoyo先生</td><td>27件</td><td>4.89</td><td>89%</td><td>5.00</td></tr>
+                        <tr><td>3</td><td>Miku先生</td><td>36件</td><td>4.69</td><td>72%</td><td>4.75</td></tr>
+                        <tr><td>4</td><td>Sakino先生</td><td>3件</td><td>4.67</td><td>67%</td><td>5.00</td></tr>
+                        <tr><td>5</td><td>Mai先生</td><td>11件</td><td>4.55</td><td>55%</td><td>-</td></tr>
+                        <tr><td>6</td><td>Aya先生</td><td>39件</td><td>4.26</td><td>49%</td><td>4.40</td></tr>
+                    </tbody>
+                </table>
+                <p style="margin-top:8px;font-size:0.9rem;">※ Tomoyoの5段階評価と受講生アンケートは別指標。Aya先生の3点は山田智美さんの自己評価の可能性大。</p>
+            </div>
+            <div class="card">
+                <h2>講師シフト・リピート数（Tomoyoレポート）</h2>
+                <table>
+                    <tr><td>Aya</td><td>5名</td><td>受講生一覧と一致</td></tr>
+                    <tr><td>Miku</td><td>4名</td><td>受講生一覧と一致</td></tr>
+                    <tr><td>Tomoyo</td><td>4名</td><td>受講生一覧では3名（牧内晴代含む？）</td></tr>
+                    <tr><td>Mai</td><td>2名</td><td>スポット代行が多い</td></tr>
+                    <tr><td>Sakino</td><td>1名</td><td>取渕菜穂子のみ</td></tr>
+                    <tr><td>Akiko</td><td>0名</td><td>固定なし</td></tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- 講師所感詳細 -->
+        <section id="teacher-detail" class="panel">
+            <div class="card">
+                <h2>宿題・指示の明確さ（7原則）</h2>
+                <ol>
+                    <li>選択肢を与えず、こちらがピックアップする（×「自分に合う番組を探して」→ ○「この番組を聴いて」）</li>
+                    <li>「アバウトな数」を避け、具体的な数を指定（×「3つ以上」→ ○「5つ作成し、何も見ずに言えるように」）</li>
+                    <li>ゴール状態を明示する</li>
+                    <li>調べさせるならテーマと量を指定</li>
+                    <li>YouTubeなどはURLを提示</li>
+                    <li>声に出す練習を組み込む</li>
+                    <li>日本語で考えさせる必要はない</li>
+                </ol>
+            </div>
+            <div class="card">
+                <h2>該当講師と具体事例</h2>
+                <table>
+                    <tr><td><strong>Akiko</strong></td><td>「NHKラジオで自分に合う番組を探して」→ 講師が1つピックアップし明確化</td></tr>
+                    <tr><td><strong>Akiko</strong></td><td>「3つ以上例文作成」→ 5つ＋何も見ずに言えるように、テーマも指定</td></tr>
+                    <tr><td><strong>Kazuki</strong></td><td>「YouTubeで検索して」→ URLを直接提示</td></tr>
+                    <tr><td><strong>Kazuki</strong></td><td>「日本語で思い浮かべながら」→ 声に出して練習する構造に</td></tr>
+                    <tr><td><strong>Sakino</strong></td><td>「7割覚えるつもりで」→ 明確な指示に置き換え</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>引継ぎ・FBシートの書き方（Miku先生事例）</h2>
+                <table>
+                    <tr><td>×「hangとhungの発音の違い」</td><td>○「hangとhungを使った文を読ませて発音確認」</td></tr>
+                    <tr><td>×「ランダムな数字を並べて読む練習」</td><td>○「4桁の数字を5つ読ませてチェック」</td></tr>
+                    <tr><td>×「次回問題出します！」</td><td>○ 出題例を1つ書いておく</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>ベストプラクティス（Aya先生）</h2>
+                <ul>
+                    <li>FBSの練習方法に「何を何分」「最低1回声に出す」を明記</li>
+                    <li>前回レッスンのキーフレーズを復習できる構造 → テンプレートとして共有可能</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>個別対応が必要な講師</h2>
+                <table>
+                    <tr><td><strong>Mai</strong></td><td>雛形を使用していない理由の確認</td><td><span class="badge badge-warning">高</span></td></tr>
+                    <tr><td><strong>Kazuki</strong></td><td>レッスン内容評価「2」→ 改善指導</td><td><span class="badge badge-warning">高</span></td></tr>
+                    <tr><td><strong>Sakino</strong></td><td>レッスン内容「2」＋話せる実感「2」→ 改善指導</td><td><span class="badge badge-warning">高</span></td></tr>
+                    <tr><td><strong>Akiko</strong></td><td>宿題の出し方の改善指導</td><td><span class="badge badge-info">中</span></td></tr>
+                    <tr><td><strong>Miku</strong></td><td>引継ぎの書き方＋話せる実感スコアの改善</td><td><span class="badge badge-info">中</span></td></tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- 受講生一覧 -->
+        <section id="students" class="panel">
+            <div class="card">
+                <h2>受講生一覧（全29名）</h2>
+                <table>
+                    <thead><tr><th>#</th><th>受講生</th><th>希望講師</th><th>契約日</th><th>ステータス</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>佐藤結衣</td><td>Aya</td><td>09/28</td><td>継続中</td></tr>
+                        <tr class="priority-2"><td>2</td><td>多田野薫子</td><td>-</td><td>09/29</td><td>要確認（連絡なし）</td></tr>
+                        <tr><td>3</td><td>山田智美</td><td>Aya</td><td>09/29</td><td>3月退会予定</td></tr>
+                        <tr><td>4</td><td>高橋通江</td><td>Miku</td><td>09/29</td><td>継続中</td></tr>
+                        <tr><td>5</td><td>中川順子</td><td>-</td><td>09/30</td><td>解約済(10/31)</td></tr>
+                        <tr><td>6</td><td>山下千恵子</td><td>Miku</td><td>09/30</td><td>継続中</td></tr>
+                        <tr><td>7</td><td>犬塚美代子</td><td>Tomoyo</td><td>09/30</td><td>継続中</td></tr>
+                        <tr><td>8</td><td>合田桂士</td><td>Aya</td><td>10/01</td><td>解約済(12月)</td></tr>
+                        <tr><td>9</td><td>佐藤妙</td><td>Tomoyo</td><td>10/04</td><td>継続中</td></tr>
+                        <tr><td>10</td><td>松隈由香</td><td>Miku</td><td>10/04</td><td>継続中</td></tr>
+                        <tr><td>11</td><td>川上潔</td><td>Aya</td><td>10/05</td><td>継続中</td></tr>
+                        <tr><td>12</td><td>木戸真紀子</td><td>-</td><td>10/06</td><td>継続中</td></tr>
+                        <tr><td>13</td><td>甲斐博美</td><td>Aya</td><td>10/06</td><td>継続中</td></tr>
+                        <tr><td>14</td><td>徳世由美子</td><td>Aya</td><td>10/08</td><td>4月退会予定</td></tr>
+                        <tr><td>15</td><td>宮本祐子</td><td>Aya</td><td>10/31</td><td>解約済(1月)</td></tr>
+                        <tr><td>16</td><td>富士溪俊之</td><td>-</td><td>10/31</td><td>休会中（残1回・2月末）</td></tr>
+                        <tr><td>17</td><td>立和名翼沙</td><td>-</td><td>11/01</td><td>解約済(12月)</td></tr>
+                        <tr><td>18</td><td>氏家敦子</td><td>Tomoyo</td><td>11/01</td><td>継続中</td></tr>
+                        <tr><td>19</td><td>狩野怜菜</td><td>-</td><td>11/01</td><td>継続中</td></tr>
+                        <tr><td>20</td><td>西村庸平</td><td>-</td><td>11/02</td><td>解約済(12月)</td></tr>
+                        <tr class="priority-1"><td>21</td><td>ロバス由貴</td><td>-</td><td>11/02</td><td>継続中（要緊急）</td></tr>
+                        <tr><td>22</td><td>板橋奈津子</td><td>-</td><td>11/02</td><td>解約済(12/17)</td></tr>
+                        <tr><td>23</td><td>渡邊由香</td><td>-</td><td>11/04</td><td>解約済(11/30)</td></tr>
+                        <tr><td>24</td><td>取渕菜穂子</td><td>-</td><td>11/04</td><td>継続中（月1）</td></tr>
+                        <tr><td>25</td><td>塚原圭子</td><td>-</td><td>11/05</td><td>解約済(12月)</td></tr>
+                        <tr><td>26</td><td>牧内晴代</td><td>-</td><td>11/30</td><td>継続中</td></tr>
+                        <tr><td>27</td><td>久保田利奈</td><td>Miku</td><td>11/30</td><td>解約済(12月)</td></tr>
+                        <tr><td>28</td><td>嵯峨梨江</td><td>Miku</td><td>12/01</td><td>継続中</td></tr>
+                        <tr><td>29</td><td>前田結衣</td><td>-</td><td>-</td><td>申込待ち</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>講師別担当生徒（継続中）</h2>
+                <table>
+                    <tr><td><strong>Aya先生</strong></td><td>佐藤結衣、山田智美、川上潔、甲斐博美、徳世由美子</td><td>5名</td></tr>
+                    <tr><td><strong>Miku先生</strong></td><td>高橋通江、山下千恵子、松隈由香、嵯峨梨江</td><td>4名</td></tr>
+                    <tr><td><strong>Tomoyo先生</strong></td><td>犬塚美代子、佐藤妙、氏家敦子</td><td>3名</td></tr>
+                    <tr><td><strong>指定なし</strong></td><td>木戸真紀子、狩野怜菜、ロバス由貴、取渕菜穂子、牧内晴代</td><td>6名</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>固定時間 vs 都度決め</h2>
+                <p>固定時間（6名）：高橋通江、山下千恵子、犬塚美代子、川上潔、氏家敦子、嵯峨梨江 → 全員継続中。固定スケジュールが継続率に寄与している可能性。</p>
+                <div class="insight"><strong>レッスンが入らない問題への対応：</strong> 固定制の早期導入を推奨。入塾時から「この曜日・時間で固定」を案内することで、予約の手間を減らし、レッスン消化率・継続率の向上が期待できる。</div>
+            </div>
+        </section>
+
+        <!-- レッスン状況 -->
+        <section id="lesson" class="panel">
+            <div class="card">
+                <h2>月間レッスン消化状況（継続中）</h2>
+                <table>
+                    <thead><tr><th>受講生</th><th>10月</th><th>11月</th><th>12月</th><th>1月</th><th>傾向</th></tr></thead>
+                    <tbody>
+                        <tr><td>佐藤結衣</td><td>2</td><td>6</td><td>3</td><td>4+</td><td>安定</td></tr>
+                        <tr><td>山田智美</td><td>4</td><td>4</td><td>4</td><td>4+</td><td>非常に安定</td></tr>
+                        <tr><td>高橋通江</td><td>0</td><td>5</td><td>4</td><td>4+</td><td>安定化</td></tr>
+                        <tr><td>山下千恵子</td><td>4</td><td>5</td><td>4</td><td>4+</td><td>非常に安定</td></tr>
+                        <tr><td>犬塚美代子</td><td>3</td><td>4</td><td>4</td><td>4+</td><td>安定</td></tr>
+                        <tr><td>佐藤妙</td><td>3</td><td>2</td><td>2</td><td>2+</td><td>やや低め</td></tr>
+                        <tr><td>松隈由香</td><td>4</td><td>3</td><td>4</td><td>3+</td><td>安定</td></tr>
+                        <tr><td>川上潔</td><td>3</td><td>1</td><td>4</td><td>4+</td><td>回復→安定</td></tr>
+                        <tr class="priority-2"><td>木戸真紀子</td><td>3</td><td>5</td><td>3</td><td>1+</td><td>低下傾向</td></tr>
+                        <tr><td>甲斐博美</td><td>3</td><td>4</td><td>4</td><td>4+</td><td>安定</td></tr>
+                        <tr><td>徳世由美子</td><td>4</td><td>4</td><td>4</td><td>4+</td><td>非常に安定</td></tr>
+                        <tr><td>氏家敦子</td><td>3</td><td>5</td><td>4</td><td>4+</td><td>非常に安定</td></tr>
+                        <tr class="priority-2"><td>狩野怜菜</td><td>3</td><td>4</td><td>2</td><td>0+</td><td>低下中</td></tr>
+                        <tr class="priority-1"><td>ロバス由貴</td><td>2</td><td>2</td><td>0</td><td>0+</td><td>停滞中</td></tr>
+                        <tr><td>取渕菜穂子</td><td>0</td><td>1</td><td>1</td><td>1</td><td>月1ペース</td></tr>
+                        <tr><td>牧内晴代</td><td>-</td><td>3</td><td>5</td><td>α</td><td>良好</td></tr>
+                        <tr><td>嵯峨梨江</td><td>-</td><td>4</td><td>2</td><td>α</td><td>やや低下</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>2026年2月時点の予約状況（シート9）</h2>
+                <p style="margin-bottom:8px;"><span class="badge badge-danger">全員2月予約0件</span></p>
+                <table>
+                    <thead><tr><th>受講生</th><th>総消化</th><th>1月残</th><th>2月予約</th><th>2月残</th><th>状況</th></tr></thead>
+                    <tbody>
+                        <tr><td>佐藤結衣</td><td>15</td><td>2</td><td>0</td><td>4</td><td>残あり</td></tr>
+                        <tr><td>山田智美</td><td>16</td><td>1</td><td>0</td><td>4</td><td>残あり</td></tr>
+                        <tr><td>高橋通江</td><td>13</td><td>4</td><td>0</td><td>4</td><td>残あり</td></tr>
+                        <tr><td>山下千恵子</td><td>17</td><td>0</td><td>0</td><td>4</td><td>残あり</td></tr>
+                        <tr><td>佐藤妙</td><td>8</td><td>4</td><td>0</td><td>4</td><td>残多め</td></tr>
+                        <tr><td>川上潔</td><td>10</td><td>4</td><td>0</td><td>4</td><td>残多め</td></tr>
+                        <tr><td>木戸真紀子</td><td>11</td><td>4</td><td>0</td><td>4</td><td>残多め</td></tr>
+                        <tr class="priority-1"><td>ロバス由貴</td><td>4</td><td>4</td><td>0</td><td>4</td><td>要緊急フォロー</td></tr>
+                        <tr><td>狩野怜菜</td><td>9</td><td>4</td><td>0</td><td>4</td><td>残多め</td></tr>
+                        <tr><td>その他</td><td>...</td><td>...</td><td>0</td><td>4</td><td>残あり</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>講師別レッスン担当実績</h2>
+                <table>
+                    <tr><td>Aya先生</td><td>100回以上</td><td>メイン講師・5名固定</td></tr>
+                    <tr><td>Tomoyo先生</td><td>50回以上</td><td>管轄担当兼講師</td></tr>
+                    <tr><td>Miku先生</td><td>50回以上</td><td>平日昼間メイン・4名固定</td></tr>
+                    <tr><td>Mai先生</td><td>30回程度</td><td>スポット代行・最も広い稼働枠</td></tr>
+                    <tr><td>Sakino先生</td><td>少なめ</td><td>水・日のみ</td></tr>
+                    <tr><td>Akiko先生</td><td>少なめ</td><td>夜間・日祝メイン</td></tr>
+                    <tr><td>Alex/りの先生</td><td>初期のみ</td><td>10月初旬のみ・現在非稼働</td></tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- 改善アンケート -->
+        <section id="survey" class="panel">
+            <div class="card">
+                <h2>改善アンケート（2026年1月）有効回答19件</h2>
+                <h3>スコア分布</h3>
+                <p><strong>サービス全体満足度：</strong>10(5名26%)／9(2名11%)／8(6名32%)／7(1名)／6(2名)／5(2名)／4(1名)</p>
+                <p><strong>講師FB満足度：</strong>10(10名53%)／9(2名)／8(4名)／7(1名)／6(1名)</p>
+                <h3>良い点（複数選択）</h3>
+                <table>
+                    <tr><td>講師の質</td><td>17名(89%)</td></tr>
+                    <tr><td>レッスン内容</td><td>11名(58%)</td></tr>
+                    <tr><td>雰囲気・安心感</td><td>10名(53%)</td></tr>
+                    <tr><td>伸びを実感</td><td>5名(26%)</td></tr>
+                </table>
+                <h3>詰まっている点（最大2つ）</h3>
+                <table>
+                    <tr><td>効果・成長を実感しにくい</td><td>7名(37%)</td></tr>
+                    <tr><td>時間が取れない</td><td>7名(37%)</td></tr>
+                    <tr><td>特に困っていない</td><td>7名(37%)</td></tr>
+                    <tr><td>モチベ続かない</td><td>3名(16%)</td></tr>
+                    <tr><td>何をやればいいか分からない</td><td>2名(11%)</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>要望・改善提案（自由記述）</h2>
+                <ul>
+                    <li>Masaフレーズ集、勉強会3ヶ月に1回、見える化（満足度10）</li>
+                    <li>休会制度（満足度6）、予約2週間先公開・前日可（満足度8）</li>
+                    <li>48時間前キャンセルはキツイ（満足度9）、隙間時間教材（満足度7）</li>
+                    <li>チャットルームが誰もやっていない（満足度8）</li>
+                    <li>Groupレッスンで費用削減（満足度8）、自動課金は信用されていない（満足度5）</li>
+                    <li>他講師の予約は遠慮してできない（満足度8）</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>ネガティブ・警告コメント</h2>
+                <ul>
+                    <li><strong>満足度4：</strong>「週一回のレッスンでやる気が落ちる。料金も安くないので長くは続かないかもしれない」</li>
+                    <li><strong>満足度5：</strong>「自動課金は信用されてないと感じる」</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>受講動機の分類</h2>
+                <p>話す力をつけたい7名、仕事で使いたい4名、スキルアップ3名、海外・親戚2名、Masaへの信頼2名</p>
+            </div>
+            <div class="card">
+                <h2>満足度別プロファイル</h2>
+                <p><strong>高(9-10点)7名：</strong>要望はフレーズ集・勉強会・見える化。リスク低。</p>
+                <p><strong>中(7-8点)7名：</strong>時間・成長実感に課題。放置で6点以下に落ちる可能性。</p>
+                <p><strong>低(4-6点)4名：</strong>効果実感しにくい・モチベ続かない。解約直結。個別フォロー必須。</p>
+            </div>
+            <div class="card">
+                <h2>他ナレッジとのクロス分析</h2>
+                <ul>
+                    <li>「効果実感しにくい」→ 講師所感の「話せる実感評価」2-3と一致</li>
+                    <li>「予約取りにくい」→ 中川順子の解約事例と一致</li>
+                    <li>「週1回でやる気落ちる」→ 解約者平均在籍1.3ヶ月と一致</li>
+                    <li>「チャットルーム」→ 合田桂士「オープンチャット参加したくない」と関連</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 満足度分析 -->
+        <section id="satisfaction" class="panel">
+            <div class="card">
+                <h2>受講生別満足度（レッスンアンケート5点満点）</h2>
+                <table>
+                    <thead><tr><th>受講生</th><th>回答数</th><th>5/4/3/2/1点</th><th>平均</th><th>傾向</th></tr></thead>
+                    <tbody>
+                        <tr><td>山下千恵子</td><td>13</td><td>13/0/0/0/0</td><td>5.00</td><td>常に最高</td></tr>
+                        <tr><td>氏家敦子</td><td>13</td><td>13/0/0/0/0</td><td>5.00</td><td>常に最高</td></tr>
+                        <tr><td>川上潔</td><td>3</td><td>3/0/0/0/0</td><td>5.00</td><td>-</td></tr>
+                        <tr><td>松隈由香</td><td>11</td><td>10/1/0/0/0</td><td>4.91</td><td>非常に高</td></tr>
+                        <tr><td>徳世由美子</td><td>9</td><td>7/2/0/0/0</td><td>4.78</td><td>高い</td></tr>
+                        <tr><td>木戸真紀子</td><td>3</td><td>0/3/0/0/0</td><td>4.00</td><td>4点固定</td></tr>
+                        <tr><td>高橋通江</td><td>10</td><td>0/9/1/0/0</td><td>3.90</td><td>安定だが低め</td></tr>
+                        <tr class="priority-2"><td>山田智美</td><td>10</td><td>0/3/7/0/0</td><td>3.30</td><td>最低スコア（継続中）</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <h2>「話せるようになった実感」の推移（7点満点）</h2>
+                <table>
+                    <thead><tr><th>受講生</th><th>初期</th><th>中期</th><th>最新</th><th>傾向</th></tr></thead>
+                    <tbody>
+                        <tr><td>徳世由美子</td><td>5</td><td>5→6</td><td>6</td><td>着実に上昇</td></tr>
+                        <tr><td>氏家敦子</td><td>4→5</td><td>5</td><td>5→6</td><td>着実に上昇</td></tr>
+                        <tr><td>山田智美</td><td>3</td><td>3→4</td><td>4→5</td><td>緩やかに上昇（満足度3でも継続）</td></tr>
+                        <tr><td>宮本祐子</td><td>2</td><td>1→2</td><td>2</td><td>低いまま停滞（解約済）</td></tr>
+                        <tr><td>合田桂士</td><td>2</td><td>1→2</td><td>2</td><td>低いまま停滞（解約済）</td></tr>
+                    </tbody>
+                </table>
+                <div class="insight"><strong>重要な発見：</strong>「話せる実感」が上がらない人が解約。実感2以下の人が解約、実感上昇中なら満足度3でも継続。</div>
+            </div>
+            <div class="card">
+                <h2>講師別FBパターン（受講生の声）</h2>
+                <p><strong>Aya：</strong>発音綺麗・丁寧・ロードマップ・言いたい表現に直してくれる。要望：アジェンダ共有、明確な宿題、質問タイム</p>
+                <p><strong>Tomoyo：</strong>明るい・楽しい・自然な言い方に直す・FB丁寧。課題：話すスピード速い（意図的）</p>
+                <p><strong>Miku：</strong>ぐいぐい引っ張る・FB素晴らしい・接客英語の気遣い。課題：山下千恵子「練習したのにできなくてめげそう」</p>
+                <p><strong>Mai：</strong>楽しい・ロープレ実践的・教え方上手。要望：発音指導も（木戸真紀子）</p>
+            </div>
+            <div class="card">
+                <h2>レッスンアンケート要望テーマ</h2>
+                <p><strong>レッスン構成：</strong>アジェンダ共有、質問タイム5分、ゆっくり話して、明確な宿題、思考プロセス教えて、例文選べない、お手本2-3回繰り返して</p>
+                <p><strong>講師・予約：</strong>他講師プロフィール見たい、Miku予約枠、文字大きく、発音チェックの時間</p>
+                <p><strong>学習内容：</strong>相槌・リアクションフレーズ、締めの言葉バリエーション、感想の表現、即答できない時のフレーズ、リスニング強化、旅行英会話、自習教材おすすめ</p>
+            </div>
+            <div class="card">
+                <h2>解約者のアンケート分析</h2>
+                <table>
+                    <tr><td>合田桂士</td><td>実感2/7、満足4/5</td><td>「今のままでは話せるようにならない」</td></tr>
+                    <tr><td>宮本祐子</td><td>実感2/7、満足5/5</td><td>「自分の進捗を全く感じられない」</td></tr>
+                    <tr><td>立和名翼沙</td><td>実感7/7、満足5/5</td><td>円満解約</td></tr>
+                    <tr><td>渡邊由香</td><td>実感4/7、満足5/5</td><td>「半年後戻ってきます」</td></tr>
+                    <tr><td>板橋奈津子</td><td>実感4/7、満足4/5</td><td>「もう少し話せるようになったらまた」</td></tr>
+                </table>
+                <p style="margin-top:8px;">解約パターン：不満型・諦め型（実感1-2）が防ぐべき。円満型・計画型は許容。</p>
+            </div>
+        </section>
+
+        <!-- 退会・嬉しいコメント -->
+        <section id="withdrawal" class="panel">
+            <div class="card">
+                <h2>退会シートの状況</h2>
+                <p><strong>登録済み3名：</strong>中川順子(10/31・予約体制不満)、わたなべ由香(11/30・単発)、板橋奈津子(12/17)</p>
+                <p><strong>未移行6名：</strong>合田桂士、宮本祐子、立和名翼沙、西村庸平、塚原圭子、久保田利奈</p>
+                <h3>解約理由の傾向</h3>
+                <p>予約体制不満1、短期で成果感じられず4、一定回数後不満/諦め2、円満2</p>
+            </div>
+            <div class="card">
+                <h2>受講生が喜ぶポイント TOP5</h2>
+                <ol>
+                    <li><strong>楽しさ・ポジティブな雰囲気</strong>（8件）— 最大の継続動機</li>
+                    <li><strong>具体的な表現・言い換えの指導</strong>（5件）</li>
+                    <li><strong>できている部分を認めてくれる</strong>（3件）</li>
+                    <li><strong>日本語でのサポート・安心感</strong>（3件）</li>
+                    <li><strong>具体的な学習方法の提示</strong>（3件）</li>
+                </ol>
+            </div>
+            <div class="card">
+                <h2>嬉しいコメント時系列（抜粋）</h2>
+                <p>犬塚美代子「言いやすい表現を教えてくれた」、山田智美「言いたい表現に直してもらえる」、佐藤結衣「楽しく話せた」、山下千恵子「楽しく学べるツールに感謝」、徳世由美子「できてると言ってくれるので元気が出た」、立和名翼沙「言いたいことを汲み取ってフレーズに言い換えてくれた」...</p>
+            </div>
+            <div class="card">
+                <h2>講師向けFAQ</h2>
+                <p><strong>Q1:</strong> Zoom予定更新・予約作成・リンク送付は講師業務？ <strong>A:</strong> いいえ。運営側で対応。</p>
+                <p><strong>Q2:</strong> Google Meetの動画保存・画面共有は簡単？ <strong>A:</strong> はい。録画自動保存、画面共有ワンクリック。</p>
+                <p><strong>Q3:</strong> 文字起こしはどう活用？ <strong>A:</strong> レッスンメモ・引継ぎ確認に活用。</p>
+                <p><strong>Q4:</strong> 各講師のDrive資料を1つにまとめられない？ <strong>A:</strong> 全体のレッスン状況に集約済み。移行作業中。</p>
+            </div>
+        </section>
+
+        <!-- 確認事項レポート -->
+        <section id="report" class="panel">
+            <div class="card">
+                <h2>A. 不明な点・質問事項</h2>
+                <ul>
+                    <li><strong>A-1:</strong> 「予約」列の定義不明（月別合計と不一致）</li>
+                    <li><strong>A-2:</strong> 12月だけ5コマの理由</li>
+                    <li><strong>A-3:</strong> 取渕菜穂子のプラン（月1？4ヶ月に1回入金？）</li>
+                    <li><strong>A-4:</strong> 多田野薫子の契約状態（幽霊会員？）</li>
+                    <li><strong>A-5:</strong> 富士溪俊之の「残1回期限2月末」の根拠</li>
+                    <li><strong>A-6:</strong> Aya先生だけ直接調整の理由</li>
+                    <li><strong>A-7:</strong> Alex・りの先生の退任状況</li>
+                    <li><strong>A-8:</strong> 改善アンケートの回答者特定</li>
+                    <li><strong>A-9:</strong> 繰越ルールの正式定義</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>B. 現状確認したいもの</h2>
+                <p>B-1: 2月予約0件、B-2: 退会シート6名未移行、B-3: 解約日未入力、B-4: ロバス由貴、B-5: 狩野怜菜、B-6: 木戸真紀子、B-7: 山下千恵子の不満、B-8: 松隈由香の講師変更、B-9: Ren先生稼働、B-10: Zoom→Meet移行、B-11: 成長計画の見直し</p>
+            </div>
+            <div class="card">
+                <h2>C. バグ・データ不整合</h2>
+                <p>C-1: 予約列と月別合計不一致、C-2: 合田桂士ステータス、C-3: 解約日「解約日入力」のまま、C-4: 板橋奈津子データ重複、C-5: 講師所感と満足度の指標混同、C-6: Tomoyo(4)人数不一致、C-7: 塚原圭子回数不一致、C-8: 取渕菜穂子シート9未掲載、C-9: 嵯峨梨江満足度データ欠落、C-10: 前田結衣ステータス不明</p>
+            </div>
+        </section>
+
+        <!-- 質問事項 -->
+        <section id="questions" class="panel">
+            <div class="card">
+                <h2>質問事項（全24問）</h2>
+                <p><strong>緊急:</strong> Q1 2月予約0件、Q2 ロバス由貴連絡、Q3 退会シート担当</p>
+                <p><strong>運営ルール:</strong> Q4 基本プラン月4回、Q5 繰越ルール、Q6 予約列の意味、Q7 取渕プラン、Q8 休会制度</p>
+                <p><strong>受講生:</strong> Q9 多田野、Q10 狩野怜菜、Q11 木戸真紀子、Q12 山下千恵子、Q13 松隈由香、Q14 前田結衣、Q15 満足度4-5の回答者</p>
+                <p><strong>講師:</strong> Q16 Aya直接調整、Q17 Alex/りの退任、Q18 Ren稼働、Q19 Tomoyo4人目、Q20 Zoom→Meet</p>
+                <p><strong>システム:</strong> Q21 解約日入力担当、Q22 板橋データ重複、Q23 嵯峨梨江満足度、Q24 取渕シート9</p>
+            </div>
+        </section>
+
+        <!-- 組織・入金 -->
+        <section id="org" class="panel">
+            <div class="card">
+                <h2>決済システム</h2>
+                <p><strong>ROBOT PAYMENT:</strong> 佐藤結衣、多田野薫子、合田桂士、佐藤妙、松隈由香、川上潔、木戸真紀子、氏家敦子、塚原圭子、牧内晴代、久保田利奈、嵯峨梨江、板橋奈津子、渡邊由香</p>
+                <p><strong>ペライチ:</strong> 山下千恵子、狩野怜菜、ロバス由貴、取渕菜穂子、立和名翼沙、富士溪俊之</p>
+                <p><strong>ペライチ→RP移行:</strong> 山田智美、高橋通江、犬塚美代子、甲斐博美、徳世由美子、宮本祐子</p>
+            </div>
+            <div class="card">
+                <h2>キーパーソン</h2>
+                <p>Masa（最終判断・学習法）、田中啓行（英会話・セッション・請求）、さくなつ（新規・支払い）、大井手健人（システム・自動化）、Keisuke Yoshihara（悩み・モチベ）</p>
+            </div>
+            <div class="card">
+                <h2>成長計画 vs 実績</h2>
+                <table>
+                    <tr><td>2025/9</td><td>4名</td><td>2025/12</td><td>116名(計画)</td></tr>
+                    <tr><td>2025/10</td><td>14名</td><td>2026/1</td><td>187名(計画) vs 29名(実際)</td></tr>
+                    <tr><td>2025/11</td><td>60名(計画)</td><td>2026/2</td><td>260名(計画)</td></tr>
+                </table>
+            </div>
+            <div class="card">
+                <h2>先生情報（稼働・シフト）</h2>
+                <p><strong>Aya:</strong> 月火木金18-23時、土日14-16時、10コマ。Slack○、予約シート○、動画○</p>
+                <p><strong>Miku:</strong> 月〜金11-17:30。Slack○、予約シート○、動画○</p>
+                <p><strong>Mai:</strong> 最も広い稼働。Slack○、動画なし</p>
+                <p><strong>Sakino:</strong> 水18-20・日19-21。Slack○、動画○</p>
+                <p><strong>Akiko:</strong> 月-土19:30-22、日祝8-22。6-7コマ。Slack○、動画○</p>
+                <p><strong>Ren:</strong> 1/10〜開始。Slack×。1月レッスン実績なし</p>
+                <p><strong>Alex/りの:</strong> 初期のみ。現在非稼働</p>
+            </div>
+        </section>
+
+        <!-- LINE定型文 -->
+        <section id="line" class="panel">
+            <div class="card">
+                <h2>講師別予約案内</h2>
+                <p><strong>Aya先生の受講生向け:</strong></p>
+                <div class="msg-block">こちらはAya先生にも共有済みです。
+追加のご予約については、レッスンの際に直接Aya先生とご相談・調整していただけますと幸いです</div>
+                <p><strong>Miku先生:</strong> https://timerex.net/s/miku.1062_4239/b7a4bd3d/</p>
+                <p><strong>Tomoyo先生:</strong> https://timerex.net/s/tomoyo.e0514_3e8d/62a1baf0/</p>
+            </div>
+            <div class="card">
+                <h2>未消化分が多い受講生向け</h2>
+                <div class="msg-block">未消化分が少し多めなので、まずは週1ペースを目安に先に1レッスンだけでも予定を入れておくと安心です。
+慣れてきたら、余裕のある週にまとめて2レッスン入れることもできますよ。
+「この週なら行けそう」など2〜3候補教えていただければ、こちらで調整することもできますよ。</div>
+            </div>
+            <div class="card">
+                <h2>未消化分がかなり多い受講生向け</h2>
+                <div class="msg-block">未予約分が少し多めなので、いくつかご提案です。
+①1回のレッスンで2回分（100分）をまとめて受講する
+②余裕のある週に週2ペースでレッスンを受講する
+「この週なら行けそう」「この日は100分いけそう」など教えていただければ、こちらで空いている講師との調整も可能です。</div>
+            </div>
+        </section>
+
+        <!-- アクションプラン -->
+        <section id="actions" class="panel">
+            <div class="card">
+                <h2>最優先（満足度に直結）</h2>
+                <ol>
+                    <li><strong>固定制の早期導入</strong> — レッスンが入らない問題への対応。入塾時から固定枠を案内し、予約しやすさと継続率を両立</li>
+                    <li><strong>成長の見える化</strong> — 7名が「成長実感しにくい」、有料でもいいとの声</li>
+                    <li><strong>予約の柔軟化</strong> — 48時間前緩和、前日予約、2週間先公開</li>
+                    <li><strong>Masaフレーズ集/教材</strong> — 要望複数</li>
+                </ol>
+                <h3>高優先（解約防止）</h3>
+                <ol>
+                    <li>Masa先生との接点（3ヶ月に1回勉強会）</li>
+                    <li>休会制度の導入</li>
+                    <li>チャットルームの活性化</li>
+                </ol>
+                <h3>中優先</h3>
+                <ol>
+                    <li>他講師への予約しやすさ改善</li>
+                    <li>課金体系の信頼感向上</li>
+                </ol>
+            </div>
+            <div class="card">
+                <h2>講師所感の今後のアクション</h2>
+                <ol>
+                    <li>宿題の出し方ガイドライン作成（7原則を共有資料化）</li>
+                    <li>引継ぎFBシートのテンプレート改善（チェック方法欄追加）</li>
+                    <li>Aya先生のFBS構成をベストプラクティスとして共有</li>
+                    <li>個別面談：Mai（雛形未使用）、Kazuki・Sakino（評価低め）</li>
+                    <li>「話せる実感」スコア改善の全体施策検討</li>
+                </ol>
+            </div>
+            <div class="card">
+                <h2>統合インサイト</h2>
+                <ul>
+                    <li>「話せる実感」が解約の最大予測因子 → 実感を可視化する仕組み</li>
+                    <li>講師満足度だけでは解約を防げない → 実感スコア・受講頻度を追跡</li>
+                    <li>「相槌・リアクションフレーズ」要望多い → 共通教材作成</li>
+                    <li>「明確な宿題」が継続のカギ → 7原則を全講師展開</li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+    <footer>ペラトレ ナレッジダッシュボード（完全版）｜全10ナレッジファイル網羅｜2026年2月</footer>
+    <script>
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.getAttribute('href').slice(1);
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
